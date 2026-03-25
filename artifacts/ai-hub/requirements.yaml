@@ -1,0 +1,17 @@
+packages:
+  "lucide-react": "Icons for the command center UI"
+  "framer-motion": "Smooth animations and transitions"
+  "date-fns": "Date formatting for messages and logs"
+  "react-markdown": "Markdown rendering for AI chat responses"
+  "zustand": "Global state management for auth and business context"
+  "clsx": "Class name merging"
+  "tailwind-merge": "Tailwind class conflict resolution"
+
+images:
+  - path: "artifacts/ai-hub/public/images/logo.png"
+    description: "Minimalist futuristic geometric logo mark in vibrant indigo and cyan on a transparent background, suitable for a premium AI command center"
+    aspect_ratio: "1:1"
+
+notes:
+  - Auth uses a simple APP_PASSWORD flow verifying against GET /api/auth/verify (simulated locally if missing)
+  - Chat streaming uses a custom fetch + ReadableStream implementation parsing SSE data chunks

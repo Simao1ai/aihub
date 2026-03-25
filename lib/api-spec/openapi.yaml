@@ -1,22 +1,30 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AI Hub API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: anthropic
+    description: Anthropic AI chat operations
+  - name: agents
+    description: Agent management
+  - name: brain
+    description: Brain document management
+  - name: automations
+    description: Automation management
+  - name: connections
+    description: Social media and external account connections
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +32,615 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ─── Agents ───────────────────────────────────────────────────────────────
+  /agents:
+    get:
+      operationId: listAgents
+      tags: [agents]
+      summary: List all agents
+      responses:
+        "200":
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Agent"
+  /agents/{id}:
+    get:
+      operationId: getAgent
+      tags: [agents]
+      summary: Get agent by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Agent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agent"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateAgent
+      tags: [agents]
+      summary: Update agent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAgentBody"
+      responses:
+        "200":
+          description: Updated agent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agent"
+
+  # ─── Conversations ────────────────────────────────────────────────────────
+  /anthropic/conversations:
+    get:
+      operationId: listAnthropicConversations
+      tags: [anthropic]
+      summary: List all conversations
+      parameters:
+        - name: agentId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnthropicConversation"
+    post:
+      operationId: createAnthropicConversation
+      tags: [anthropic]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAnthropicConversationBody"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnthropicConversation"
+  /anthropic/conversations/{id}:
+    get:
+      operationId: getAnthropicConversation
+      tags: [anthropic]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnthropicConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnthropicError"
+    delete:
+      operationId: deleteAnthropicConversation
+      tags: [anthropic]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnthropicError"
+  /anthropic/conversations/{id}/messages:
+    get:
+      operationId: listAnthropicMessages
+      tags: [anthropic]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnthropicMessage"
+    post:
+      operationId: sendAnthropicMessage
+      tags: [anthropic]
+      summary: Send a message and receive an AI response (SSE stream)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendAnthropicMessageBody"
+      responses:
+        "200":
+          description: SSE stream of assistant response chunks
+          content:
+            text/event-stream: {}
+
+  # ─── Brain ────────────────────────────────────────────────────────────────
+  /brain/documents:
+    get:
+      operationId: listBrainDocuments
+      tags: [brain]
+      summary: List all brain documents
+      parameters:
+        - name: businessTag
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [equifind, home_inspection, general]
+      responses:
+        "200":
+          description: List of brain documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BrainDocument"
+    post:
+      operationId: createBrainDocument
+      tags: [brain]
+      summary: Create a brain document (text or URL)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBrainDocumentBody"
+      responses:
+        "201":
+          description: Created document(s)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BrainDocument"
+  /brain/documents/upload:
+    post:
+      operationId: uploadBrainDocument
+      tags: [brain]
+      summary: Upload a PDF brain document
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title:
+                  type: string
+                businessTag:
+                  type: string
+                  enum: [equifind, home_inspection, general]
+              required: [file, title, businessTag]
+      responses:
+        "201":
+          description: Uploaded and processed documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BrainDocument"
+  /brain/documents/{id}:
+    delete:
+      operationId: deleteBrainDocument
+      tags: [brain]
+      summary: Delete a brain document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Automations ─────────────────────────────────────────────────────────
+  /automations:
+    get:
+      operationId: listAutomations
+      tags: [automations]
+      summary: List all automations
+      responses:
+        "200":
+          description: List of automations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Automation"
+    post:
+      operationId: createAutomation
+      tags: [automations]
+      summary: Create a new automation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAutomationBody"
+      responses:
+        "201":
+          description: Created automation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Automation"
+  /automations/{id}:
+    get:
+      operationId: getAutomation
+      tags: [automations]
+      summary: Get automation by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Automation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Automation"
+    patch:
+      operationId: updateAutomation
+      tags: [automations]
+      summary: Update automation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAutomationBody"
+      responses:
+        "200":
+          description: Updated automation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Automation"
+    delete:
+      operationId: deleteAutomation
+      tags: [automations]
+      summary: Delete automation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+  /automations/{id}/run:
+    post:
+      operationId: runAutomation
+      tags: [automations]
+      summary: Run automation immediately
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Run result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationRun"
+  /automations/runs:
+    get:
+      operationId: listAutomationRuns
+      tags: [automations]
+      summary: List automation runs
+      parameters:
+        - name: automationId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [success, failed, pending_approval]
+      responses:
+        "200":
+          description: List of automation runs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AutomationRun"
+  /automations/runs/{id}/approve:
+    post:
+      operationId: approveAutomationRun
+      tags: [automations]
+      summary: Approve a pending automation run
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationRun"
+  /automations/runs/{id}/discard:
+    post:
+      operationId: discardAutomationRun
+      tags: [automations]
+      summary: Discard a pending automation run
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Discarded run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationRun"
+
+  # ─── Connections ─────────────────────────────────────────────────────────
+  /connections:
+    get:
+      operationId: listConnections
+      tags: [connections]
+      summary: List all platform connections
+      responses:
+        "200":
+          description: List of connections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Connection"
+    post:
+      operationId: createConnection
+      tags: [connections]
+      summary: Create or update a platform connection (API key/token based)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConnectionBody"
+      responses:
+        "201":
+          description: Created connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Connection"
+  /connections/{id}:
+    delete:
+      operationId: deleteConnection
+      tags: [connections]
+      summary: Disconnect/delete a platform connection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+  /connections/{id}/test:
+    post:
+      operationId: testConnection
+      tags: [connections]
+      summary: Test a platform connection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Test result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectionTestResult"
+  /connections/oauth/{platform}/initiate:
+    get:
+      operationId: initiateOAuth
+      tags: [connections]
+      summary: Start OAuth flow for a platform
+      parameters:
+        - name: platform
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [linkedin, google, twitter, meta]
+      responses:
+        "200":
+          description: OAuth URL to redirect user to
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthInitiateResponse"
+  /connections/oauth/{platform}/callback:
+    get:
+      operationId: oauthCallback
+      tags: [connections]
+      summary: OAuth callback handler
+      parameters:
+        - name: platform
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: error
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect after OAuth
+
+  # ─── Connection Actions ───────────────────────────────────────────────────
+  /connections/{id}/actions/post:
+    post:
+      operationId: connectionPost
+      tags: [connections]
+      summary: Post content via a connected platform
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectionPostBody"
+      responses:
+        "200":
+          description: Post result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectionActionResult"
+  /connections/{id}/actions/send-message:
+    post:
+      operationId: connectionSendMessage
+      tags: [connections]
+      summary: Send a DM or message via a connected platform
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectionSendMessageBody"
+      responses:
+        "200":
+          description: Message result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectionActionResult"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +651,442 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    # ─── Agents ───────────────────────────────────────────────────────────
+    Agent:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        roleDescription:
+          type: string
+        systemPrompt:
+          type: string
+        icon:
+          type: string
+        color:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - slug
+        - roleDescription
+        - systemPrompt
+        - icon
+        - color
+        - isActive
+        - createdAt
+
+    UpdateAgentBody:
+      type: object
+      properties:
+        systemPrompt:
+          type: string
+        isActive:
+          type: boolean
+
+    # ─── Conversations / Anthropic ────────────────────────────────────────
+    AnthropicConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        agentId:
+          type: integer
+        businessTag:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - agentId
+        - businessTag
+        - createdAt
+        - updatedAt
+
+    AnthropicMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+
+    CreateAnthropicConversationBody:
+      type: object
+      properties:
+        title:
+          type: string
+        agentId:
+          type: integer
+        businessTag:
+          type: string
+      required:
+        - title
+        - agentId
+        - businessTag
+
+    SendAnthropicMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+
+    AnthropicConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        agentId:
+          type: integer
+        businessTag:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnthropicMessage"
+      required:
+        - id
+        - title
+        - agentId
+        - businessTag
+        - createdAt
+        - updatedAt
+        - messages
+
+    AnthropicError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    # ─── Brain ────────────────────────────────────────────────────────────
+    BrainDocument:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        type:
+          type: string
+          enum: [pdf, text, url]
+        content:
+          type: string
+        businessTag:
+          type: string
+          enum: [equifind, home_inspection, general]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - type
+        - content
+        - businessTag
+        - createdAt
+
+    CreateBrainDocumentBody:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+          enum: [text, url]
+        content:
+          type: string
+        url:
+          type: string
+        businessTag:
+          type: string
+          enum: [equifind, home_inspection, general]
+      required:
+        - title
+        - type
+        - businessTag
+
+    # ─── Automations ─────────────────────────────────────────────────────
+    Automation:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        agentId:
+          type: integer
+        agentName:
+          type: string
+        agentIcon:
+          type: string
+        agentColor:
+          type: string
+        scheduleCron:
+          type: string
+          nullable: true
+        promptTemplate:
+          type: string
+        lastRanAt:
+          type: string
+          format: date-time
+          nullable: true
+        nextRunAt:
+          type: string
+          format: date-time
+          nullable: true
+        isActive:
+          type: boolean
+        status:
+          type: string
+          enum: [idle, running, pending_approval]
+        lastOutput:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - agentId
+        - agentName
+        - agentIcon
+        - agentColor
+        - promptTemplate
+        - isActive
+        - status
+        - createdAt
+
+    CreateAutomationBody:
+      type: object
+      properties:
+        name:
+          type: string
+        agentId:
+          type: integer
+        scheduleCron:
+          type: string
+        promptTemplate:
+          type: string
+        isActive:
+          type: boolean
+      required:
+        - name
+        - agentId
+        - promptTemplate
+
+    UpdateAutomationBody:
+      type: object
+      properties:
+        name:
+          type: string
+        scheduleCron:
+          type: string
+        promptTemplate:
+          type: string
+        isActive:
+          type: boolean
+
+    AutomationRun:
+      type: object
+      properties:
+        id:
+          type: integer
+        automationId:
+          type: integer
+        automationName:
+          type: string
+        agentName:
+          type: string
+        agentIcon:
+          type: string
+        agentColor:
+          type: string
+        output:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [success, failed, pending_approval]
+        ranAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - automationId
+        - automationName
+        - agentName
+        - agentIcon
+        - agentColor
+        - status
+        - ranAt
+
+    # ─── Connections ─────────────────────────────────────────────────────
+    Connection:
+      type: object
+      properties:
+        id:
+          type: integer
+        platform:
+          type: string
+          enum: [linkedin, google, twitter, meta, gohighlevel, email]
+        displayName:
+          type: string
+        accountLabel:
+          type: string
+          nullable: true
+        isConnected:
+          type: boolean
+        authType:
+          type: string
+          enum: [oauth, api_key]
+        scopes:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - platform
+        - displayName
+        - isConnected
+        - authType
+        - scopes
+        - createdAt
+
+    CreateConnectionBody:
+      type: object
+      properties:
+        platform:
+          type: string
+          enum: [gohighlevel, email]
+        apiKey:
+          type: string
+        accountLabel:
+          type: string
+        metadata:
+          type: object
+      required:
+        - platform
+        - apiKey
+
+    ConnectionTestResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        accountInfo:
+          type: object
+          nullable: true
+      required:
+        - success
+        - message
+
+    OAuthInitiateResponse:
+      type: object
+      properties:
+        url:
+          type: string
+        state:
+          type: string
+      required:
+        - url
+        - state
+
+    ConnectionPostBody:
+      type: object
+      properties:
+        content:
+          type: string
+        mediaUrls:
+          type: array
+          items:
+            type: string
+        targetId:
+          type: string
+          nullable: true
+      required:
+        - content
+
+    ConnectionSendMessageBody:
+      type: object
+      properties:
+        recipientId:
+          type: string
+        message:
+          type: string
+      required:
+        - recipientId
+        - message
+
+    ConnectionActionResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        postId:
+          type: string
+          nullable: true
+      required:
+        - success
+        - message

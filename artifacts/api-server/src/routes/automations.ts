@@ -1,0 +1,238 @@
+import { Router, type IRouter } from "express";
+import { db, automationsTable, automationRunsTable, agentsTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
+import { runAutomationById } from "../lib/cron";
+
+const router: IRouter = Router();
+
+// List automations
+router.get("/", async (req, res) => {
+  try {
+    const rows = await db
+      .select({
+        id: automationsTable.id,
+        name: automationsTable.name,
+        agentId: automationsTable.agentId,
+        agentName: agentsTable.name,
+        agentIcon: agentsTable.icon,
+        agentColor: agentsTable.color,
+        scheduleCron: automationsTable.scheduleCron,
+        promptTemplate: automationsTable.promptTemplate,
+        lastRanAt: automationsTable.lastRanAt,
+        nextRunAt: automationsTable.nextRunAt,
+        isActive: automationsTable.isActive,
+        status: automationsTable.status,
+        lastOutput: automationsTable.lastOutput,
+        createdAt: automationsTable.createdAt,
+      })
+      .from(automationsTable)
+      .leftJoin(agentsTable, eq(automationsTable.agentId, agentsTable.id))
+      .orderBy(automationsTable.createdAt);
+
+    res.json(rows);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to fetch automations" });
+  }
+});
+
+// Create automation
+router.post("/", async (req, res) => {
+  try {
+    const { name, agentId, scheduleCron, promptTemplate, isActive } = req.body;
+    const [automation] = await db
+      .insert(automationsTable)
+      .values({ name, agentId, scheduleCron, promptTemplate, isActive: isActive ?? true, status: "idle" })
+      .returning();
+
+    const [agent] = await db.select().from(agentsTable).where(eq(agentsTable.id, agentId));
+    res.status(201).json({ ...automation, agentName: agent?.name, agentIcon: agent?.icon, agentColor: agent?.color });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to create automation" });
+  }
+});
+
+// Get automation
+router.get("/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [row] = await db
+      .select({
+        id: automationsTable.id,
+        name: automationsTable.name,
+        agentId: automationsTable.agentId,
+        agentName: agentsTable.name,
+        agentIcon: agentsTable.icon,
+        agentColor: agentsTable.color,
+        scheduleCron: automationsTable.scheduleCron,
+        promptTemplate: automationsTable.promptTemplate,
+        lastRanAt: automationsTable.lastRanAt,
+        nextRunAt: automationsTable.nextRunAt,
+        isActive: automationsTable.isActive,
+        status: automationsTable.status,
+        lastOutput: automationsTable.lastOutput,
+        createdAt: automationsTable.createdAt,
+      })
+      .from(automationsTable)
+      .leftJoin(agentsTable, eq(automationsTable.agentId, agentsTable.id))
+      .where(eq(automationsTable.id, id));
+
+    if (!row) return res.status(404).json({ error: "Automation not found" });
+    res.json(row);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to fetch automation" });
+  }
+});
+
+// Update automation
+router.patch("/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { name, scheduleCron, promptTemplate, isActive } = req.body;
+    const updates: Record<string, unknown> = {};
+    if (name !== undefined) updates.name = name;
+    if (scheduleCron !== undefined) updates.scheduleCron = scheduleCron;
+    if (promptTemplate !== undefined) updates.promptTemplate = promptTemplate;
+    if (isActive !== undefined) updates.isActive = isActive;
+
+    const [updated] = await db.update(automationsTable).set(updates).where(eq(automationsTable.id, id)).returning();
+    if (!updated) return res.status(404).json({ error: "Automation not found" });
+
+    const [agent] = await db.select().from(agentsTable).where(eq(agentsTable.id, updated.agentId));
+    res.json({ ...updated, agentName: agent?.name, agentIcon: agent?.icon, agentColor: agent?.color });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to update automation" });
+  }
+});
+
+// Delete automation
+router.delete("/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [deleted] = await db.delete(automationsTable).where(eq(automationsTable.id, id)).returning();
+    if (!deleted) return res.status(404).json({ error: "Automation not found" });
+    res.status(204).end();
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to delete automation" });
+  }
+});
+
+// Run automation now
+router.post("/:id/run", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const run = await runAutomationById(id);
+    res.json(run);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to run automation" });
+  }
+});
+
+// List automation runs
+router.get("/runs", async (req, res) => {
+  try {
+    const { automationId, status } = req.query;
+
+    const rows = await db
+      .select({
+        id: automationRunsTable.id,
+        automationId: automationRunsTable.automationId,
+        automationName: automationsTable.name,
+        agentName: agentsTable.name,
+        agentIcon: agentsTable.icon,
+        agentColor: agentsTable.color,
+        output: automationRunsTable.output,
+        status: automationRunsTable.status,
+        ranAt: automationRunsTable.ranAt,
+      })
+      .from(automationRunsTable)
+      .leftJoin(automationsTable, eq(automationRunsTable.automationId, automationsTable.id))
+      .leftJoin(agentsTable, eq(automationsTable.agentId, agentsTable.id))
+      .orderBy(automationRunsTable.ranAt);
+
+    let filtered = rows;
+    if (automationId) filtered = filtered.filter((r) => r.automationId === parseInt(automationId as string));
+    if (status) filtered = filtered.filter((r) => r.status === status);
+
+    res.json(filtered.reverse());
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to fetch automation runs" });
+  }
+});
+
+// Approve run
+router.post("/runs/:id/approve", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [run] = await db.select().from(automationRunsTable).where(eq(automationRunsTable.id, id));
+    if (!run) return res.status(404).json({ error: "Run not found" });
+
+    const [updated] = await db
+      .update(automationRunsTable)
+      .set({ status: "success" })
+      .where(eq(automationRunsTable.id, id))
+      .returning();
+
+    // Also update the automation's lastOutput
+    await db
+      .update(automationsTable)
+      .set({ lastOutput: run.output, status: "idle" })
+      .where(eq(automationsTable.id, run.automationId));
+
+    const [automation] = await db.select().from(automationsTable).where(eq(automationsTable.id, run.automationId));
+    const [agent] = await db.select().from(agentsTable).where(eq(agentsTable.id, automation?.agentId || 0));
+
+    res.json({
+      ...updated,
+      automationName: automation?.name,
+      agentName: agent?.name,
+      agentIcon: agent?.icon,
+      agentColor: agent?.color,
+    });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to approve run" });
+  }
+});
+
+// Discard run
+router.post("/runs/:id/discard", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [run] = await db.select().from(automationRunsTable).where(eq(automationRunsTable.id, id));
+    if (!run) return res.status(404).json({ error: "Run not found" });
+
+    const [updated] = await db
+      .update(automationRunsTable)
+      .set({ status: "failed" })
+      .where(eq(automationRunsTable.id, id))
+      .returning();
+
+    await db
+      .update(automationsTable)
+      .set({ status: "idle" })
+      .where(eq(automationsTable.id, run.automationId));
+
+    const [automation] = await db.select().from(automationsTable).where(eq(automationsTable.id, run.automationId));
+    const [agent] = await db.select().from(agentsTable).where(eq(agentsTable.id, automation?.agentId || 0));
+
+    res.json({
+      ...updated,
+      automationName: automation?.name,
+      agentName: agent?.name,
+      agentIcon: agent?.icon,
+      agentColor: agent?.color,
+    });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to discard run" });
+  }
+});
+
+export default router;
