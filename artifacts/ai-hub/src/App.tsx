@@ -7,6 +7,7 @@ import { useAppStore } from "@/store";
 // Layout & Pages
 import { AppLayout } from "@/components/layout";
 import Login from "@/pages/login";
+import Dashboard from "@/pages/dashboard";
 import Agents from "@/pages/agents";
 import Brain from "@/pages/brain";
 import Automations from "@/pages/automations";
@@ -44,7 +45,7 @@ function Router() {
 
   // Root redirect
   if (location === '/') {
-    if (isAuthenticated) setLocation('/agents');
+    if (isAuthenticated) setLocation('/dashboard');
     else setLocation('/login');
     return null;
   }
@@ -52,6 +53,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/agents"><ProtectedRoute component={Agents} /></Route>
       <Route path="/brain"><ProtectedRoute component={Brain} /></Route>
       <Route path="/automations"><ProtectedRoute component={Automations} /></Route>

@@ -5,6 +5,11 @@ import { runAutomationById } from "../lib/cron";
 
 const router: IRouter = Router();
 
+const parseId = (val: string): number | null => {
+  const n = parseInt(val, 10);
+  return isNaN(n) ? null : n;
+};
+
 // List automations
 router.get("/", async (req, res) => {
   try {
@@ -56,7 +61,8 @@ router.post("/", async (req, res) => {
 // Get automation
 router.get("/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ error: "Invalid ID" });
     const [row] = await db
       .select({
         id: automationsTable.id,
@@ -89,7 +95,8 @@ router.get("/:id", async (req, res) => {
 // Update automation
 router.patch("/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ error: "Invalid ID" });
     const { name, scheduleCron, promptTemplate, isActive } = req.body;
     const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
@@ -111,7 +118,8 @@ router.patch("/:id", async (req, res) => {
 // Delete automation
 router.delete("/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ error: "Invalid ID" });
     const [deleted] = await db.delete(automationsTable).where(eq(automationsTable.id, id)).returning();
     if (!deleted) return res.status(404).json({ error: "Automation not found" });
     res.status(204).end();
@@ -124,7 +132,8 @@ router.delete("/:id", async (req, res) => {
 // Run automation now
 router.post("/:id/run", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ error: "Invalid ID" });
     const run = await runAutomationById(id);
     res.json(run);
   } catch (err) {
@@ -169,7 +178,8 @@ router.get("/runs", async (req, res) => {
 // Approve run
 router.post("/runs/:id/approve", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ error: "Invalid ID" });
     const [run] = await db.select().from(automationRunsTable).where(eq(automationRunsTable.id, id));
     if (!run) return res.status(404).json({ error: "Run not found" });
 
@@ -204,7 +214,8 @@ router.post("/runs/:id/approve", async (req, res) => {
 // Discard run
 router.post("/runs/:id/discard", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ error: "Invalid ID" });
     const [run] = await db.select().from(automationRunsTable).where(eq(automationRunsTable.id, id));
     if (!run) return res.status(404).json({ error: "Run not found" });
 

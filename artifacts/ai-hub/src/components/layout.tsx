@@ -2,10 +2,11 @@ import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store';
-import { Bot, Brain, Zap, Link as LinkIcon, LogOut, Command, Building2, Briefcase, Hash } from 'lucide-react';
+import { Bot, Brain, Zap, Link as LinkIcon, LogOut, Command, Building2, Briefcase, Hash, LayoutDashboard } from 'lucide-react';
 import { cn } from './ui-elements';
 
 const navItems = [
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/agents', label: 'Agents', icon: Bot },
   { path: '/brain', label: 'Brain', icon: Brain },
   { path: '/automations', label: 'Automations', icon: Zap },
@@ -34,9 +35,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <span className="ml-3 font-display font-bold text-lg hidden lg:block text-white">AI Hub</span>
           </div>
           
-          <nav className="p-3 space-y-2 mt-4">
+          <nav className="p-3 space-y-1 mt-4">
             {navItems.map((item) => {
-              const isActive = location.startsWith(item.path) || (location === '/' && item.path === '/agents');
+              const isActive = location.startsWith(item.path);
               return (
                 <Link key={item.path} href={item.path} className="block relative">
                   <div className={cn(
