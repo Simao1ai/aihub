@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Command, Lock, ArrowRight } from 'lucide-react';
+import { Lock, ArrowRight } from 'lucide-react';
 import { Input, Button } from '@/components/ui-elements';
 import { useVerifyPassword } from '@/hooks/use-auth';
+
+const AGENT_EMOJIS = ['🧭', '📬', '✍️', '🔍', '⚙️', '💬'];
+const AGENT_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444'];
 
 export default function Login() {
   const [password, setPassword] = useState('');
@@ -13,83 +16,127 @@ export default function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     verifyMutation.mutate(password, {
-      onSuccess: () => setLocation('/agents'),
+      onSuccess: () => setLocation('/dashboard'),
     });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#050505]">
-      {/* Background Stock Image */}
-      {/* abstract elegant dark background with subtle glows */}
-      <img 
-        src="https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2000&auto=format&fit=crop" 
-        alt="Dark abstract background"
-        className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none mix-blend-screen"
-      />
-      
-      {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-background/80 to-background pointer-events-none" />
-      
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-md p-8"
-      >
-        <div className="glass-panel p-10 rounded-3xl relative overflow-hidden">
-          {/* Inner ambient glow */}
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/20 blur-[60px] rounded-full pointer-events-none" />
-          
-          <div className="flex justify-center mb-8 relative">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center shadow-2xl shadow-primary/30">
-              <Command className="w-8 h-8 text-white" />
-            </div>
-          </div>
-          
-          <div className="text-center mb-8 relative">
-            <h1 className="text-3xl font-display font-bold text-white mb-2">AI Command Hub</h1>
-            <p className="text-muted-foreground">Enter your security key to access the mainframe.</p>
-          </div>
+    <div className="min-h-screen flex bg-[#0c0e16] overflow-hidden">
 
-          <form onSubmit={handleSubmit} className="space-y-6 relative">
-            <div className="space-y-2">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Security Key (default: aihub2024)"
-                  className="pl-11 py-3 text-lg bg-black/40 border-white/10 text-white placeholder:text-white/20 focus-visible:border-primary/50"
-                  autoFocus
-                />
-              </div>
-              {verifyMutation.isError && (
-                <motion.p 
-                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                  className="text-destructive text-sm font-medium pl-1"
-                >
-                  Invalid security key. Access denied.
-                </motion.p>
-              )}
-            </div>
+      {/* Left panel — branding */}
+      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-[#090b12] border-r border-white/5 relative overflow-hidden">
 
-            <Button 
-              type="submit" 
-              className="w-full py-6 text-lg" 
-              isLoading={verifyMutation.isPending}
-            >
-              {!verifyMutation.isPending && (
-                <>
-                  Authenticate <ArrowRight className="ml-2 w-5 h-5" />
-                </>
-              )}
-            </Button>
-          </form>
+        {/* Floating agent bubbles */}
+        {AGENT_EMOJIS.map((emoji, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 0.6, y: 0 }}
+            transition={{ delay: i * 0.12, duration: 0.6 }}
+            className="absolute flex items-center justify-center rounded-2xl text-3xl shadow-2xl"
+            style={{
+              width: 64,
+              height: 64,
+              background: `${AGENT_COLORS[i]}18`,
+              border: `1px solid ${AGENT_COLORS[i]}25`,
+              left: `${[12, 55, 25, 68, 10, 60][i]}%`,
+              top: `${[15, 22, 45, 50, 72, 78][i]}%`,
+              boxShadow: `0 0 40px ${AGENT_COLORS[i]}15`,
+            }}
+          >
+            {emoji}
+          </motion.div>
+        ))}
+
+        {/* Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-lg font-bold text-white">
+              A
+            </div>
+            <span className="font-display font-bold text-white text-lg">AI Hub</span>
+          </div>
         </div>
-      </motion.div>
+
+        <div className="relative z-10">
+          <h2 className="text-4xl font-display font-bold text-white leading-snug mb-4">
+            Your personal<br />AI team, always<br />working for you.
+          </h2>
+          <p className="text-white/35 text-sm leading-relaxed max-w-xs">
+            6 specialized agents for Equifind Recovery and your Home Inspection business — available 24/7.
+          </p>
+        </div>
+
+        <div className="relative z-10 flex items-center gap-3">
+          {AGENT_EMOJIS.slice(0, 4).map((e, i) => (
+            <div key={i} className="w-9 h-9 rounded-full flex items-center justify-center text-base border border-white/10 bg-white/5">
+              {e}
+            </div>
+          ))}
+          <span className="text-white/30 text-sm">+2 more agents</span>
+        </div>
+      </div>
+
+      {/* Right panel — login form */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="w-full max-w-sm"
+        >
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2 mb-10 lg:hidden">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-lg font-bold text-white">A</div>
+            <span className="font-display font-bold text-white text-lg">AI Hub</span>
+          </div>
+
+          <h1 className="text-2xl font-display font-bold text-white mb-2">Welcome back</h1>
+          <p className="text-white/35 text-sm mb-8">Enter your access key to continue</p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 pointer-events-none" />
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Access key"
+                autoFocus
+                className="w-full bg-white/5 border border-white/8 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 focus:bg-white/7 transition-all"
+              />
+            </div>
+
+            {verifyMutation.isError && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-red-400 text-xs pl-1"
+              >
+                Incorrect access key. Please try again.
+              </motion.p>
+            )}
+
+            <button
+              type="submit"
+              disabled={verifyMutation.isPending || !password}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
+            >
+              {verifyMutation.isPending ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>Continue <ArrowRight className="w-4 h-4" /></>
+              )}
+            </button>
+          </form>
+
+          <p className="text-white/20 text-xs text-center mt-8">
+            Default key: <span className="font-mono text-white/35">aihub2024</span>
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
 }
