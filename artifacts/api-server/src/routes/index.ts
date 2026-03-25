@@ -7,6 +7,7 @@ import automationsRouter from "./automations";
 import connectionsRouter from "./connections";
 import authRouter from "./auth";
 import pipelinesRouter from "./pipelines";
+import workspacesRouter from "./workspaces";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use("/brain", brainRouter);
 router.use("/automations", automationsRouter);
 router.use("/connections", connectionsRouter);
 router.use("/pipelines", pipelinesRouter);
+router.use("/workspaces", workspacesRouter);
 
 export default router;

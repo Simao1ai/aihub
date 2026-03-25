@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type BusinessTag = 'general' | 'equifind' | 'home_inspection';
+export type BusinessTag = string;
 
 export interface Account {
   workspace: string;
   displayName: string;
   businessTag: BusinessTag;
   password: string;
+  color: string;
+  emoji: string;
 }
 
 interface AppState {

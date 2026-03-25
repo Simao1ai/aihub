@@ -13,6 +13,7 @@ import Brain from "@/pages/brain";
 import Automations from "@/pages/automations";
 import Pipelines from "@/pages/pipelines";
 import Connections from "@/pages/connections";
+import Workspaces from "@/pages/workspaces";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -60,6 +61,7 @@ function Router() {
       <Route path="/automations"><ProtectedRoute component={Automations} /></Route>
       <Route path="/pipelines"><ProtectedRoute component={Pipelines} /></Route>
       <Route path="/connections"><ProtectedRoute component={Connections} /></Route>
+      <Route path="/workspaces"><ProtectedRoute component={Workspaces} /></Route>
       <Route component={NotFound} />
     </Switch>
   );

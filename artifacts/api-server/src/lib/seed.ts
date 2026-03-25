@@ -1,5 +1,38 @@
-import { db, agentsTable, automationsTable } from "@workspace/db";
+import { db, agentsTable, automationsTable, workspacesTable } from "@workspace/db";
 import { logger } from "./logger";
+
+const WORKSPACES = [
+  {
+    name: "General",
+    slug: "general",
+    description: "Full access across all businesses and agents",
+    emoji: "⚡",
+    color: "#6366f1",
+    password: process.env.GENERAL_PASSWORD || "aihub2024",
+    sortOrder: 0,
+    isActive: true,
+  },
+  {
+    name: "Equifind Recovery",
+    slug: "equifind",
+    description: "Florida tax deed surplus fund recovery operations",
+    emoji: "💼",
+    color: "#f59e0b",
+    password: process.env.EQUIFIND_PASSWORD || "aihub2024",
+    sortOrder: 1,
+    isActive: true,
+  },
+  {
+    name: "Home Inspections",
+    slug: "home_inspection",
+    description: "B2B home inspection & realtor network management",
+    emoji: "🏠",
+    color: "#10b981",
+    password: process.env.HOME_INSPECTION_PASSWORD || "aihub2024",
+    sortOrder: 2,
+    isActive: true,
+  },
+];
 
 const AGENTS = [
   {
@@ -60,26 +93,34 @@ const AGENTS = [
 
 export async function seedDatabase() {
   try {
-    // Check if already seeded
+    logger.info("Checking database seed state...");
+
+    // Seed workspaces (upsert by slug)
+    for (const ws of WORKSPACES) {
+      await db
+        .insert(workspacesTable)
+        .values(ws)
+        .onConflictDoNothing();
+    }
+    logger.info("Workspaces seeded");
+
+    // Check if agents already seeded
     const existingAgents = await db.select().from(agentsTable).limit(1);
     if (existingAgents.length > 0) {
-      logger.info("Database already seeded, skipping");
+      logger.info("Agents already seeded, skipping");
       return;
     }
 
-    logger.info("Seeding database with agents and automations...");
+    logger.info("Seeding agents and automations...");
 
-    // Insert agents
     const insertedAgents = await db.insert(agentsTable).values(AGENTS).returning();
-
     const agentMap = Object.fromEntries(insertedAgents.map((a) => [a.slug, a.id]));
 
-    // Insert automations
     await db.insert(automationsTable).values([
       {
         name: "Weekly Realtor Outreach Draft",
         agentId: agentMap.outreach,
-        scheduleCron: "0 8 * * 1", // Every Monday 8am
+        scheduleCron: "0 8 * * 1",
         promptTemplate: `Draft 3 personalized cold outreach emails to realtors for home inspection partnerships. Include a subject line, opening hook, value proposition, and CTA. Make them feel human and conversational, not corporate. Each email should be for a different realtor persona (e.g., new agent, top producer, team leader).`,
         isActive: true,
         status: "idle",
@@ -87,7 +128,7 @@ export async function seedDatabase() {
       {
         name: "Equifind Weekly Strategy Brief",
         agentId: agentMap.compass,
-        scheduleCron: "0 16 * * 5", // Every Friday 4pm
+        scheduleCron: "0 16 * * 5",
         promptTemplate: `Generate a weekly strategic review for Equifind Recovery. Cover: what to prioritize next week, any risks to watch, one growth action item, and any opportunities in the Florida tax deed surplus fund space. Be specific and actionable.`,
         isActive: true,
         status: "idle",
@@ -95,7 +136,7 @@ export async function seedDatabase() {
       {
         name: "Case Research Summary",
         agentId: agentMap.scout,
-        scheduleCron: null, // On-demand only
+        scheduleCron: null,
         promptTemplate: `Summarize the current state of the Lee County surplus fund recovery pipeline. Identify which case types have highest recovery probability and suggest next skip-tracing steps. Highlight any patterns in successful recoveries vs. stalled cases.`,
         isActive: true,
         status: "idle",

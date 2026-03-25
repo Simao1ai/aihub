@@ -2,9 +2,12 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAppStore, type Account } from '@/store';
 
 export interface Workspace {
-  id: string;
-  displayName: string;
-  businessTag: 'general' | 'equifind' | 'home_inspection';
+  id: number;
+  slug: string;
+  name: string;
+  description?: string;
+  emoji: string;
+  color: string;
 }
 
 async function fetchWorkspaces(): Promise<Workspace[]> {
@@ -17,7 +20,7 @@ export function useWorkspaces() {
   return useQuery({
     queryKey: ['workspaces'],
     queryFn: fetchWorkspaces,
-    staleTime: Infinity,
+    staleTime: 0,
   });
 }
 
@@ -33,14 +36,23 @@ export function useLogin() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
-      return data as { success: boolean; workspace: string; displayName: string; businessTag: 'general' | 'equifind' | 'home_inspection' };
+      return data as {
+        success: boolean;
+        workspace: string;
+        displayName: string;
+        businessTag: string;
+        color: string;
+        emoji: string;
+      };
     },
     onSuccess: (data, { password }) => {
       const account: Account = {
         workspace: data.workspace,
         displayName: data.displayName,
-        businessTag: data.businessTag,
+        businessTag: data.businessTag as any,
         password,
+        color: data.color,
+        emoji: data.emoji,
       };
       login(account);
     },
@@ -68,6 +80,8 @@ export function useVerifyPassword() {
         displayName: 'General',
         businessTag: 'general',
         password,
+        color: '#6366f1',
+        emoji: '⚡',
       });
     },
   });
