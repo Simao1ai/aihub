@@ -11,6 +11,7 @@ import Dashboard from "@/pages/dashboard";
 import Agents from "@/pages/agents";
 import Brain from "@/pages/brain";
 import Automations from "@/pages/automations";
+import Pipelines from "@/pages/pipelines";
 import Connections from "@/pages/connections";
 import NotFound from "@/pages/not-found";
 
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/agents"><ProtectedRoute component={Agents} /></Route>
       <Route path="/brain"><ProtectedRoute component={Brain} /></Route>
       <Route path="/automations"><ProtectedRoute component={Automations} /></Route>
+      <Route path="/pipelines"><ProtectedRoute component={Pipelines} /></Route>
       <Route path="/connections"><ProtectedRoute component={Connections} /></Route>
       <Route component={NotFound} />
     </Switch>

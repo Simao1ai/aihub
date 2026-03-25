@@ -49,11 +49,19 @@ lib/
 
 ## Key Features
 
-### 4 Tabs
-1. **🤖 Agents** — Chat with 6 specialized AI agents (COMPASS, OUTREACH, INKWELL, SCOUT, OPS, DESK). Streaming SSE responses. Conversation history per agent.
-2. **🧠 Brain** — Upload PDFs, paste text, fetch URLs. Brain context is injected into every AI call automatically.
-3. **⚡ Automations** — Scheduled and on-demand AI tasks. All outputs require approval before saving. Pre-built templates for realtor outreach, strategy brief, case research.
-4. **🔗 Connections** — OAuth connections for LinkedIn, Google/Gmail, Twitter/X, Meta. API key connections for GoHighLevel. Supports posting, DMing, reading messages via connected accounts.
+### Navigation (6 sections)
+1. **📊 Dashboard** — Command center overview: stat cards, pending approvals queue, recent sessions, agent shortcuts, platform connection status.
+2. **🤖 Agents** — Chat with 6 specialized AI agents (COMPASS, OUTREACH, INKWELL, SCOUT, OPS, DESK). Streaming SSE responses. Conversation history per agent.
+3. **🧠 Brain** — Upload PDFs, paste text, fetch URLs. Brain context is injected into every AI call automatically.
+4. **⚡ Automations** — Scheduled and on-demand AI tasks. All outputs require approval before saving. Pre-built templates for realtor outreach, strategy brief, case research.
+5. **🔀 Pipelines** — Multi-agent sequential workflows. Chain agents where each step receives the previous agent's output as context. Full step-by-step output review before approval.
+6. **🔗 Connections** — OAuth connections for LinkedIn, Google/Gmail, Twitter/X, Meta. API key connections for GoHighLevel. Supports posting, DMing, reading messages via connected accounts.
+
+### Pipeline System
+- DB tables: `pipelines` (steps stored as JSONB), `pipeline_runs` (stepsOutput stored as JSONB)
+- Execution engine: `artifacts/api-server/src/lib/pipeline.ts`
+- API routes: `GET/POST /api/pipelines`, `PATCH/DELETE /api/pipelines/:id`, `POST /api/pipelines/:id/run`, `GET /api/pipelines/runs/list`, `POST /api/pipelines/runs/:id/approve|discard`
+- Each step receives: agent's system prompt + step promptTemplate + previous step's output as context
 
 ### Agents (seeded on first run)
 | Name | Emoji | Color | Role |

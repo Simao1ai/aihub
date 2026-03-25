@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store';
-import { Bot, Brain, Zap, Link as LinkIcon, LogOut, Command, Building2, Briefcase, Hash, LayoutDashboard } from 'lucide-react';
+import { Bot, Brain, Zap, Link as LinkIcon, LogOut, Command, Building2, Briefcase, Hash, LayoutDashboard, GitFork } from 'lucide-react';
 import { cn } from './ui-elements';
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { path: '/agents', label: 'Agents', icon: Bot },
   { path: '/brain', label: 'Brain', icon: Brain },
   { path: '/automations', label: 'Automations', icon: Zap },
+  { path: '/pipelines', label: 'Pipelines', icon: GitFork },
   { path: '/connections', label: 'Connections', icon: LinkIcon },
 ];
 
@@ -34,7 +35,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
             <span className="ml-3 font-display font-bold text-lg hidden lg:block text-white">AI Hub</span>
           </div>
-          
+
           <nav className="p-3 space-y-1 mt-4">
             {navItems.map((item) => {
               const isActive = location.startsWith(item.path);
@@ -42,14 +43,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link key={item.path} href={item.path} className="block relative">
                   <div className={cn(
                     "flex items-center px-3 py-3 rounded-xl transition-all duration-200 group",
-                    isActive 
-                      ? "text-white bg-white/5 shadow-inner" 
+                    isActive
+                      ? "text-white bg-white/5 shadow-inner"
                       : "text-muted-foreground hover:text-white hover:bg-white/5"
                   )}>
                     {isActive && (
-                      <motion.div 
-                        layoutId="active-nav" 
-                        className="absolute left-0 w-1 h-8 bg-primary rounded-r-full" 
+                      <motion.div
+                        layoutId="active-nav"
+                        className="absolute left-0 w-1 h-8 bg-primary rounded-r-full"
                         initial={false}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                       />
@@ -64,7 +65,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="p-4 border-t border-border/50">
-          <button 
+          <button
             onClick={logout}
             className="flex items-center w-full px-3 py-2.5 rounded-xl text-muted-foreground hover:text-white hover:bg-red-500/10 hover:text-red-400 transition-all group"
           >
@@ -76,7 +77,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 bg-[#0a0b10] relative">
-        {/* Subtle background glow */}
         <div className="absolute top-0 left-1/4 w-1/2 h-64 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
 
         {/* Topbar */}
@@ -86,7 +86,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {navItems.find(i => location.startsWith(i.path))?.label || 'Command Center'}
             </h1>
           </div>
-          
+
           {/* Business Context Segmented Control */}
           <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner">
             {businessTags.map(tag => {
@@ -101,8 +101,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   )}
                 >
                   {isActive && (
-                    <motion.div 
-                      layoutId="active-tag" 
+                    <motion.div
+                      layoutId="active-tag"
                       className="absolute inset-0 bg-secondary border border-border shadow-sm rounded-lg"
                       initial={false}
                       transition={{ type: "spring", stiffness: 400, damping: 35 }}
