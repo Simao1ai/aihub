@@ -1,35 +1,74 @@
-import { useMutation } from '@tanstack/react-query';
-import { useAppStore } from '@/store';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useAppStore, type Account } from '@/store';
 
-// We simulate the auth verify endpoint if it doesn't exist, 
-// but try to hit it first as requested in the implementation notes.
+export interface Workspace {
+  id: string;
+  displayName: string;
+  businessTag: 'general' | 'equifind' | 'home_inspection';
+}
+
+async function fetchWorkspaces(): Promise<Workspace[]> {
+  const res = await fetch('/api/auth/workspaces');
+  if (!res.ok) throw new Error('Failed to load workspaces');
+  return res.json();
+}
+
+export function useWorkspaces() {
+  return useQuery({
+    queryKey: ['workspaces'],
+    queryFn: fetchWorkspaces,
+    staleTime: Infinity,
+  });
+}
+
+export function useLogin() {
+  const login = useAppStore((s) => s.login);
+
+  return useMutation({
+    mutationFn: async ({ workspace, password }: { workspace: string; password: string }) => {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed');
+      return data as { success: boolean; workspace: string; displayName: string; businessTag: 'general' | 'equifind' | 'home_inspection' };
+    },
+    onSuccess: (data, { password }) => {
+      const account: Account = {
+        workspace: data.workspace,
+        displayName: data.displayName,
+        businessTag: data.businessTag,
+        password,
+      };
+      login(account);
+    },
+  });
+}
+
+// Legacy hook — kept so anything that imports it doesn't break
 export function useVerifyPassword() {
   const login = useAppStore((s) => s.login);
 
   return useMutation({
     mutationFn: async (password: string) => {
-      try {
-        const res = await fetch('/api/auth/verify', {
-          headers: { 'Authorization': `Bearer ${password}` },
-        });
-        
-        if (!res.ok) {
-          // If the endpoint simply doesn't exist (404), we fallback to hardcoded check
-          // to ensure the UI remains fully functional during development.
-          if (res.status === 404 && password === 'aihub2024') {
-            return true;
-          }
-          throw new Error('Invalid password');
-        }
-        return true;
-      } catch (err) {
-        // Fallback for missing backend endpoint during prototyping
-        if (password === 'aihub2024') return true;
-        throw new Error('Invalid password or connection error');
-      }
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace: 'general', password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid password');
+      return data;
     },
-    onSuccess: (_, password) => {
-      login(password);
+    onSuccess: (data, password) => {
+      login({
+        workspace: 'general',
+        displayName: 'General',
+        businessTag: 'general',
+        password,
+      });
     },
   });
 }

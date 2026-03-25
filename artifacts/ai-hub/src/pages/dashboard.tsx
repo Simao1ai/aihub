@@ -55,8 +55,10 @@ export default function Dashboard() {
     });
   };
 
+  const { account } = useAppStore();
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const timeGreet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greeting = account?.displayName ? `${timeGreet}, ${account.displayName}` : timeGreet;
 
   const stats = [
     { label: 'AI Agents', value: agents.length, icon: Bot, color: '#6366f1', href: '/agents', bg: '#6366f115' },
