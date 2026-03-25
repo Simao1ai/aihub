@@ -1,0 +1,208 @@
+Build me a personal AI Agent Hub — a full-stack web app for managing multiple 
+business ventures using specialized AI agents powered by the Anthropic Claude API.
+
+## Tech Stack
+- Frontend: React (Vite), TailwindCSS
+- Backend: Express.js
+- Database: PostgreSQL with Drizzle ORM
+- AI: Anthropic Claude API (claude-sonnet-4-20250514)
+- Runtime: Node.js
+
+## Core Concept
+This is a PERSONAL tool (single user, no auth required beyond a simple 
+password gate). I have two main businesses:
+1. Equifind Recovery — AI-powered SaaS for tax deed surplus fund recovery in Florida
+2. Home Inspection Business — B2B with realtor network
+
+---
+
+## DATABASE SCHEMA
+
+Create these tables with Drizzle ORM:
+
+brain_documents
+- id, title, type (pdf|text|url), content (text), metadata (jsonb), 
+  business_tag (equifind|home_inspection|general), created_at
+
+agents
+- id, name, slug, role_description, system_prompt (text), 
+  icon, color, is_active, created_at
+
+conversations
+- id, agent_id (fk), title, business_tag, created_at, updated_at
+
+messages
+- id, conversation_id (fk), role (user|assistant), content (text), 
+  tool_calls (jsonb), created_at
+
+automations
+- id, name, agent_id (fk), schedule_cron, prompt_template (text), 
+  last_ran_at, next_run_at, is_active, status (idle|running|pending_approval), 
+  last_output (text), created_at
+
+automation_runs
+- id, automation_id (fk), output (text), status (success|failed|pending_approval), 
+  ran_at
+
+---
+
+## SEED DATA — Pre-built Agents
+
+Seed these 6 agents on first run:
+
+1. COMPASS (Strategy)
+   - Icon: 🧭, Color: #6366f1
+   - Role: Senior business strategist for Equifind Recovery and home inspection 
+     businesses. Helps with decisions, prioritization, opportunity analysis, 
+     and competitive strategy.
+
+2. OUTREACH (Sales & Email)
+   - Icon: 📬, Color: #f59e0b  
+   - Role: Expert at writing cold outreach, follow-up sequences, and 
+     persuasive email copy for realtor partnerships and enterprise sales.
+
+3. INKWELL (Copywriter)
+   - Icon: ✍️, Color: #10b981
+   - Role: Professional copywriter for proposals, contracts, marketing 
+     materials, and website copy. Matches brand voice.
+
+4. SCOUT (Research & Data)
+   - Icon: 🔍, Color: #3b82f6
+   - Role: Data analyst and researcher. Analyzes case data, skip-tracing 
+     results, market research, and surplus fund portfolios.
+
+5. OPS (Admin & Scheduling)
+   - Icon: ⚙️, Color: #8b5cf6
+   - Role: Operations assistant for task management, scheduling prep, 
+     meeting agendas, SOPs, and cross-venture coordination.
+
+6. DESK (Client Comms)
+   - Icon: 💬, Color: #ef4444
+   - Role: Client communication specialist for Equifind partner portal 
+     support, onboarding emails, and professional correspondence.
+
+---
+
+## BRAIN AI SYSTEM
+
+Build a /brain route and BrainPanel component with:
+
+1. PDF Upload
+   - Accept PDF file uploads
+   - Extract text using pdf-parse npm package
+   - Chunk into ~500 word segments
+   - Store each chunk as a brain_document row
+   - Show upload progress and success confirmation
+
+2. Text/URL Input
+   - Textarea for pasting raw text or brand guidelines
+   - URL field: fetch page content using node-fetch, extract main text
+   - Store with appropriate business_tag
+
+3. Brain context injection
+   - Before every Claude API call, do a simple keyword search across 
+     brain_documents content (ILIKE on the user's message)
+   - Retrieve top 3 matching chunks
+   - Inject into system prompt as: "RELEVANT CONTEXT FROM YOUR KNOWLEDGE BASE:\n{chunks}"
+
+4. Brain Panel UI
+   - List all documents with title, type badge, business_tag, date
+   - Delete individual documents
+   - Filter by business_tag
+
+---
+
+## CHAT INTERFACE
+
+Build a full chat UI per agent:
+
+- Sidebar: list of all 6 agents with icon/color/name
+- Click agent → load or create conversation
+- Chat window with streaming responses (use SSE or fetch with ReadableStream)
+- Each message shows role, content, timestamp
+- New conversation button
+- Conversation history list per agent (last 10)
+- System prompt for each agent should always include:
+  a) The agent's role description
+  b) "You are working for Simao, an entrepreneur running Equifind Recovery 
+     (Florida tax deed surplus fund recovery SaaS) and a home inspection 
+     business with realtor network."
+  c) Any retrieved Brain AI context
+  d) Today's date
+
+---
+
+## AUTOMATIONS SYSTEM
+
+Build an automations panel with:
+
+1. Pre-built automation templates (seed these):
+
+   a) "Weekly Realtor Outreach Draft" 
+      - Agent: OUTREACH
+      - Schedule: Every Monday 8am
+      - Prompt: "Draft 3 personalized cold outreach emails to realtors 
+        for home inspection partnerships. Include a subject line, 
+        opening hook, value prop, and CTA. Make them feel human."
+
+   b) "Equifind Weekly Strategy Brief"
+      - Agent: COMPASS  
+      - Schedule: Every Friday 4pm
+      - Prompt: "Generate a weekly strategic review for Equifind Recovery. 
+        Cover: what to prioritize next week, any risks to watch, and one 
+        growth action item."
+
+   c) "Case Research Summary"
+      - Agent: SCOUT
+      - Schedule: On-demand only
+      - Prompt: "Summarize the current state of my Lee County surplus 
+        fund recovery pipeline. Identify which case types have highest 
+        recovery probability and suggest next skip-tracing steps."
+
+2. Automation runner (backend)
+   - node-cron checks every minute for due automations
+   - Runs the Claude API call with the automation's prompt_template
+   - ALL automation outputs go to status: pending_approval before anything else
+   - UI shows pending outputs with Approve / Discard buttons
+   - On approval: mark as success, store output
+   - Show last output and last ran timestamp per automation
+
+3. Automations UI
+   - Card per automation with: name, agent badge, schedule, status indicator
+   - Toggle on/off
+   - "Run Now" button for on-demand
+   - Pending approval queue section at top (highlighted)
+   - View last output modal
+
+---
+
+## APP LAYOUT
+
+Single-page app with 3 tabs in top nav:
+- 🤖 Agents (default) — agent sidebar + chat interface
+- 🧠 Brain — document upload and management panel
+- ⚡ Automations — automation cards + approval queue
+
+Simple password gate on load: check env var APP_PASSWORD, 
+show a password input before rendering the app.
+
+Header shows: "AI Hub" + current business context toggle 
+(Equifind | Home Inspection | General)
+
+---
+
+## ENVIRONMENT VARIABLES NEEDED
+ANTHROPIC_API_KEY=
+DATABASE_URL=
+APP_PASSWORD=
+
+---
+
+## IMPORTANT NOTES
+- Use streaming for all chat responses
+- Never expose API keys to frontend
+- All Claude calls go through backend /api routes
+- Mobile-friendly layout
+- Dark mode preferred
+- Show loading states on all async operations
+- Handle errors gracefully with user-friendly messages
