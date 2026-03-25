@@ -89,10 +89,18 @@ lib/
 
 ## Social Media OAuth Setup
 
-For OAuth platforms (LinkedIn, Google, Twitter/X, Meta), you need to create developer apps on each platform and set the redirect URI to:
+Replit only has a built-in Gmail connector (user dismissed it). For all OAuth platforms, developer apps must be created manually and credentials stored as secrets.
+
+For OAuth platforms (LinkedIn, Google, Twitter/X, Meta), create developer apps and set the redirect URI to:
 `https://YOUR_DOMAIN/api/connections/oauth/{platform}/callback`
 
-For GoHighLevel, just paste your API key in the Connections tab.
+Required secrets per platform:
+- LinkedIn: LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET
+- Google/Gmail: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+- Twitter/X: TWITTER_CLIENT_ID, TWITTER_CLIENT_SECRET
+- Meta: META_APP_ID, META_APP_SECRET
+
+For GoHighLevel, just paste your API key in the Connections tab (no OAuth needed).
 
 ## Development Commands
 
