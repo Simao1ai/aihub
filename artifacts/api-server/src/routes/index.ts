@@ -11,6 +11,7 @@ import workspacesRouter from "./workspaces";
 import tasksRouter from "./tasks";
 import contactsRouter from "./contacts";
 import kpisRouter from "./kpis";
+import powerUpsRouter from "./power-ups";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use("/workspaces", workspacesRouter);
 router.use("/tasks", tasksRouter);
 router.use("/contacts", contactsRouter);
 router.use("/kpis", kpisRouter);
+router.use("/power-ups", powerUpsRouter);
 
 export default router;

@@ -8,7 +8,8 @@ export const brainDocumentsTable = pgTable("brain_documents", {
   type: text("type").notNull(), // pdf | text | url
   content: text("content").notNull(),
   metadata: jsonb("metadata"),
-  businessTag: text("business_tag").notNull().default("general"), // equifind | home_inspection | general
+  category: text("category").notNull().default("general"), // general | processes | clients | products | finance | marketing | legal | hr
+  businessTag: text("business_tag").notNull().default("general"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

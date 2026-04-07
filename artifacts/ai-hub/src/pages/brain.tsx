@@ -1,215 +1,400 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { FileText, Link as LinkIcon, FileUp, Trash2, Search, BrainCircuit, ExternalLink } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FileText, Link as LinkIcon, FileUp, Trash2, Search, BrainCircuit, Tag, ExternalLink, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
-import { 
-  useListBrainDocuments, 
-  useCreateBrainDocument, 
-  useUploadBrainDocument, 
+import {
+  useListBrainDocuments,
+  useCreateBrainDocument,
+  useUploadBrainDocument,
   useDeleteBrainDocument,
   getListBrainDocumentsQueryKey
 } from '@workspace/api-client-react';
 import { useAppStore } from '@/store';
-import { Button, Card, Input, Badge, Modal, cn } from '@/components/ui-elements';
+import { cn } from '@/components/ui-elements';
 
-export default function Brain() {
-  const { businessTag } = useAppStore();
+const CATEGORIES = [
+  { key: 'general', label: 'General', color: '#6b7280', bg: '#6b728018' },
+  { key: 'processes', label: 'Processes', color: '#6366f1', bg: '#6366f118' },
+  { key: 'clients', label: 'Clients', color: '#10b981', bg: '#10b98118' },
+  { key: 'products', label: 'Products', color: '#3b82f6', bg: '#3b82f618' },
+  { key: 'finance', label: 'Finance', color: '#16a34a', bg: '#16a34a18' },
+  { key: 'marketing', label: 'Marketing', color: '#ec4899', bg: '#ec489918' },
+  { key: 'legal', label: 'Legal', color: '#64748b', bg: '#64748b18' },
+  { key: 'hr', label: 'HR', color: '#7c3aed', bg: '#7c3aed18' },
+];
+
+function typeIcon(type: string) {
+  if (type === 'pdf') return <FileUp className="w-3.5 h-3.5" />;
+  if (type === 'url') return <LinkIcon className="w-3.5 h-3.5" />;
+  return <FileText className="w-3.5 h-3.5" />;
+}
+
+function categoryConfig(key: string) {
+  return CATEGORIES.find(c => c.key === key) ?? CATEGORIES[0];
+}
+
+function UploadModal({
+  onClose,
+  businessTag,
+}: {
+  onClose: () => void;
+  businessTag: string;
+}) {
   const queryClient = useQueryClient();
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [uploadType, setUploadType] = useState<'text' | 'url' | 'pdf'>('text');
-  const [searchQuery, setSearchQuery] = useState('');
+  const createMutation = useCreateBrainDocument();
+  const uploadMutation = useUploadBrainDocument();
 
-  // Form State
+  const [uploadType, setUploadType] = useState<'text' | 'url' | 'pdf'>('text');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [url, setUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [category, setCategory] = useState('general');
 
-  const { data: documents = [], isLoading } = useListBrainDocuments({ businessTag });
-  const createMutation = useCreateBrainDocument();
-  const uploadMutation = useUploadBrainDocument();
-  const deleteMutation = useDeleteBrainDocument();
-
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title) return;
 
     const onSuccess = () => {
       queryClient.invalidateQueries({ queryKey: getListBrainDocumentsQueryKey({ businessTag }) });
-      setIsUploadModalOpen(false);
-      setTitle(''); setContent(''); setUrl(''); setFile(null);
+      onClose();
     };
 
     if (uploadType === 'pdf' && file) {
-      uploadMutation.mutate({
-        data: { title, file, businessTag }
-      }, { onSuccess });
+      uploadMutation.mutate({ data: { title, file, businessTag } }, { onSuccess });
     } else {
       createMutation.mutate({
         data: {
           title,
           type: uploadType as 'text' | 'url',
           businessTag,
+          category,
           ...(uploadType === 'text' ? { content } : { url })
         }
       }, { onSuccess });
     }
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this document from the brain?')) {
-      deleteMutation.mutate({ id }, {
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: getListBrainDocumentsQueryKey({ businessTag }) })
-      });
-    }
-  };
-
-  const filteredDocs = documents.filter(doc => 
-    doc.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    doc.content?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const isLoading = createMutation.isPending || uploadMutation.isPending;
 
   return (
-    <div className="h-full flex flex-col p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h2 className="text-3xl font-display font-bold text-white flex items-center gap-3">
-            <BrainCircuit className="text-primary w-8 h-8" />
-            Knowledge Base
-          </h2>
-          <p className="text-muted-foreground mt-1">Manage contextual memory for your AI agents.</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="w-full max-w-lg bg-[#131622] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+      >
+        <div className="px-6 py-5 border-b border-white/5">
+          <h2 className="text-base font-display font-bold text-white">Add to Brain</h2>
+          <p className="text-xs text-white/35 mt-0.5">This content will be available to all AI agents as context</p>
         </div>
-        
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search documents..." 
-              className="pl-9 bg-card/50"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Type tabs */}
+          <div className="flex gap-1 p-1 bg-white/5 rounded-xl">
+            {(['text', 'url', 'pdf'] as const).map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setUploadType(t)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all",
+                  uploadType === t ? 'bg-white/10 text-white' : 'text-white/35 hover:text-white/60'
+                )}
+              >
+                {t === 'text' ? <FileText className="w-3.5 h-3.5" /> : t === 'url' ? <LinkIcon className="w-3.5 h-3.5" /> : <FileUp className="w-3.5 h-3.5" />}
+                {t === 'text' ? 'Text' : t === 'url' ? 'URL' : 'PDF'}
+              </button>
+            ))}
+          </div>
+
+          {/* Title */}
+          <div>
+            <label className="text-xs text-white/40 mb-1.5 block">Title *</label>
+            <input
+              autoFocus
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="e.g. Our Pricing Guide"
+              className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
             />
           </div>
-          <Button onClick={() => setIsUploadModalOpen(true)} className="shrink-0">
-            <FileUp className="w-4 h-4 mr-2" /> Inject Data
-          </Button>
+
+          {/* Category */}
+          <div>
+            <label className="text-xs text-white/40 mb-1.5 block">Category</label>
+            <div className="flex flex-wrap gap-1.5">
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setCategory(cat.key)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border",
+                    category === cat.key ? 'border-transparent' : 'border-white/8 text-white/35 hover:text-white/60'
+                  )}
+                  style={category === cat.key ? { background: cat.bg, color: cat.color, borderColor: `${cat.color}40` } : {}}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Content input */}
+          {uploadType === 'text' && (
+            <div>
+              <label className="text-xs text-white/40 mb-1.5 block">Content</label>
+              <textarea
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                placeholder="Paste your text content here..."
+                rows={6}
+                className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 resize-none"
+              />
+            </div>
+          )}
+          {uploadType === 'url' && (
+            <div>
+              <label className="text-xs text-white/40 mb-1.5 block">URL</label>
+              <input
+                type="url"
+                value={url}
+                onChange={e => setUrl(e.target.value)}
+                placeholder="https://..."
+                className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+              />
+            </div>
+          )}
+          {uploadType === 'pdf' && (
+            <div>
+              <label className="text-xs text-white/40 mb-1.5 block">PDF file</label>
+              <label className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-white/15 rounded-xl cursor-pointer hover:border-white/25 transition-colors">
+                <FileUp className="w-6 h-6 text-white/25 mb-1" />
+                <span className="text-xs text-white/35">{file ? file.name : 'Click to upload PDF (max 20 MB)'}</span>
+                <input type="file" accept=".pdf" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
+              </label>
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/8 text-white/50 hover:text-white text-sm transition-all">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!title || isLoading}
+              className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all"
+            >
+              {isLoading ? 'Adding...' : 'Add to Brain'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
+
+export default function Brain() {
+  const { businessTag } = useAppStore();
+  const queryClient = useQueryClient();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
+  const { data: documents = [], isLoading } = useListBrainDocuments({ businessTag });
+  const deleteMutation = useDeleteBrainDocument();
+
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate({ id }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListBrainDocumentsQueryKey({ businessTag }) });
+        setDeleteConfirm(null);
+      }
+    });
+  };
+
+  const filtered = documents.filter(doc => {
+    const matchSearch = !searchQuery ||
+      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.content.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchCat = activeCategory === 'all' || (doc as any).category === activeCategory;
+    return matchSearch && matchCat;
+  });
+
+  const countByCategory = (key: string) => documents.filter(d => (d as any).category === key).length;
+
+  return (
+    <div className="h-full overflow-y-auto">
+      {/* Header */}
+      <div className="sticky top-0 z-10 px-8 pt-8 pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-display font-bold text-white flex items-center gap-2.5">
+                <BrainCircuit className="w-6 h-6 text-primary" /> Brain
+              </h1>
+              <p className="text-sm text-white/35 mt-0.5">
+                {documents.length} document{documents.length !== 1 ? 's' : ''} · automatically injected into AI conversations
+              </p>
+            </div>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all"
+            >
+              <Plus className="w-4 h-4" /> Add document
+            </button>
+          </div>
+
+          {/* Search + category filters */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search knowledge base..."
+                className="bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 w-52"
+              />
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              <button
+                onClick={() => setActiveCategory('all')}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                  activeCategory === 'all' ? 'bg-white/10 text-white' : 'text-white/35 hover:text-white/60'
+                )}
+              >
+                All ({documents.length})
+              </button>
+              {CATEGORIES.map(cat => {
+                const count = countByCategory(cat.key);
+                if (count === 0 && activeCategory !== cat.key) return null;
+                return (
+                  <button
+                    key={cat.key}
+                    onClick={() => setActiveCategory(cat.key)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                      activeCategory === cat.key ? '' : 'text-white/35 hover:text-white/60'
+                    )}
+                    style={activeCategory === cat.key ? { background: cat.bg, color: cat.color } : {}}
+                  >
+                    {cat.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="px-8 py-6 max-w-5xl mx-auto">
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1,2,3].map(i => <div key={i} className="h-32 bg-card/50 rounded-2xl animate-pulse" />)}
+          <div className="space-y-3">
+            {[0, 1, 2].map(i => <div key={i} className="h-20 bg-white/3 rounded-xl animate-pulse" />)}
           </div>
-        ) : filteredDocs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border-2 border-dashed border-border rounded-2xl bg-card/20">
-            <BrainCircuit className="w-12 h-12 mb-4 opacity-50" />
-            <p className="text-lg font-medium text-white/70">The brain is empty.</p>
-            <p className="text-sm mt-1">Inject data to give your agents context.</p>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-white/20">
+            <BrainCircuit className="w-10 h-10 mb-3 opacity-30" />
+            <p className="text-sm">{searchQuery ? 'No documents match' : 'Brain is empty — add your first document'}</p>
+            {!searchQuery && (
+              <button onClick={() => setIsModalOpen(true)} className="mt-3 text-primary text-sm hover:underline">
+                Add a document
+              </button>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredDocs.map(doc => (
-              <motion.div key={doc.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-                <Card className="p-5 flex flex-col h-full hover:border-primary/30 transition-colors group">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-2">
-                      {doc.type === 'pdf' && <div className="p-2 bg-red-500/10 text-red-400 rounded-lg"><FileText className="w-4 h-4" /></div>}
-                      {doc.type === 'url' && <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg"><LinkIcon className="w-4 h-4" /></div>}
-                      {doc.type === 'text' && <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg"><FileText className="w-4 h-4" /></div>}
+          <div className="space-y-2.5">
+            <AnimatePresence mode="popLayout">
+              {filtered.map(doc => {
+                const cat = categoryConfig((doc as any).category ?? 'general');
+                return (
+                  <motion.div
+                    key={doc.id}
+                    layout
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    className="flex items-center gap-4 p-4 bg-[#111520] border border-white/5 rounded-xl hover:border-white/10 transition-all group"
+                  >
+                    {/* Icon */}
+                    <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-white/40 shrink-0">
+                      {typeIcon(doc.type)}
                     </div>
-                    <button 
-                      onClick={() => handleDelete(doc.id)}
-                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md opacity-0 group-hover:opacity-100 transition-all"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  
-                  <h3 className="font-semibold text-white/90 line-clamp-1 mb-1" title={doc.title}>{doc.title}</h3>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Added {format(new Date(doc.createdAt), 'MMM d, yyyy')}
-                  </p>
-                  
-                  <div className="mt-auto pt-4 border-t border-border/50 flex items-center justify-between">
-                    <Badge variant="outline" className="capitalize">{doc.type}</Badge>
-                    {doc.type === 'url' && (
-                      <a href={doc.content} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline flex items-center">
-                        Visit <ExternalLink className="w-3 h-3 ml-1" />
-                      </a>
-                    )}
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-sm font-semibold text-white truncate">{doc.title}</p>
+                        <span
+                          className="text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0"
+                          style={{ background: cat.bg, color: cat.color }}
+                        >
+                          {cat.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-white/30 truncate">{doc.content.slice(0, 120)}...</p>
+                    </div>
+
+                    {/* Meta */}
+                    <div className="hidden md:flex items-center gap-3 shrink-0">
+                      <span className="text-[11px] text-white/20">{format(new Date(doc.createdAt), 'MMM d, yyyy')}</span>
+                      <span className="text-[10px] text-white/20 uppercase bg-white/5 px-2 py-0.5 rounded-md">{doc.type}</span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      {doc.type === 'url' && (doc as any).metadata?.url && (
+                        <a
+                          href={(doc as any).metadata.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      {deleteConfirm === doc.id ? (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleDelete(doc.id)}
+                            className="px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 text-xs font-medium hover:bg-red-500/25"
+                          >
+                            Delete
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(null)}
+                            className="px-3 py-1.5 rounded-lg bg-white/5 text-white/40 text-xs font-medium hover:bg-white/10"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setDeleteConfirm(doc.id)}
+                          className="w-8 h-8 rounded-lg bg-white/5 hover:bg-red-500/10 flex items-center justify-center text-white/25 hover:text-red-400 transition-all"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         )}
       </div>
 
-      <Modal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} title="Inject Data to Brain">
-        <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 mb-6">
-          {(['text', 'url', 'pdf'] as const).map(type => (
-            <button
-              key={type}
-              onClick={() => setUploadType(type)}
-              className={cn(
-                "flex-1 py-2 text-sm font-medium rounded-lg transition-all capitalize",
-                uploadType === type ? "bg-secondary text-white shadow" : "text-muted-foreground hover:text-white"
-              )}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleAddSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-white/80 mb-1.5">Document Title</label>
-            <Input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Q3 Financial Report" />
-          </div>
-
-          {uploadType === 'text' && (
-            <div>
-              <label className="block text-sm font-medium text-white/80 mb-1.5">Raw Text Content</label>
-              <textarea 
-                required 
-                value={content} 
-                onChange={(e) => setContent(e.target.value)}
-                className="w-full h-32 bg-black/20 border border-border rounded-xl p-3 text-sm text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50 resize-none"
-                placeholder="Paste context here..."
-              />
-            </div>
-          )}
-
-          {uploadType === 'url' && (
-            <div>
-              <label className="block text-sm font-medium text-white/80 mb-1.5">Source URL</label>
-              <Input required type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
-            </div>
-          )}
-
-          {uploadType === 'pdf' && (
-            <div>
-              <label className="block text-sm font-medium text-white/80 mb-1.5">PDF File</label>
-              <Input 
-                required 
-                type="file" 
-                accept="application/pdf"
-                onChange={(e) => setFile(e.target.files?.[0] || null)} 
-                className="py-2"
-              />
-            </div>
-          )}
-
-          <div className="pt-4 flex justify-end gap-3">
-            <Button variant="ghost" type="button" onClick={() => setIsUploadModalOpen(false)}>Cancel</Button>
-            <Button type="submit" isLoading={createMutation.isPending || uploadMutation.isPending}>
-              Inject to Brain
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      <AnimatePresence>
+        {isModalOpen && (
+          <UploadModal businessTag={businessTag} onClose={() => setIsModalOpen(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

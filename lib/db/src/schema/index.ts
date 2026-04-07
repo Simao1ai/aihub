@@ -9,3 +9,4 @@ export * from "./workspaces";
 export * from "./tasks";
 export * from "./contacts";
 export * from "./kpis";
+export * from "./automation-templates";

@@ -10,6 +10,7 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Agents from "@/pages/agents";
 import Brain from "@/pages/brain";
+import PowerUps from "@/pages/power-ups";
 import Automations from "@/pages/automations";
 import Pipelines from "@/pages/pipelines";
 import Connections from "@/pages/connections";
@@ -59,6 +60,7 @@ function Router() {
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/agents"><ProtectedRoute component={Agents} /></Route>
       <Route path="/brain"><ProtectedRoute component={Brain} /></Route>
+      <Route path="/power-ups"><ProtectedRoute component={PowerUps} /></Route>
       <Route path="/tasks"><ProtectedRoute component={Tasks} /></Route>
       <Route path="/contacts"><ProtectedRoute component={Contacts} /></Route>
       <Route path="/automations"><ProtectedRoute component={Automations} /></Route>
