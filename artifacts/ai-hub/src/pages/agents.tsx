@@ -237,7 +237,9 @@ function ChatView({
                 : 'bg-white/5 text-white/85 rounded-bl-sm border border-white/5'
             )}>
               {msg.role === 'assistant' ? (
-                <ReactMarkdown className="prose prose-invert prose-sm max-w-none text-white/85">{msg.content}</ReactMarkdown>
+                <div className="prose prose-invert prose-sm max-w-none text-white/85">
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                </div>
               ) : msg.content}
             </div>
           </div>
@@ -248,7 +250,9 @@ function ChatView({
               {agent.icon}
             </div>
             <div className="max-w-[75%] rounded-2xl rounded-bl-sm px-4 py-3 bg-white/5 border border-white/5">
-              <ReactMarkdown className="prose prose-invert prose-sm max-w-none text-white/85 text-sm leading-relaxed">{streamingMessage}</ReactMarkdown>
+              <div className="prose prose-invert prose-sm max-w-none text-white/85 text-sm leading-relaxed">
+                <ReactMarkdown>{streamingMessage}</ReactMarkdown>
+              </div>
             </div>
           </div>
         )}
