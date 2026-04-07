@@ -3,7 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { useAppStore } from '@/store';
 import {
   Bot, Brain, Zap, Link as LinkIcon, LogOut,
-  LayoutDashboard, GitFork, LayoutGrid, CheckSquare, Users, Sparkles,
+  LayoutDashboard, GitFork, LayoutGrid, CheckSquare, Users, Sparkles, Share2,
 } from 'lucide-react';
 import { cn } from './ui-elements';
 
@@ -12,6 +12,7 @@ const navItems = [
   { path: '/agents', label: 'AI Team', icon: Bot },
   { path: '/brain', label: 'Brain', icon: Brain },
   { path: '/power-ups', label: 'Power-Ups', icon: Sparkles },
+  { path: '/social', label: 'Social Media', icon: Share2 },
   { path: '/tasks', label: 'Tasks', icon: CheckSquare },
   { path: '/contacts', label: 'Contacts', icon: Users },
   { path: '/automations', label: 'Automations', icon: Zap },

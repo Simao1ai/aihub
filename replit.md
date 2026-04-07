@@ -1,4 +1,4 @@
-# AI Hub — Personal Business Command Center
+# AI Hub — Personal Business Command Center (Sintra.ai Competitor)
 
 ## Overview
 

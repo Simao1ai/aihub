@@ -17,6 +17,7 @@ import Connections from "@/pages/connections";
 import Workspaces from "@/pages/workspaces";
 import Tasks from "@/pages/tasks";
 import Contacts from "@/pages/contacts";
+import Social from "@/pages/social";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -63,6 +64,7 @@ function Router() {
       <Route path="/power-ups"><ProtectedRoute component={PowerUps} /></Route>
       <Route path="/tasks"><ProtectedRoute component={Tasks} /></Route>
       <Route path="/contacts"><ProtectedRoute component={Contacts} /></Route>
+      <Route path="/social"><ProtectedRoute component={Social} /></Route>
       <Route path="/automations"><ProtectedRoute component={Automations} /></Route>
       <Route path="/pipelines"><ProtectedRoute component={Pipelines} /></Route>
       <Route path="/connections"><ProtectedRoute component={Connections} /></Route>
