@@ -136,9 +136,52 @@ router.post("/:id/test", async (req, res) => {
   }
 });
 
+// Check which platforms have credentials configured
+router.get("/status", (req, res) => {
+  res.json({
+    meta: {
+      configured: !!(process.env.META_APP_ID && process.env.META_APP_SECRET),
+      envVars: ["META_APP_ID", "META_APP_SECRET"],
+    },
+    linkedin: {
+      configured: !!(process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET),
+      envVars: ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"],
+    },
+    google: {
+      configured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+      envVars: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+    },
+    twitter: {
+      configured: !!(process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET),
+      envVars: ["TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET"],
+    },
+    tiktok: { configured: false, envVars: [] },
+    gohighlevel: { configured: true, envVars: [] },
+    email: { configured: true, envVars: [] },
+  });
+});
+
 // Initiate OAuth flow
 router.get("/oauth/:platform/initiate", (req, res) => {
   const { platform } = req.params;
+
+  // Guard: check credentials are configured before redirecting
+  const credentialMap: Record<string, string[]> = {
+    meta: ["META_APP_ID", "META_APP_SECRET"],
+    linkedin: ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"],
+    google: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+    twitter: ["TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET"],
+  };
+  const required = credentialMap[platform] ?? [];
+  const missing = required.filter(k => !process.env[k]);
+  if (missing.length > 0) {
+    return res.status(400).json({
+      error: "OAuth credentials not configured",
+      missing,
+      message: `Please set the following environment variables in Replit Secrets: ${missing.join(", ")}`,
+    });
+  }
+
   const baseUrl = process.env.REPLIT_DOMAINS?.split(",")[0] 
     ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` 
     : "http://localhost";
