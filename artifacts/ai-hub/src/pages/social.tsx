@@ -495,7 +495,7 @@ function StatsBar({ posts }: { posts: SocialPost[] }) {
   ];
 
   return (
-    <div className="grid grid-cols-5 gap-3 mb-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
       {stats.map(s => (
         <div key={s.label} className="bg-[#111520] border border-white/5 rounded-2xl px-4 py-3">
           <p className="text-2xl font-display font-bold text-white">{s.value}</p>
@@ -687,14 +687,14 @@ export default function Social() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-8 pt-8 pb-0 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-0 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h1 className="text-2xl font-display font-bold text-white flex items-center gap-2.5">
-                <Share2 className="w-6 h-6 text-primary" /> Social Media
+              <h1 className="text-xl sm:text-2xl font-display font-bold text-white flex items-center gap-2">
+                <Share2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Social Media
               </h1>
-              <p className="text-sm text-white/35 mt-0.5">
+              <p className="hidden sm:block text-sm text-white/35 mt-0.5">
                 AI-powered content creation · Human approval · One-click publishing
               </p>
             </div>
@@ -714,7 +714,7 @@ export default function Social() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1">
+          <div className="flex gap-1 overflow-x-auto scrollbar-none -mx-1 px-1">
             {TABS.map(t => (
               <button
                 key={t.key}
@@ -737,13 +737,13 @@ export default function Social() {
       </div>
 
       {/* Content */}
-      <div className="px-8 py-7 max-w-5xl mx-auto">
+      <div className="px-4 sm:px-8 py-5 sm:py-7 max-w-5xl mx-auto">
         <AnimatePresence mode="wait">
           {tab === 'compose' && (
             <motion.div key="compose" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <div className="grid grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 {/* Composer — takes 2/3 */}
-                <div className="col-span-2">
+                <div className="lg:col-span-2">
                   <Composer
                     connections={connections}
                     businessTag={businessTag}

@@ -112,4 +112,12 @@
   .prose-custom pre code {
     @apply bg-transparent p-0 border-none text-white/90;
   }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }

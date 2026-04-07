@@ -230,7 +230,7 @@ export default function Brain() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-8 pt-8 pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -292,7 +292,7 @@ export default function Brain() {
         </div>
       </div>
 
-      <div className="px-8 py-6 max-w-5xl mx-auto">
+      <div className="px-4 sm:px-8 py-4 sm:py-6 max-w-5xl mx-auto">
         {isLoading ? (
           <div className="space-y-3">
             {[0, 1, 2].map(i => <div key={i} className="h-20 bg-white/3 rounded-xl animate-pulse" />)}

@@ -327,7 +327,7 @@ export default function Dashboard() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Top header */}
-      <div className="sticky top-0 z-10 px-8 pt-8 pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-display font-bold text-white">{greeting} 👋</h1>
@@ -342,7 +342,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="px-8 py-8 max-w-5xl mx-auto">
+      <div className="px-4 sm:px-8 py-5 sm:py-8 max-w-5xl mx-auto">
         <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
 
           {/* Stats row */}
@@ -431,7 +431,7 @@ export default function Dashboard() {
                   Open <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {agents.map(agent => (
                   <button
                     key={agent.id}

@@ -207,7 +207,7 @@ export default function Contacts() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-8 pt-8 pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-display font-bold text-white flex items-center gap-2.5">
@@ -235,7 +235,7 @@ export default function Contacts() {
         </div>
       </div>
 
-      <div className="px-8 py-6 max-w-5xl mx-auto">
+      <div className="px-4 sm:px-8 py-4 sm:py-6 max-w-5xl mx-auto">
         {/* Status filter pills */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
           <button

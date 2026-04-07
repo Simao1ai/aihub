@@ -445,7 +445,7 @@ export default function Workspaces() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-8 pt-8 pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-display font-bold text-white">Workspaces</h1>
@@ -468,7 +468,7 @@ export default function Workspaces() {
         </div>
       </div>
 
-      <div className="px-8 py-8 max-w-3xl mx-auto">
+      <div className="px-4 sm:px-8 py-5 sm:py-8 max-w-3xl mx-auto">
         {error && (
           <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
             {error}

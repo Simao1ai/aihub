@@ -442,7 +442,7 @@ export default function Agents() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-8 pt-8 pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -486,7 +486,7 @@ export default function Agents() {
       </div>
 
       {/* Grid */}
-      <div className="px-8 py-8 max-w-6xl mx-auto">
+      <div className="px-4 sm:px-8 py-5 sm:py-8 max-w-6xl mx-auto">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filteredAgents.map(agent => (
             <AgentCard key={agent.id} agent={agent} onSelect={() => handleSelectAgent(agent.id)} />

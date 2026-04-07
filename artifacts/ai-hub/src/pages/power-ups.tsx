@@ -214,7 +214,7 @@ export default function PowerUps() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-8 pt-8 pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-5">
             <div>
@@ -261,7 +261,7 @@ export default function PowerUps() {
         </div>
       </div>
 
-      <div className="px-8 py-8 max-w-5xl mx-auto">
+      <div className="px-4 sm:px-8 py-5 sm:py-8 max-w-5xl mx-auto">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array(9).fill(0).map((_, i) => (
