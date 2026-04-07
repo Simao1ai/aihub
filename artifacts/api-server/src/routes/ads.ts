@@ -153,6 +153,82 @@ INSTAGRAM ADS — Expert Rules:
 - Product tags in Shopping ads: show price and product name clearly`,
 };
 
+// ── Helper: load SOSHI agent + workspace context ─────────────────────────────
+async function loadSoshiContext(businessTag: string) {
+  let soshiPrompt = "You are SOSHI, a social media manager and paid advertising strategist with expertise in all major ad platforms and copywriting frameworks.";
+  let wsContext = "";
+
+  try {
+    // Load workspace context
+    const workspaces = await db.select().from(workspacesTable).where(eq(workspacesTable.businessTag, businessTag));
+    if (workspaces[0]?.aiContext) wsContext = workspaces[0].aiContext;
+  } catch { }
+
+  try {
+    // Load SOSHI specifically from this workspace's agents
+    const agents = await db.select().from(agentsTable).where(eq(agentsTable.businessTag, businessTag));
+    const soshi = agents.find(a => a.slug === 'soshi');
+    if (soshi?.systemPrompt) soshiPrompt = soshi.systemPrompt;
+  } catch { }
+
+  return { soshiPrompt, wsContext };
+}
+
+// ── POST /api/ads/recommendations ────────────────────────────────────────────
+router.post("/recommendations", async (req, res) => {
+  try {
+    const { businessTag, product } = req.body as Record<string, string>;
+    if (!businessTag) return res.status(400).json({ error: "businessTag is required" });
+
+    const { soshiPrompt, wsContext } = await loadSoshiContext(businessTag);
+
+    const systemPrompt = `${soshiPrompt}
+
+${wsContext ? `Business Context:\n${wsContext}` : ''}
+
+You are giving strategic ad recommendations. Be specific, opinionated, and actionable. No generic advice.`;
+
+    const userPrompt = `Based on this business${product ? ` and the product/service being advertised: "${product}"` : ''}, give me your expert strategic recommendations for running paid ads.
+
+Return a JSON object with exactly these fields:
+{
+  "best_platform": "one of: meta, google_search, linkedin, tiktok, youtube, instagram",
+  "platform_reason": "2-sentence explanation of WHY this platform for this specific business",
+  "best_framework": "one of: aida, pas, hook_story_offer, fab, before_after_bridge, four_u, five_objections",
+  "framework_reason": "2-sentence explanation of WHY this framework fits",
+  "top_angles": [
+    { "angle": "angle name", "description": "1 sentence description of this creative angle" },
+    { "angle": "angle name", "description": "1 sentence" },
+    { "angle": "angle name", "description": "1 sentence" }
+  ],
+  "audience_insight": "2-3 sentences about the target audience psychology — what they fear, desire, and what language triggers action",
+  "quick_win": "One specific, actionable tip SOSHI would give right now to get results faster"
+}
+
+Return ONLY the JSON object, no markdown.`;
+
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+
+    const raw = (message.content[0] as any).text?.trim() ?? "";
+    let recommendations: any = {};
+    try {
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      recommendations = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+    } catch {
+      return res.status(500).json({ error: "Failed to parse SOSHI response", raw });
+    }
+
+    res.json(recommendations);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── POST /api/ads/generate ───────────────────────────────────────────────────
 router.post("/generate", async (req, res) => {
   try {
@@ -174,28 +250,14 @@ router.post("/generate", async (req, res) => {
       return res.status(400).json({ error: "platform, product, and businessTag are required" });
     }
 
-    // Load workspace context
-    let wsContext = "";
-    try {
-      const workspaces = await db.select().from(workspacesTable).where(eq(workspacesTable.businessTag, businessTag));
-      if (workspaces[0]?.aiContext) wsContext = workspaces[0].aiContext;
-    } catch { }
-
-    // Load best ad-related agent
-    let agentPersona = "ADLY — Expert Ad Copywriter with 20+ years experience in direct response advertising.";
-    try {
-      const agents = await db.select().from(agentsTable).where(eq(agentsTable.businessTag, businessTag));
-      const adAgent = agents.find(a =>
-        a.slug?.includes('adly') || a.slug?.includes('ad') || a.role?.toLowerCase().includes('ad')
-      );
-      if (adAgent) agentPersona = `${adAgent.name} — ${adAgent.role}. ${adAgent.systemPrompt ?? ''}`;
-    } catch { }
+    // Load SOSHI agent + workspace context
+    const { soshiPrompt, wsContext } = await loadSoshiContext(businessTag);
 
     const fw = FRAMEWORKS[framework] ?? FRAMEWORKS.aida;
     const platformRules = PLATFORM_RULES[platform] ?? "";
     const numVariations = Math.min(Math.max(Number(variations) || 3, 1), 5);
 
-    const systemPrompt = `You are ${agentPersona}
+    const systemPrompt = `${soshiPrompt}
 
 You have studied and internalized the methods of:
 - David Ogilvy (research-driven, brand-building, consumer respect)
