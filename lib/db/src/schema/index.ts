@@ -10,3 +10,4 @@ export * from "./tasks";
 export * from "./contacts";
 export * from "./kpis";
 export * from "./automation-templates";
+export * from "./social-posts";
