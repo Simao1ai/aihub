@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import {
   Send, Plus, MessageSquare, Bot, Search, Sparkles,
   ChevronLeft, Users, ArrowRight, Share2, X, CheckCircle2,
+  Download, Image, Wand2, RefreshCw,
 } from 'lucide-react';
 import {
   useListAgents,
@@ -83,6 +84,10 @@ const AGENT_META: Record<string, { category: string; capabilities: string[] }> =
     category: 'Project Management',
     capabilities: ['Project plans', 'Sprint goals', 'Milestone timelines', 'Risk logs', 'Stakeholder updates'],
   },
+  pixel: {
+    category: 'Visual Art',
+    capabilities: ['AI image prompts', 'Social media graphics', 'Ad creatives', 'Brand imagery', 'Platform-sized visuals'],
+  },
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -102,6 +107,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   HR: '#7c3aed',
   Legal: '#64748b',
   'Project Management': '#0891b2',
+  'Visual Art': '#f43f5e',
 };
 
 // ─── Marketplace card ──────────────────────────────────────────────────────
@@ -162,6 +168,167 @@ function AgentCard({ agent, onSelect }: { agent: any; onSelect: () => void }) {
         </button>
       </div>
     </motion.div>
+  );
+}
+
+// ─── PIXEL Image Generator Panel ───────────────────────────────────────────
+
+const PIXEL_RATIOS = [
+  { label: 'Square 1:1', value: '1:1', w: 1080, h: 1080, hint: 'Instagram / Facebook post' },
+  { label: 'Portrait 4:5', value: '4:5', w: 1080, h: 1350, hint: 'Instagram portrait' },
+  { label: 'Story 9:16', value: '9:16', w: 1080, h: 1920, hint: 'Stories / Reels cover' },
+  { label: 'Landscape 16:9', value: '16:9', w: 1280, h: 720, hint: 'YouTube / banner' },
+  { label: 'Facebook 1.91:1', value: '1.91:1', w: 1200, h: 630, hint: 'Facebook link post' },
+];
+
+function buildPollinationsUrl(prompt: string, w: number, h: number): string {
+  const encoded = encodeURIComponent(prompt);
+  return `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&model=flux&nologo=true&seed=${Math.floor(Math.random() * 999999)}`;
+}
+
+function ImageGeneratorPanel({ agentColor }: { agentColor: string }) {
+  const [prompt, setPrompt] = useState('');
+  const [ratio, setRatio] = useState(PIXEL_RATIOS[0]);
+  const [imgUrl, setImgUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  const generate = () => {
+    if (!prompt.trim()) return;
+    setLoading(true);
+    setError(false);
+    const url = buildPollinationsUrl(prompt.trim(), ratio.w, ratio.h);
+    setImgUrl(url);
+  };
+
+  const regenerate = () => {
+    if (!prompt.trim()) return;
+    setLoading(true);
+    setError(false);
+    setImgUrl(null);
+    setTimeout(() => {
+      const url = buildPollinationsUrl(prompt.trim(), ratio.w, ratio.h);
+      setImgUrl(url);
+    }, 50);
+  };
+
+  const handleDownload = async () => {
+    if (!imgUrl) return;
+    try {
+      const resp = await fetch(imgUrl);
+      const blob = await resp.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `pixel-image-${Date.now()}.png`;
+      a.click();
+    } catch {
+      window.open(imgUrl, '_blank');
+    }
+  };
+
+  return (
+    <div className="border-t border-white/8 bg-[#0d1018] shrink-0">
+      <div className="px-4 py-3 flex items-center gap-2">
+        <div className="w-6 h-6 rounded-lg flex items-center justify-center text-sm" style={{ background: `${agentColor}25` }}>
+          🎨
+        </div>
+        <p className="text-xs font-semibold text-white/70">PIXEL Image Generator</p>
+        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">AI Powered</span>
+      </div>
+
+      {/* Ratio picker */}
+      <div className="px-4 pb-2 flex gap-1.5 overflow-x-auto">
+        {PIXEL_RATIOS.map(r => (
+          <button
+            key={r.value}
+            onClick={() => setRatio(r)}
+            className={cn(
+              "shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all",
+              ratio.value === r.value
+                ? "border-rose-400/40 bg-rose-400/10 text-rose-300"
+                : "border-white/8 bg-white/4 text-white/40 hover:text-white/60"
+            )}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Prompt input */}
+      <div className="px-4 pb-3 flex gap-2">
+        <input
+          value={prompt}
+          onChange={e => setPrompt(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && generate()}
+          placeholder="Paste PIXEL's image prompt here to generate..."
+          className="flex-1 bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-rose-400/30"
+        />
+        <button
+          onClick={generate}
+          disabled={!prompt.trim() || loading}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 transition-all"
+          style={{ background: agentColor }}
+        >
+          <Wand2 className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Generate</span>
+        </button>
+      </div>
+
+      {/* Image preview */}
+      <AnimatePresence mode="wait">
+        {imgUrl && (
+          <motion.div
+            key={imgUrl}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="px-4 pb-4"
+          >
+            <div className="relative rounded-2xl overflow-hidden border border-white/8 bg-white/3">
+              {loading && !error && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-10 gap-3">
+                  <div className="w-8 h-8 border-2 border-rose-400/30 border-t-rose-400 rounded-full animate-spin" />
+                  <p className="text-xs text-white/50">Generating your image…</p>
+                </div>
+              )}
+              {error && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 gap-2">
+                  <p className="text-xs text-red-400">Generation failed — try regenerating</p>
+                </div>
+              )}
+              <img
+                src={imgUrl}
+                alt="PIXEL generated image"
+                onLoad={() => setLoading(false)}
+                onError={() => { setLoading(false); setError(true); }}
+                className="w-full max-h-64 object-contain"
+              />
+              {!loading && !error && (
+                <div className="absolute top-2 right-2 flex gap-1.5">
+                  <button
+                    onClick={regenerate}
+                    className="w-8 h-8 rounded-lg bg-black/60 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white border border-white/10 transition-all"
+                    title="Regenerate"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    className="w-8 h-8 rounded-lg bg-black/60 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white border border-white/10 transition-all"
+                    title="Download image"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+            {!loading && !error && (
+              <p className="text-[10px] text-white/25 mt-1.5 text-center">{ratio.hint} · {ratio.w}×{ratio.h}</p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -447,13 +614,16 @@ function ChatView({
         <div ref={endRef} />
       </div>
 
+      {/* PIXEL image generator panel */}
+      {agent.slug === 'pixel' && <ImageGeneratorPanel agentColor={agent.color} />}
+
       {/* Input */}
-      <form onSubmit={handleSend} className="px-6 py-5 border-t border-white/5 shrink-0">
+      <form onSubmit={handleSend} className="px-4 sm:px-6 py-4 sm:py-5 border-t border-white/5 shrink-0">
         <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-white/20 transition-colors">
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder={`Message ${agent.name}...`}
+            placeholder={agent.slug === 'pixel' ? 'Ask PIXEL to design a visual…' : `Message ${agent.name}...`}
             className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25 focus:outline-none"
             disabled={isStreaming || !convId}
           />
