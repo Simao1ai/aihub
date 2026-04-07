@@ -8,6 +8,9 @@ import connectionsRouter from "./connections";
 import authRouter from "./auth";
 import pipelinesRouter from "./pipelines";
 import workspacesRouter from "./workspaces";
+import tasksRouter from "./tasks";
+import contactsRouter from "./contacts";
+import kpisRouter from "./kpis";
 
 const router: IRouter = Router();
 
@@ -20,5 +23,8 @@ router.use("/automations", automationsRouter);
 router.use("/connections", connectionsRouter);
 router.use("/pipelines", pipelinesRouter);
 router.use("/workspaces", workspacesRouter);
+router.use("/tasks", tasksRouter);
+router.use("/contacts", contactsRouter);
+router.use("/kpis", kpisRouter);
 
 export default router;

@@ -2,11 +2,15 @@
 
 ## Overview
 
-A full-stack personal AI Agent Hub for managing two businesses:
-1. **Equifind Recovery** — Florida tax deed surplus fund recovery SaaS
-2. **Home Inspection Business** — B2B with realtor network
+A full-stack personal AI Agent Hub for Simao Alves to manage 5 businesses from one central hub:
+1. **LES A Inspections** — Home inspection B2B with realtor network
+2. **CarrierDeskHQ** — Trucking consulting and dispatch SaaS
+3. **SalonSync Hub** — Salon management SaaS
+4. **Sweepello** — Cleaning marketplace SaaS
+5. **Real Estate Investments** — Portfolio acquisition and tracking
+6. **General** — Cross-business command center
 
-Single-user, password-gated web app. Default password: `aihub2024` (change via APP_PASSWORD secret).
+Multi-workspace login system. Each workspace has its own password. Default password: `aihub2024`.
 
 ## Stack
 
@@ -28,19 +32,19 @@ Single-user, password-gated web app. Default password: `aihub2024` (change via A
 artifacts/
 ├── ai-hub/              # React + Vite frontend
 │   ├── src/
-│   │   ├── pages/       # agents.tsx, brain.tsx, automations.tsx, connections.tsx, login.tsx
-│   │   ├── components/  # layout.tsx, ui-elements.tsx
+│   │   ├── pages/       # dashboard, agents, brain, tasks, contacts, automations, pipelines, connections, workspaces, login
+│   │   ├── components/  # layout.tsx (sidebar nav), ui-elements.tsx
 │   │   ├── hooks/       # use-auth.ts, use-chat-stream.ts
-│   │   └── store.ts     # Zustand global state
-│   └── public/images/   # logo.png
+│   │   └── store.ts     # Zustand global state (businessTag, account)
+│   └── public/images/
 └── api-server/          # Express API backend
     └── src/
-        ├── routes/      # agents, anthropic, brain, automations, connections, auth
+        ├── routes/      # agents, anthropic, brain, automations, connections, auth, pipelines, workspaces, tasks, contacts, kpis
         ├── lib/
         │   ├── cron.ts  # node-cron automation scheduler
-        │   └── seed.ts  # DB seeder (runs on startup)
+        │   └── seed.ts  # DB seeder (runs on startup, upserts workspaces)
 lib/
-├── db/src/schema/       # agents, brain, automations, connections, conversations, messages
+├── db/src/schema/       # agents, brain, automations, connections, conversations, messages, pipelines, workspaces, tasks, contacts, kpis
 ├── api-spec/            # OpenAPI spec
 ├── api-client-react/    # Generated React Query hooks
 ├── api-zod/             # Generated Zod schemas
@@ -49,19 +53,38 @@ lib/
 
 ## Key Features
 
-### Navigation (6 sections)
-1. **📊 Dashboard** — Command center overview: stat cards, pending approvals queue, recent sessions, agent shortcuts, platform connection status.
-2. **🤖 Agents** — Chat with 6 specialized AI agents (COMPASS, OUTREACH, INKWELL, SCOUT, OPS, DESK). Streaming SSE responses. Conversation history per agent.
-3. **🧠 Brain** — Upload PDFs, paste text, fetch URLs. Brain context is injected into every AI call automatically.
-4. **⚡ Automations** — Scheduled and on-demand AI tasks. All outputs require approval before saving. Pre-built templates for realtor outreach, strategy brief, case research.
-5. **🔀 Pipelines** — Multi-agent sequential workflows. Chain agents where each step receives the previous agent's output as context. Full step-by-step output review before approval.
-6. **🔗 Connections** — OAuth connections for LinkedIn, Google/Gmail, Twitter/X, Meta. API key connections for GoHighLevel. Supports posting, DMing, reading messages via connected accounts.
+### Navigation (9 sections)
+1. **📊 Dashboard** — Command center: stat cards (agents, brain, tasks, contacts, connections, pending), KPI section per workspace, cross-business overview (General only), pending approvals queue, agent shortcuts, recent chats.
+2. **🤖 Agents** — Chat with 6 specialized AI agents (COMPASS, OUTREACH, INKWELL, SCOUT, OPS, DESK). Streaming SSE responses. Conversation history per agent. Workspace-aware AI context injected per conversation.
+3. **🧠 Brain** — Upload PDFs, paste text, fetch URLs. Brain context injected into every AI call automatically.
+4. **✅ Tasks** — Kanban board with To Do / In Progress / Done columns. Create, edit, move, delete tasks. Priority (low/medium/high), due dates with overdue detection. Scoped per workspace.
+5. **👥 Contacts** — CRM list with search and status filters (Lead → Prospect → Client → Partner). Add/edit/delete contacts with name, company, email, phone, notes. Scoped per workspace.
+6. **⚡ Automations** — Scheduled and on-demand AI tasks. All outputs require approval before saving. Pre-built templates.
+7. **🔀 Pipelines** — Multi-agent sequential workflows. Chain agents where each step receives the previous output as context.
+8. **🔗 Connections** — OAuth connections for LinkedIn, Google/Gmail, Twitter/X, Meta. API key connections for GoHighLevel.
+9. **⚙️ Workspaces** — Create and manage workspaces (name, emoji, color, password). Each workspace has isolated data.
+
+### Workspace System
+- DB-backed workspaces with per-workspace passwords, emoji, color
+- 6 pre-seeded workspaces: General + 5 businesses
+- Each workspace's `businessContext` text is injected into AI system prompt for workspace-aware responses
+- Workspace-scoped data: tasks, contacts, KPIs, brain documents, conversations
+- Seed upserts on every server start (updates businessContext/emoji/color)
+
+### AI Context Injection
+- `conversations.businessTag` links conversations to workspaces
+- On every message, `anthropic.ts` looks up the workspace by `businessTag` and prepends its `businessContext` to the agent's system prompt
+- Brain documents are also keyword-searched and injected for additional context
 
 ### Pipeline System
-- DB tables: `pipelines` (steps stored as JSONB), `pipeline_runs` (stepsOutput stored as JSONB)
+- DB tables: `pipelines` (steps as JSONB), `pipeline_runs` (stepsOutput as JSONB)
 - Execution engine: `artifacts/api-server/src/lib/pipeline.ts`
-- API routes: `GET/POST /api/pipelines`, `PATCH/DELETE /api/pipelines/:id`, `POST /api/pipelines/:id/run`, `GET /api/pipelines/runs/list`, `POST /api/pipelines/runs/:id/approve|discard`
-- Each step receives: agent's system prompt + step promptTemplate + previous step's output as context
+- Each step receives: agent's system prompt + step promptTemplate + previous step's output
+
+### KPI Tracking (per workspace)
+- `kpis` table: name, value, unit ($/%/#/etc), period, businessTag
+- Dashboard shows editable KPI cards per workspace
+- Full CRUD API at `/api/kpis`
 
 ### Agents (seeded on first run)
 | Name | Emoji | Color | Role |
@@ -73,51 +96,44 @@ lib/
 | OPS | ⚙️ | #8b5cf6 | Admin |
 | DESK | 💬 | #ef4444 | Client Comms |
 
-### Pre-built Automations
-- Weekly Realtor Outreach Draft (Every Monday 8am — OUTREACH agent)
-- Equifind Weekly Strategy Brief (Every Friday 4pm — COMPASS agent)
-- Case Research Summary (On-demand — SCOUT agent)
+## DB Schema (all tables)
+- `agents` — AI agent definitions
+- `workspaces` — Multi-workspace config with businessContext
+- `conversations` + `messages` — Chat history
+- `brain_documents` — Knowledge base entries
+- `automations` + `automation_runs` — Scheduled AI tasks
+- `pipelines` + `pipeline_runs` — Multi-agent workflows
+- `connections` — OAuth/API key credentials
+- `tasks` — Kanban tasks per workspace
+- `contacts` — CRM contacts per workspace
+- `kpis` — KPI metrics per workspace
 
 ## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `APP_PASSWORD` | App password gate (default: aihub2024) |
+| `GENERAL_PASSWORD` | General workspace password (default: aihub2024) |
+| `LES_A_PASSWORD` | LES A Inspections password |
+| `CARRIERDESKH_PASSWORD` | CarrierDeskHQ password |
+| `SALONSYNC_PASSWORD` | SalonSync Hub password |
+| `SWEEPELLO_PASSWORD` | Sweepello password |
+| `REAL_ESTATE_PASSWORD` | Real Estate workspace password |
 | `DATABASE_URL` | Auto-provisioned PostgreSQL |
 | `AI_INTEGRATIONS_ANTHROPIC_BASE_URL` | Auto-set by Replit AI Integrations |
 | `AI_INTEGRATIONS_ANTHROPIC_API_KEY` | Auto-set by Replit AI Integrations |
-| `LINKEDIN_CLIENT_ID` | LinkedIn OAuth app ID |
-| `LINKEDIN_CLIENT_SECRET` | LinkedIn OAuth secret |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth secret |
-| `TWITTER_CLIENT_ID` | Twitter/X OAuth client ID |
-| `TWITTER_CLIENT_SECRET` | Twitter/X OAuth secret |
-| `META_APP_ID` | Meta (Facebook/Instagram) App ID |
-| `META_APP_SECRET` | Meta App Secret |
-
-## Social Media OAuth Setup
-
-Replit only has a built-in Gmail connector (user dismissed it). For all OAuth platforms, developer apps must be created manually and credentials stored as secrets.
-
-For OAuth platforms (LinkedIn, Google, Twitter/X, Meta), create developer apps and set the redirect URI to:
-`https://YOUR_DOMAIN/api/connections/oauth/{platform}/callback`
-
-Required secrets per platform:
-- LinkedIn: LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET
-- Google/Gmail: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-- Twitter/X: TWITTER_CLIENT_ID, TWITTER_CLIENT_SECRET
-- Meta: META_APP_ID, META_APP_SECRET
-
-For GoHighLevel, just paste your API key in the Connections tab (no OAuth needed).
+| `LINKEDIN_CLIENT_ID/SECRET` | LinkedIn OAuth |
+| `GOOGLE_CLIENT_ID/SECRET` | Google OAuth |
+| `TWITTER_CLIENT_ID/SECRET` | Twitter/X OAuth |
+| `META_APP_ID/SECRET` | Meta OAuth |
 
 ## Development Commands
 
 ```bash
-# Run codegen after OpenAPI spec changes
-pnpm --filter @workspace/api-spec run codegen
-
 # Push DB schema changes
 pnpm --filter @workspace/db run push
+
+# Run API codegen after OpenAPI spec changes
+pnpm --filter @workspace/api-spec run codegen
 
 # Build API server
 pnpm --filter @workspace/api-server run build

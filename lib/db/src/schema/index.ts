@@ -6,3 +6,6 @@ export * from "./conversations";
 export * from "./messages";
 export * from "./pipelines";
 export * from "./workspaces";
+export * from "./tasks";
+export * from "./contacts";
+export * from "./kpis";

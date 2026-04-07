@@ -10,6 +10,7 @@ export const workspacesTable = pgTable("workspaces", {
   emoji: text("emoji").notNull().default("⚡"),
   color: text("color").notNull().default("#6366f1"),
   password: text("password").notNull().default("aihub2024"),
+  businessContext: text("business_context").notNull().default(""),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

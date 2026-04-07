@@ -1,4 +1,5 @@
 import { db, agentsTable, automationsTable, workspacesTable } from "@workspace/db";
+import { sql } from "drizzle-orm";
 import { logger } from "./logger";
 
 const WORKSPACES = [
@@ -9,27 +10,63 @@ const WORKSPACES = [
     emoji: "⚡",
     color: "#6366f1",
     password: process.env.GENERAL_PASSWORD || "aihub2024",
+    businessContext: "You have full access to all of Simao's businesses: LES A Inspections (home inspection, B2B with realtors), CarrierDeskHQ (trucking consulting SaaS), SalonSync Hub (salon management SaaS), Sweepello (cleaning marketplace SaaS), and Real Estate Investments. Provide cross-business strategic guidance as needed.",
     sortOrder: 0,
     isActive: true,
   },
   {
-    name: "Equifind Recovery",
-    slug: "equifind",
-    description: "Florida tax deed surplus fund recovery operations",
-    emoji: "💼",
-    color: "#f59e0b",
-    password: process.env.EQUIFIND_PASSWORD || "aihub2024",
+    name: "LES A Inspections",
+    slug: "les_a_inspections",
+    description: "Home inspection B2B business with realtor network",
+    emoji: "🏠",
+    color: "#10b981",
+    password: process.env.LES_A_PASSWORD || "aihub2024",
+    businessContext: "LES A Inspections is Simao's home inspection business. It operates B2B, partnering with real estate agents and realtors to provide home inspection services. Key goals: grow the realtor referral network, increase inspection volume, build a strong reputation in the local market. Revenue model: per-inspection fees paid by home buyers, referred by realtor partners.",
     sortOrder: 1,
     isActive: true,
   },
   {
-    name: "Home Inspections",
-    slug: "home_inspection",
-    description: "B2B home inspection & realtor network management",
-    emoji: "🏠",
-    color: "#10b981",
-    password: process.env.HOME_INSPECTION_PASSWORD || "aihub2024",
+    name: "CarrierDeskHQ",
+    slug: "carrierdeskh_q",
+    description: "Trucking consulting and dispatch SaaS platform",
+    emoji: "🚛",
+    color: "#f59e0b",
+    password: process.env.CARRIERDESKH_PASSWORD || "aihub2024",
+    businessContext: "CarrierDeskHQ is Simao's trucking consulting and dispatch SaaS. It helps owner-operators and small trucking companies manage dispatch, load finding, and compliance. Key goals: acquire trucking clients, reduce churn, build SaaS features that solve real carrier pain points. Revenue model: monthly SaaS subscriptions from trucking companies.",
     sortOrder: 2,
+    isActive: true,
+  },
+  {
+    name: "SalonSync Hub",
+    slug: "salonsync_hub",
+    description: "Salon management SaaS platform",
+    emoji: "💇",
+    color: "#ec4899",
+    password: process.env.SALONSYNC_PASSWORD || "aihub2024",
+    businessContext: "SalonSync Hub is a salon management SaaS built by Simao. It helps salons manage appointments, staff, clients, and payments. Key goals: grow salon subscriber base, reduce booking no-shows, help salon owners increase revenue per chair. Revenue model: monthly SaaS subscriptions from salon owners.",
+    sortOrder: 3,
+    isActive: true,
+  },
+  {
+    name: "Sweepello",
+    slug: "sweepello",
+    description: "Cleaning services marketplace platform",
+    emoji: "🧹",
+    color: "#3b82f6",
+    password: process.env.SWEEPELLO_PASSWORD || "aihub2024",
+    businessContext: "Sweepello is Simao's cleaning marketplace SaaS. It connects homeowners and businesses with vetted cleaning professionals. Key goals: grow cleaner supply side, grow demand side (client bookings), ensure quality control, and build trust through ratings. Revenue model: marketplace commission on bookings.",
+    sortOrder: 4,
+    isActive: true,
+  },
+  {
+    name: "Real Estate",
+    slug: "real_estate",
+    description: "Real estate investment portfolio and acquisitions",
+    emoji: "🏢",
+    color: "#8b5cf6",
+    password: process.env.REAL_ESTATE_PASSWORD || "aihub2024",
+    businessContext: "Simao's real estate investment business focuses on acquiring, holding, and potentially flipping properties. Key goals: identify undervalued properties, analyze deals, manage portfolio performance, and track equity growth. Strategy may include tax deed auctions, MLS deals, and off-market acquisitions.",
+    sortOrder: 5,
     isActive: true,
   },
 ];
@@ -38,8 +75,8 @@ const AGENTS = [
   {
     name: "COMPASS",
     slug: "compass",
-    roleDescription: "Senior business strategist for Equifind Recovery and home inspection businesses.",
-    systemPrompt: `You are COMPASS, a senior business strategist. You help with strategic decisions, prioritization, opportunity analysis, and competitive strategy for Equifind Recovery (Florida tax deed surplus fund recovery SaaS) and a home inspection business with realtor network. Be direct, insightful, and action-oriented.`,
+    roleDescription: "Senior business strategist across all ventures.",
+    systemPrompt: `You are COMPASS, a senior business strategist. You help with strategic decisions, prioritization, opportunity analysis, and competitive strategy. Be direct, insightful, and action-oriented. Think big picture but also help break things down into executable steps.`,
     icon: "🧭",
     color: "#6366f1",
     isActive: true,
@@ -48,7 +85,7 @@ const AGENTS = [
     name: "OUTREACH",
     slug: "outreach",
     roleDescription: "Expert at writing cold outreach, follow-up sequences, and persuasive email copy.",
-    systemPrompt: `You are OUTREACH, an expert cold outreach and email copywriter. You craft compelling cold outreach sequences, follow-up emails, and persuasive copy for realtor partnerships and enterprise sales. Your emails feel human, not robotic. You understand B2B sales cycles and how to get responses from busy professionals.`,
+    systemPrompt: `You are OUTREACH, an expert cold outreach and email copywriter. You craft compelling cold outreach sequences, follow-up emails, and persuasive copy. Your emails feel human, not robotic. You understand B2B sales cycles and how to get responses from busy professionals.`,
     icon: "📬",
     color: "#f59e0b",
     isActive: true,
@@ -56,8 +93,8 @@ const AGENTS = [
   {
     name: "INKWELL",
     slug: "inkwell",
-    roleDescription: "Professional copywriter for proposals, contracts, marketing materials, and website copy.",
-    systemPrompt: `You are INKWELL, a professional copywriter. You create proposals, contracts, marketing materials, and website copy that matches the brand voice of Equifind Recovery and the home inspection business. Your writing is clear, persuasive, and professional.`,
+    roleDescription: "Professional copywriter for proposals, contracts, marketing, and website copy.",
+    systemPrompt: `You are INKWELL, a professional copywriter. You create proposals, contracts, marketing materials, and website copy. Your writing is clear, persuasive, and professional. You adapt your tone to match the business context — whether it's a home inspection company, a SaaS product, or a marketplace.`,
     icon: "✍️",
     color: "#10b981",
     isActive: true,
@@ -65,8 +102,8 @@ const AGENTS = [
   {
     name: "SCOUT",
     slug: "scout",
-    roleDescription: "Data analyst and researcher for case data, skip-tracing results, and market research.",
-    systemPrompt: `You are SCOUT, a data analyst and researcher. You analyze surplus fund case data, skip-tracing results, market research, and recovery portfolios for Equifind Recovery. You identify patterns, rank opportunities by probability, and provide clear analytical insights. You also research the home inspection market and realtor network opportunities.`,
+    roleDescription: "Data analyst and researcher for market research, competitor analysis, and opportunity scouting.",
+    systemPrompt: `You are SCOUT, a data analyst and researcher. You analyze market data, research competitors, identify opportunities, and provide clear analytical insights. You identify patterns and rank opportunities by potential impact. You can research any industry or market relevant to the businesses.`,
     icon: "🔍",
     color: "#3b82f6",
     isActive: true,
@@ -74,8 +111,8 @@ const AGENTS = [
   {
     name: "OPS",
     slug: "ops",
-    roleDescription: "Operations assistant for task management, scheduling, SOPs, and cross-venture coordination.",
-    systemPrompt: `You are OPS, an operations and administrative assistant. You help with task management, scheduling prep, meeting agendas, standard operating procedures (SOPs), and cross-venture coordination between Equifind Recovery and the home inspection business. You keep things organized, efficient, and running smoothly.`,
+    roleDescription: "Operations assistant for SOPs, scheduling, task management, and cross-venture coordination.",
+    systemPrompt: `You are OPS, an operations and administrative assistant. You help with task management, scheduling prep, meeting agendas, standard operating procedures (SOPs), and cross-venture coordination. You keep things organized, efficient, and running smoothly. You can help draft SOPs, checklists, and operational frameworks.`,
     icon: "⚙️",
     color: "#8b5cf6",
     isActive: true,
@@ -83,8 +120,8 @@ const AGENTS = [
   {
     name: "DESK",
     slug: "desk",
-    roleDescription: "Client communication specialist for partner portal support, onboarding, and correspondence.",
-    systemPrompt: `You are DESK, a client communication specialist. You handle Equifind partner portal support, onboarding emails, and professional client correspondence. Your tone is warm but professional. You ensure clients feel supported and informed throughout their journey.`,
+    roleDescription: "Client communication specialist for onboarding, support, and professional correspondence.",
+    systemPrompt: `You are DESK, a client communication specialist. You handle client onboarding emails, support responses, and professional client correspondence. Your tone is warm but professional. You ensure clients feel supported and informed. You can adapt your communication style to match different business contexts.`,
     icon: "💬",
     color: "#ef4444",
     isActive: true,
@@ -95,12 +132,20 @@ export async function seedDatabase() {
   try {
     logger.info("Checking database seed state...");
 
-    // Seed workspaces (upsert by slug)
+    // Seed workspaces (upsert by slug — insert or update businessContext/emoji/color)
     for (const ws of WORKSPACES) {
       await db
         .insert(workspacesTable)
         .values(ws)
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: workspacesTable.slug,
+          set: {
+            businessContext: sql`excluded.business_context`,
+            emoji: sql`excluded.emoji`,
+            color: sql`excluded.color`,
+            description: sql`excluded.description`,
+          },
+        });
     }
     logger.info("Workspaces seeded");
 
@@ -126,18 +171,18 @@ export async function seedDatabase() {
         status: "idle",
       },
       {
-        name: "Equifind Weekly Strategy Brief",
+        name: "Weekly Strategy Brief",
         agentId: agentMap.compass,
         scheduleCron: "0 16 * * 5",
-        promptTemplate: `Generate a weekly strategic review for Equifind Recovery. Cover: what to prioritize next week, any risks to watch, one growth action item, and any opportunities in the Florida tax deed surplus fund space. Be specific and actionable.`,
+        promptTemplate: `Generate a weekly strategic review for all active businesses. Cover: what to prioritize next week, any risks to watch, one growth action item per business, and any cross-business synergies. Be specific and actionable.`,
         isActive: true,
         status: "idle",
       },
       {
-        name: "Case Research Summary",
+        name: "Market Research Summary",
         agentId: agentMap.scout,
         scheduleCron: null,
-        promptTemplate: `Summarize the current state of the Lee County surplus fund recovery pipeline. Identify which case types have highest recovery probability and suggest next skip-tracing steps. Highlight any patterns in successful recoveries vs. stalled cases.`,
+        promptTemplate: `Research and summarize current market conditions relevant to the active business. Identify competitor moves, market trends, and opportunities. Highlight any patterns worth acting on this week.`,
         isActive: true,
         status: "idle",
       },

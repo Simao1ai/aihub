@@ -14,6 +14,8 @@ import Automations from "@/pages/automations";
 import Pipelines from "@/pages/pipelines";
 import Connections from "@/pages/connections";
 import Workspaces from "@/pages/workspaces";
+import Tasks from "@/pages/tasks";
+import Contacts from "@/pages/contacts";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -45,7 +47,6 @@ function Router() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
   const [location, setLocation] = useLocation();
 
-  // Root redirect
   if (location === '/') {
     if (isAuthenticated) setLocation('/dashboard');
     else setLocation('/login');
@@ -58,6 +59,8 @@ function Router() {
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/agents"><ProtectedRoute component={Agents} /></Route>
       <Route path="/brain"><ProtectedRoute component={Brain} /></Route>
+      <Route path="/tasks"><ProtectedRoute component={Tasks} /></Route>
+      <Route path="/contacts"><ProtectedRoute component={Contacts} /></Route>
       <Route path="/automations"><ProtectedRoute component={Automations} /></Route>
       <Route path="/pipelines"><ProtectedRoute component={Pipelines} /></Route>
       <Route path="/connections"><ProtectedRoute component={Connections} /></Route>

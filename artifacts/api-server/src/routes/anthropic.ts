@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, conversations, messages, agentsTable } from "@workspace/db";
+import { db, conversations, messages, agentsTable, workspacesTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getBrainContext } from "./brain";
@@ -120,10 +120,25 @@ router.post("/conversations/:id/messages", async (req, res) => {
     // Get brain context
     const brainContext = await getBrainContext(content);
 
+    // Get workspace business context
+    let businessContext = "";
+    try {
+      const [ws] = await db.select().from(workspacesTable).where(eq(workspacesTable.slug, conv.businessTag));
+      if (ws?.businessContext) {
+        businessContext = `BUSINESS CONTEXT:\n${ws.businessContext}`;
+      } else if (ws?.name) {
+        businessContext = `You are working in the "${ws.name}" workspace for Simao Alves.`;
+      } else {
+        businessContext = "You are working for Simao Alves, an entrepreneur with multiple businesses.";
+      }
+    } catch {
+      businessContext = "You are working for Simao Alves, an entrepreneur with multiple businesses.";
+    }
+
     // Build system prompt
     const systemPrompt = [
       agent.systemPrompt,
-      `You are working for Simao, an entrepreneur running Equifind Recovery (Florida tax deed surplus fund recovery SaaS) and a home inspection business with realtor network.`,
+      businessContext,
       `Today's date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}.`,
       brainContext,
     ]
