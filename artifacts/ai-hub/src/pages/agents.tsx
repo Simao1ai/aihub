@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 import {
   Send, Plus, MessageSquare, Bot, Search, Sparkles,
-  ChevronLeft, Star, Zap, Users, ArrowRight
+  ChevronLeft, Users, ArrowRight, Share2, X, CheckCircle2,
 } from 'lucide-react';
 import {
   useListAgents,
@@ -165,22 +165,170 @@ function AgentCard({ agent, onSelect }: { agent: any; onSelect: () => void }) {
   );
 }
 
+// ─── Handoff Modal ─────────────────────────────────────────────────────────
+
+function HandoffModal({
+  convId,
+  currentAgent,
+  allAgents,
+  onClose,
+  onHandoff,
+}: {
+  convId: number;
+  currentAgent: any;
+  allAgents: any[];
+  onClose: () => void;
+  onHandoff: (targetAgentId: number, convId: number) => void;
+}) {
+  const [targetAgentId, setTargetAgentId] = useState<number | null>(null);
+  const [note, setNote] = useState('');
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const otherAgents = allAgents.filter(a => a.id !== currentAgent.id);
+
+  const handleHandoff = async () => {
+    if (!targetAgentId) return;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/anthropic/conversations/${convId}/handoff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetAgentId, note }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDone(true);
+        setTimeout(() => {
+          onHandoff(targetAgentId, data.conversationId);
+          onClose();
+        }, 1200);
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const targetAgent = allAgents.find(a => a.id === targetAgentId);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}
+        className="relative w-full sm:max-w-lg bg-[#111520] border border-white/8 rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-2xl"
+      >
+        {/* Handle */}
+        <div className="flex justify-center pt-3 sm:hidden"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
+
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/6">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg" style={{ background: `${currentAgent.color}20` }}>
+            {currentAgent.icon}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">Pass to a colleague</p>
+            <p className="text-xs text-white/35">Context from this chat will be included automatically</p>
+          </div>
+          <button onClick={onClose} className="ml-auto w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/40 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          {done ? (
+            <div className="flex flex-col items-center py-6 gap-3">
+              <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+              <p className="text-sm font-semibold text-white">Handoff created!</p>
+              <p className="text-xs text-white/40">Switching to {targetAgent?.name}…</p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">Choose a colleague</p>
+                <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                  {otherAgents.map(agent => (
+                    <button
+                      key={agent.id}
+                      onClick={() => setTargetAgentId(agent.id)}
+                      className={cn(
+                        "flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all",
+                        targetAgentId === agent.id
+                          ? "border-primary/40 bg-primary/10"
+                          : "border-white/6 bg-white/3 hover:bg-white/5"
+                      )}
+                    >
+                      <span className="text-lg">{agent.icon}</span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-white truncate">{agent.name}</p>
+                        <p className="text-[10px] text-white/30 truncate">{AGENT_META[agent.slug]?.category ?? 'AI'}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-white/40 mb-1.5 block">Additional instructions for {targetAgent?.name ?? 'colleague'} (optional)</label>
+                <textarea
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  placeholder={`e.g. "Focus on the email sequence part" or "Expand on the pricing section"`}
+                  rows={2}
+                  className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 resize-none"
+                />
+              </div>
+
+              {targetAgent && (
+                <div className="flex gap-2 p-3 rounded-xl bg-white/3 border border-white/5 items-center">
+                  <span className="text-2xl">{targetAgent.icon}</span>
+                  <div>
+                    <p className="text-xs font-semibold text-white">{currentAgent.name} → {targetAgent.name}</p>
+                    <p className="text-[10px] text-white/35">Last 6 messages will be shared as context</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-white/20 ml-auto" />
+                </div>
+              )}
+
+              <button
+                onClick={handleHandoff}
+                disabled={!targetAgentId || sending}
+                className="w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-40 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                {sending ? (
+                  <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating handoff…</>
+                ) : (
+                  <><Share2 className="w-4 h-4" /> Pass to {targetAgent?.name ?? 'colleague'}</>
+                )}
+              </button>
+            </>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Chat thread ──────────────────────────────────────────────────────────
 
 function ChatView({
   agent,
   convId,
   conv,
+  allAgents,
   onBack,
   onNewConv,
+  onHandoff,
 }: {
   agent: any;
   convId: number | null;
   conv: any;
+  allAgents: any[];
   onBack: () => void;
   onNewConv: () => void;
+  onHandoff: (targetAgentId: number, newConvId: number) => void;
 }) {
   const [input, setInput] = useState('');
+  const [showHandoff, setShowHandoff] = useState(false);
   const { sendMessage, streamingMessage, isStreaming } = useChatStream(convId);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -198,21 +346,49 @@ function ChatView({
   return (
     <div className="flex flex-col h-full">
       {/* Chat header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-b border-white/5 shrink-0">
         <button onClick={onBack} className="p-2 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all">
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: `${agent.color}20` }}>
+        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: `${agent.color}20` }}>
           {agent.icon}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white">{agent.name}</p>
-          <p className="text-xs text-white/35 truncate">{agent.roleDescription}</p>
+          <p className="text-xs text-white/35 truncate hidden sm:block">{agent.roleDescription}</p>
         </div>
-        <button onClick={onNewConv} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-xs transition-all">
-          <Plus className="w-3.5 h-3.5" /> New chat
+        {/* Pass to colleague */}
+        {convId && (
+          <button
+            onClick={() => setShowHandoff(true)}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/8 text-white/40 hover:text-white text-xs transition-all"
+            title="Pass this conversation to another agent"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Pass to</span>
+          </button>
+        )}
+        <button onClick={onNewConv} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-xs transition-all">
+          <Plus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">New chat</span>
         </button>
       </div>
+
+      {/* Handoff modal */}
+      <AnimatePresence>
+        {showHandoff && convId && (
+          <HandoffModal
+            convId={convId}
+            currentAgent={agent}
+            allAgents={allAgents}
+            onClose={() => setShowHandoff(false)}
+            onHandoff={(targetId, newConvId) => {
+              setShowHandoff(false);
+              onHandoff(targetId, newConvId);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
@@ -353,6 +529,12 @@ export default function Agents() {
     setSelectedConvId(null);
   };
 
+  // Handle handoff: switch to the target agent and open the new conversation
+  const handleHandoff = (targetAgentId: number, newConvId: number) => {
+    setSelectedAgentId(targetAgentId);
+    setSelectedConvId(newConvId);
+  };
+
   // ── Chat view ──
   if (selectedAgentId && activeAgent) {
     // Auto-create a conversation if none exists
@@ -413,8 +595,10 @@ export default function Agents() {
               agent={activeAgent}
               convId={selectedConvId}
               conv={activeConv}
+              allAgents={agents}
               onBack={handleBack}
               onNewConv={handleNewConv}
+              onHandoff={handleHandoff}
             />
           ) : (
             <div className="flex flex-col h-full items-center justify-center text-center px-8">
