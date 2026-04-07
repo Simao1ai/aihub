@@ -13,6 +13,7 @@ import contactsRouter from "./contacts";
 import kpisRouter from "./kpis";
 import powerUpsRouter from "./power-ups";
 import socialPostsRouter from "./social-posts";
+import adsRouter from "./ads";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use("/contacts", contactsRouter);
 router.use("/kpis", kpisRouter);
 router.use("/power-ups", powerUpsRouter);
 router.use("/social-posts", socialPostsRouter);
+router.use("/ads", adsRouter);
 
 export default router;

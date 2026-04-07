@@ -3,7 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { useAppStore } from '@/store';
 import {
   Bot, Brain, Zap, Link as LinkIcon, LogOut, Menu, X,
-  LayoutDashboard, GitFork, LayoutGrid, CheckSquare, Users, Sparkles, Share2,
+  LayoutDashboard, GitFork, LayoutGrid, CheckSquare, Users, Sparkles, Share2, Megaphone,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './ui-elements';
@@ -14,6 +14,7 @@ const navItems = [
   { path: '/brain',     label: 'Brain',       icon: Brain           },
   { path: '/power-ups', label: 'Power-Ups',   icon: Sparkles        },
   { path: '/social',    label: 'Social Media',icon: Share2          },
+  { path: '/ads',       label: 'Ad Creator',  icon: Megaphone       },
   { path: '/tasks',     label: 'Tasks',       icon: CheckSquare     },
   { path: '/contacts',  label: 'Contacts',    icon: Users           },
   { path: '/automations',label:'Automations', icon: Zap             },
@@ -23,7 +24,7 @@ const navItems = [
 ];
 
 // Primary 5 items shown in the mobile bottom bar
-const PRIMARY_NAV = ['/dashboard', '/agents', '/social', '/power-ups', '/brain'];
+const PRIMARY_NAV = ['/dashboard', '/agents', '/ads', '/social', '/brain'];
 
 function initials(name: string) {
   const words = name.trim().split(/\s+/);
