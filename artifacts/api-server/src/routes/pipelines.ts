@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, pipelinesTable, pipelineRunsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { runPipelineById } from "../lib/pipeline";
+import { runPipelineById, pipelineEmitter } from "../lib/pipeline";
 
 const router: IRouter = Router();
 
@@ -84,17 +84,85 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// Run pipeline
+// ── Run pipeline (standard — returns when complete) ────────────────────────
 router.post("/:id/run", async (req, res) => {
   try {
     const id = parseId(req.params.id);
     if (id === null) return res.status(400).json({ error: "Invalid ID" });
-    const run = await runPipelineById(id);
+    const { topic, businessTag } = req.body ?? {};
+    const run = await runPipelineById(id, { topic, businessTag });
     res.json(run);
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Failed to run pipeline" });
   }
+});
+
+// ── SSE streaming run — real-time step-by-step progress ───────────────────
+// GET /api/pipelines/:id/stream?topic=...&businessTag=...
+router.get("/:id/stream", async (req, res) => {
+  const id = parseId(req.params.id);
+  if (id === null) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+
+  const { topic, businessTag } = req.query as { topic?: string; businessTag?: string };
+
+  // SSE headers
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const sendEvent = (type: string, data: object) => {
+    try {
+      res.write(`data: ${JSON.stringify({ type, ...data })}\n\n`);
+    } catch {
+      // client disconnected
+    }
+  };
+
+  sendEvent("connected", { pipelineId: id, topic });
+
+  const onStepStart = (data: object) => sendEvent("step_start", data);
+  const onStepDone = (data: object) => sendEvent("step_done", data);
+
+  const onDone = (data: object) => {
+    sendEvent("done", data);
+    cleanup();
+    res.end();
+  };
+
+  const onError = (data: object) => {
+    sendEvent("error", data);
+    cleanup();
+    res.end();
+  };
+
+  const cleanup = () => {
+    pipelineEmitter.off(`pipeline:${id}:step_start`, onStepStart);
+    pipelineEmitter.off(`pipeline:${id}:step_done`, onStepDone);
+    pipelineEmitter.off(`pipeline:${id}:done`, onDone);
+    pipelineEmitter.off(`pipeline:${id}:error`, onError);
+  };
+
+  pipelineEmitter.on(`pipeline:${id}:step_start`, onStepStart);
+  pipelineEmitter.on(`pipeline:${id}:step_done`, onStepDone);
+  pipelineEmitter.once(`pipeline:${id}:done`, onDone);
+  pipelineEmitter.once(`pipeline:${id}:error`, onError);
+
+  req.on("close", () => {
+    cleanup();
+  });
+
+  // Start the pipeline run asynchronously
+  runPipelineById(id, { topic, businessTag }).catch((err) => {
+    sendEvent("error", { message: err.message ?? "Unknown error" });
+    cleanup();
+    res.end();
+  });
 });
 
 // List pipeline runs

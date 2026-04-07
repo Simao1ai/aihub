@@ -1,4 +1,4 @@
-import { db, agentsTable, automationsTable, workspacesTable, automationTemplatesTable } from "@workspace/db";
+import { db, agentsTable, automationsTable, workspacesTable, automationTemplatesTable, pipelinesTable } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import { logger } from "./logger";
 
@@ -430,6 +430,214 @@ const POWER_UP_TEMPLATES = [
   },
 ];
 
+// ── Pipeline templates (seeded once by agent slug) ───────────────────────────
+interface PipelineTemplate {
+  name: string;
+  description: string;
+  steps: { agentSlug: string; stepName: string; promptTemplate: string }[];
+}
+
+const PIPELINE_TEMPLATES: PipelineTemplate[] = [
+  {
+    name: "📱 Social Media Post",
+    description: "SCOUT researches trends, DEXIE optimizes timing, SOSHI drafts copy, then PIXEL designs the visual. Complete, post-ready content.",
+    steps: [
+      {
+        agentSlug: "scout",
+        stepName: "Research Trends",
+        promptTemplate: "Research trending topics and conversations relevant to {{TOPIC}}. Identify: 3-5 content angles ranked by engagement potential, competitor approaches, audience pain points, and seasonal hooks. Output a structured research brief that the next agent can use to write a compelling post.",
+      },
+      {
+        agentSlug: "dexie",
+        stepName: "Optimize Strategy",
+        promptTemplate: "Review the research for {{TOPIC}}. Recommend: the best content angle (with rationale), optimal posting time per platform, content format (video/carousel/image/text), and estimated engagement potential. Select the strongest angle and explain exactly why.",
+      },
+      {
+        agentSlug: "soshi",
+        stepName: "Write the Post",
+        promptTemplate: "Write a complete, platform-ready social media post for {{TOPIC}} using the strategy provided. Include: hook line, main copy, call-to-action, 10-15 hashtags, and platform-specific formatting notes (Instagram, Facebook, LinkedIn). Write 2 variations — one punchy/short, one storytelling/longer.",
+      },
+      {
+        agentSlug: "pixel",
+        stepName: "Design Visual Brief",
+        promptTemplate: "Based on the social media post for {{TOPIC}}, create a detailed visual direction. Provide a full AI image prompt, platform dimensions, color palette, mood, and composition notes. The visual should amplify the post's message and stop the scroll.",
+      },
+    ],
+  },
+  {
+    name: "📝 Blog Post",
+    description: "SEOMI researches keywords, COMPASS builds the outline, INKWELL writes the full article, SEOMI does the final SEO pass. Publish-ready.",
+    steps: [
+      {
+        agentSlug: "seomi",
+        stepName: "SEO Research",
+        promptTemplate: "Research SEO keywords and content strategy for a blog post about {{TOPIC}}. Identify: primary keyword, 5-8 secondary keywords, search intent (informational/commercial/transactional), competitor content gaps, 3 compelling title options, and target word count. Output a complete keyword brief.",
+      },
+      {
+        agentSlug: "compass",
+        stepName: "Outline & Structure",
+        promptTemplate: "Create a detailed blog post outline for {{TOPIC}} based on the SEO research. Include: H1 title, meta description (155 chars), H2 sections with H3 subsections, 3-5 key points per section, internal link opportunities, and a strong CTA. Structure for maximum reader value and search engine performance.",
+      },
+      {
+        agentSlug: "inkwell",
+        stepName: "Write Full Article",
+        promptTemplate: "Write the complete blog post for {{TOPIC}} using the outline provided. Write in a professional but conversational tone. Include: engaging intro with a hook, well-developed sections with examples, smooth transitions, and a clear CTA. Target 900-1200 words. Make it genuinely valuable, not generic.",
+      },
+      {
+        agentSlug: "seomi",
+        stepName: "SEO Final Review",
+        promptTemplate: "Review the completed blog post about {{TOPIC}}. Optimize: keyword density and placement, meta description, heading hierarchy, internal link anchor text suggestions, image alt text recommendations, and readability. Provide the final version with a checklist of all improvements made.",
+      },
+    ],
+  },
+  {
+    name: "📧 Email Campaign",
+    description: "SCOUT profiles the audience, EMMA writes a 3-email sequence, COMPASS refines the strategy, DEXIE adds performance optimization.",
+    steps: [
+      {
+        agentSlug: "scout",
+        stepName: "Audience Research",
+        promptTemplate: "Research the target audience for an email campaign about {{TOPIC}}. Identify: key pain points, decision-making triggers, common objections, what motivates action, and successful email patterns in this space. Output a campaign brief with audience insights the copywriter can use.",
+      },
+      {
+        agentSlug: "emma",
+        stepName: "Write Email Sequence",
+        promptTemplate: "Write a 3-email sequence for {{TOPIC}} based on the audience research. Email 1 (Day 1): Value/awareness — hook them with insight. Email 2 (Day 3): Social proof/education — build trust. Email 3 (Day 7): Offer/CTA — drive action. Each email needs: subject line, preview text, and full body copy. Target 40%+ open rates.",
+      },
+      {
+        agentSlug: "compass",
+        stepName: "Strategy Alignment",
+        promptTemplate: "Review the email sequence for {{TOPIC}}. Strengthen: the funnel progression logic, brand positioning consistency, CTA clarity, value proposition in each email, and the overall narrative arc. Refine and provide the improved final sequence with strategic notes.",
+      },
+      {
+        agentSlug: "dexie",
+        stepName: "Performance Optimization",
+        promptTemplate: "Analyze the email sequence for {{TOPIC}}. Provide: A/B test suggestions for subject lines (3 variants each), optimal send times by day/hour, predicted open and click rates, segmentation recommendations, and a tracking metrics checklist. Give specific, data-informed recommendations.",
+      },
+    ],
+  },
+  {
+    name: "💼 Sales Outreach",
+    description: "SCOUT researches prospects, MILLI writes the outreach sequence, COMPASS refines the pitch, EMMA builds the follow-up flow.",
+    steps: [
+      {
+        agentSlug: "scout",
+        stepName: "Prospect Research",
+        promptTemplate: "Research the prospect/target for a sales outreach campaign about {{TOPIC}}. Identify: decision-maker personas, primary pain points, top objections, buying motivators, and 3 personalization angles that make outreach feel human. Output a prospect intelligence brief.",
+      },
+      {
+        agentSlug: "milli",
+        stepName: "Write Outreach Sequence",
+        promptTemplate: "Write a complete sales outreach sequence for {{TOPIC}} using the research. Include: cold email (subject + body), LinkedIn connection message, LinkedIn follow-up message, and a voicemail script. Each should feel personalized and focused on their problem — not your product. No generic templates.",
+      },
+      {
+        agentSlug: "compass",
+        stepName: "Sharpen the Pitch",
+        promptTemplate: "Review the sales outreach sequence for {{TOPIC}}. Sharpen: the value proposition, social proof elements, objection handling, and the CTA friction level. Make each touchpoint feel inevitable — like saying no would be leaving money on the table. Provide the refined, final sequence.",
+      },
+      {
+        agentSlug: "emma",
+        stepName: "30-Day Follow-Up Flow",
+        promptTemplate: "Build a 30-day follow-up cadence for {{TOPIC}} prospects who don't respond. Include: timing and channel for each touchpoint (email/LinkedIn/phone), message templates for: no reply, opened-not-replied, partial interest, and a re-engagement script for day 14+ cold prospects. Prevent ghosting systematically.",
+      },
+    ],
+  },
+  {
+    name: "📊 Weekly Business Report",
+    description: "DEXIE analyzes performance, MILLI reviews sales & pipeline, COMPASS compiles the executive summary. Ready to share.",
+    steps: [
+      {
+        agentSlug: "dexie",
+        stepName: "Performance Analysis",
+        promptTemplate: "Create a structured weekly performance analysis for {{TOPIC}}. Build a framework covering: key metrics to track (with definitions), trend analysis approach, benchmark comparison method, data interpretation guidelines, and an executive summary format. Include a fillable template with placeholder fields.",
+      },
+      {
+        agentSlug: "milli",
+        stepName: "Sales & Pipeline Review",
+        promptTemplate: "Create a sales and pipeline review section for the weekly report on {{TOPIC}}. Include: conversion rate analysis, deal stage breakdown, win/loss patterns, revenue forecast methodology, and 3 specific actions to improve sales performance. Be direct and prescriptive.",
+      },
+      {
+        agentSlug: "compass",
+        stepName: "Executive Summary",
+        promptTemplate: "Compile all analysis into a complete weekly business report for {{TOPIC}}. Format as an executive brief: Key Wins (3), Key Challenges (3), Metrics Snapshot (table), Top Priority for Next Week, and One Strategic Decision that needs to be made. Keep it scannable and under 500 words. Action-oriented, not descriptive.",
+      },
+    ],
+  },
+  {
+    name: "📋 Client Proposal",
+    description: "SCOUT researches the client, COMPASS builds the strategy, INKWELL writes the full proposal, LEX reviews for legal protection.",
+    steps: [
+      {
+        agentSlug: "scout",
+        stepName: "Client Research",
+        promptTemplate: "Research the client/prospect context for a proposal about {{TOPIC}}. Identify: their likely goals and pain points, alternatives they're considering, market context that validates your approach, and 3 compelling differentiators to lead with. Output a pre-proposal intelligence brief.",
+      },
+      {
+        agentSlug: "compass",
+        stepName: "Proposal Strategy",
+        promptTemplate: "Design the proposal strategy for {{TOPIC}}. Create: executive summary structure, scope of work breakdown, pricing rationale, success metrics, timeline phases, and the 3 strongest reasons to accept. Think like a consultant positioning for a yes — not a vendor asking for business.",
+      },
+      {
+        agentSlug: "inkwell",
+        stepName: "Write Full Proposal",
+        promptTemplate: "Write the complete client proposal for {{TOPIC}} using the strategy. Include: executive summary, problem statement, proposed solution, scope of work, timeline, pricing options (good/better/best), ROI justification, and next steps. Professional, compelling, and easy to say yes to.",
+      },
+      {
+        agentSlug: "lex",
+        stepName: "Legal Review",
+        promptTemplate: "Review the proposal for {{TOPIC}} from a legal and risk perspective. Flag: vague scope language, missing service provider protections, weak payment terms, liability exposure, and IP ownership gaps. Provide a revised version with risk mitigation built in. Note any clauses that need a real attorney's review.",
+      },
+    ],
+  },
+  {
+    name: "🔍 SEO Audit & Strategy",
+    description: "SEOMI runs the audit, DEXIE analyzes opportunities, COMPASS builds the 90-day roadmap. Actionable from day one.",
+    steps: [
+      {
+        agentSlug: "seomi",
+        stepName: "SEO Audit",
+        promptTemplate: "Conduct a comprehensive SEO audit framework for {{TOPIC}}. Cover: technical SEO checklist (20 items), on-page optimization review, content gap analysis vs competitors, top 10 keyword opportunities, backlink profile assessment, and priority issues ranked by impact. Output a full audit report.",
+      },
+      {
+        agentSlug: "dexie",
+        stepName: "Opportunity Analysis",
+        promptTemplate: "Analyze the SEO audit for {{TOPIC}} and identify prioritized opportunities. Categorize as: Quick Wins (1-2 weeks), Medium-term (1-3 months), Long-term (3-6 months). For each opportunity: estimated traffic impact, effort level, and expected ranking improvement. Build a prioritized opportunity matrix.",
+      },
+      {
+        agentSlug: "compass",
+        stepName: "90-Day SEO Roadmap",
+        promptTemplate: "Create a 90-day SEO roadmap for {{TOPIC}} based on the audit and opportunity analysis. Month 1: Quick wins + technical foundation. Month 2: Content and on-page optimization. Month 3: Authority building and scaling. Each month: 3-5 specific actions, who does them, and the expected outcome. Realistic and executable.",
+      },
+    ],
+  },
+  {
+    name: "🎯 Competitor Analysis",
+    description: "SCOUT researches competitors, DEXIE benchmarks performance, COMPASS assesses strategy, MILLI builds the battle plan.",
+    steps: [
+      {
+        agentSlug: "scout",
+        stepName: "Competitor Deep Dive",
+        promptTemplate: "Research the top 3-5 competitors in {{TOPIC}}. For each competitor: product/service overview, pricing, positioning, marketing channels, customer reviews and complaints, content strategy, and estimated market share. Output a structured competitor matrix with all findings side-by-side.",
+      },
+      {
+        agentSlug: "dexie",
+        stepName: "Performance Benchmarking",
+        promptTemplate: "Analyze the competitor data for {{TOPIC}} and create performance benchmarks. Compare: estimated market share, growth trajectory, online presence metrics, customer sentiment, price-value positioning, and feature/service gaps. Identify where each competitor is strongest and weakest.",
+      },
+      {
+        agentSlug: "compass",
+        stepName: "Strategic Assessment",
+        promptTemplate: "Provide a strategic assessment of the competitive landscape for {{TOPIC}}. Include: SWOT analysis vs the top competitor, blue ocean opportunities (underserved market segments), recommended positioning strategy, and 3 sustainable competitive advantages to build and defend.",
+      },
+      {
+        agentSlug: "milli",
+        stepName: "Competitive Battle Plan",
+        promptTemplate: "Create a competitive battle card and go-to-market battle plan for {{TOPIC}}. Include: how to win vs each major competitor (specific talk tracks), what to say when prospects mention competitors, pricing counter-strategy, win-back playbook for lost deals, and the top 3 market-capture moves for the next 90 days.",
+      },
+    ],
+  },
+];
+
 export async function seedDatabase() {
   try {
     logger.info("Checking database seed state...");
@@ -496,6 +704,46 @@ export async function seedDatabase() {
         },
       ]);
       logger.info("Base automations seeded");
+    }
+
+    // ── Seed pipeline templates (skip if already exist by name) ──────────────
+    const existingPipelineNames = await db.select({ name: pipelinesTable.name }).from(pipelinesTable);
+    const existingPipelineSet = new Set(existingPipelineNames.map(p => p.name));
+    const allAgentRows = await db.select().from(agentsTable);
+    const agentBySlug = Object.fromEntries(allAgentRows.map(a => [a.slug, a]));
+
+    let pipelinesSeeded = 0;
+    for (const template of PIPELINE_TEMPLATES) {
+      if (existingPipelineSet.has(template.name)) continue;
+
+      const steps = template.steps
+        .map(s => {
+          const agent = agentBySlug[s.agentSlug];
+          if (!agent) {
+            logger.warn(`Agent slug "${s.agentSlug}" not found for pipeline "${template.name}" — skipping step`);
+            return null;
+          }
+          return { stepName: s.stepName, agentId: agent.id, promptTemplate: s.promptTemplate };
+        })
+        .filter(Boolean);
+
+      if (steps.length < 2) {
+        logger.warn(`Pipeline "${template.name}" has fewer than 2 resolvable steps — skipping`);
+        continue;
+      }
+
+      await db.insert(pipelinesTable).values({
+        name: template.name,
+        description: template.description,
+        steps,
+      });
+      pipelinesSeeded++;
+    }
+
+    if (pipelinesSeeded > 0) {
+      logger.info(`Seeded ${pipelinesSeeded} pipeline templates`);
+    } else {
+      logger.info("All pipeline templates already seeded");
     }
 
     logger.info("Database seeded successfully");
