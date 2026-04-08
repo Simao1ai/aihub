@@ -217,30 +217,49 @@ router.post("/:id/post-now", async (req, res) => {
         platformPostId = data?.data?.id;
 
       } else if (conn.platform === "meta") {
-        const userToken = conn.accessToken || conn.apiKey || (conn.metadata as any)?.pageAccessToken || "";
-        if (!userToken) throw new Error("No Meta access token found — please reconnect your Meta account in Integrations");
+        const token = conn.accessToken || conn.apiKey || (conn.metadata as any)?.pageAccessToken || "";
+        if (!token) throw new Error("No Meta access token found — go to Integrations → Meta → Connect and paste your Page Access Token");
 
-        // Fetch the user's Facebook Pages and use the page-specific access token
-        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${userToken}`);
-        const pagesData = await pagesResp.json() as any;
-        if (pagesData.error) throw new Error(`Meta auth error: ${pagesData.error.message}. Your token may have expired — reconnect in Integrations.`);
-        if (!pagesData.data || pagesData.data.length === 0) throw new Error("No Facebook Pages found on this account. Make sure you have admin access to a Facebook Page.");
-
-        // Use the page matching the stored connection account label, or fall back to the first page
         const meta = conn.metadata as any;
-        const page = pagesData.data.find((p: any) => p.id === meta?.pageId) ?? pagesData.data[0];
 
-        // Cache the resolved page details for future calls
-        if (!meta?.pageId || meta.pageId !== page.id) {
-          await db.update(connectionsTable)
-            .set({ metadata: { ...(meta ?? {}), pageId: page.id, pageName: page.name } })
-            .where(eq(connectionsTable.id, conn.id));
+        // First try to use it as a User Access Token (fetch page list, get page-specific token)
+        // If that fails or returns no pages, treat the token itself as a Page Access Token
+        let postToken = token;
+        let pageId: string | undefined = meta?.pageId;
+
+        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${token}`);
+        const pagesData = await pagesResp.json() as any;
+
+        if (!pagesData.error && pagesData.data?.length > 0) {
+          // User Access Token — pick the matching page or first available
+          const page = pagesData.data.find((p: any) => p.id === meta?.pageId) ?? pagesData.data[0];
+          postToken = page.access_token;
+          pageId = page.id;
+          // Cache page details
+          if (!meta?.pageId || meta.pageId !== page.id) {
+            await db.update(connectionsTable)
+              .set({ metadata: { ...(meta ?? {}), pageId: page.id, pageName: page.name } })
+              .where(eq(connectionsTable.id, conn.id));
+          }
+        } else {
+          // Page Access Token path — /me returns the page itself
+          if (!pageId) {
+            const meResp = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${token}`);
+            const meData = await meResp.json() as any;
+            if (meData.error) throw new Error(`Meta token error: ${meData.error.message} — your token may have expired. Go to Integrations → Meta → reconnect.`);
+            pageId = meData.id;
+            await db.update(connectionsTable)
+              .set({ metadata: { ...(meta ?? {}), pageId: meData.id, pageName: meData.name } })
+              .where(eq(connectionsTable.id, conn.id));
+          }
         }
 
-        const postResp = await fetch(`https://graph.facebook.com/v19.0/${page.id}/feed`, {
+        if (!pageId) throw new Error("Could not determine Facebook Page ID. Make sure your token has access to a Facebook Page.");
+
+        const postResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: post.content, access_token: page.access_token }),
+          body: JSON.stringify({ message: post.content, access_token: postToken }),
         });
         const data = await postResp.json() as any;
         if (data.error) throw new Error(data.error.message);
