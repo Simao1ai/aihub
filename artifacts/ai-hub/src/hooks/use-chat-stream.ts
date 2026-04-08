@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getGetAnthropicConversationQueryKey } from '@workspace/api-client-react';
 import { toast } from 'sonner';
+import { useAppStore } from '@/store';
 
 const PLATFORM_LABELS: Record<string, string> = {
   meta: 'Facebook / Instagram',
@@ -15,10 +16,11 @@ export function useChatStream(conversationId: number | null) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [savedPostCount, setSavedPostCount] = useState(0);
   const queryClient = useQueryClient();
+  const addNotification = useAppStore(s => s.addNotification);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!conversationId) return;
-    
+
     setIsStreaming(true);
     setStreamingMessage('');
     setSavedPostCount(0);
@@ -43,7 +45,6 @@ export function useChatStream(conversationId: number | null) {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        // Keep the last (potentially incomplete) line in the buffer
         buffer = lines.pop() ?? '';
 
         for (const line of lines) {
@@ -58,51 +59,62 @@ export function useChatStream(conversationId: number | null) {
                 setStreamingMessage((prev) => prev + data.content);
               }
 
-              // SOSHI tool: social post saved to the queue
+              // ── Social post saved to the queue ───────────────────────────
               if (data.socialPostSaved) {
                 const post = data.socialPostSaved;
                 const platformLabel = PLATFORM_LABELS[post.platform] ?? post.platform;
                 const label = post.topic ? `"${post.topic}"` : 'post';
                 setSavedPostCount(prev => prev + 1);
-                toast.success(`Post saved to Social Queue`, {
+
+                const href = '/social';
+                toast.success('Post saved to Social Queue', {
                   description: `${label} — ${platformLabel}`,
-                  action: {
-                    label: 'View Queue',
-                    onClick: () => { window.location.href = '/social'; },
-                  },
+                  action: { label: 'View Queue', onClick: () => { window.location.href = href; } },
                   duration: 6000,
+                });
+                addNotification({
+                  type: 'socialPost',
+                  icon: '📱',
+                  title: 'Post saved to Social Queue',
+                  body: `${label} — ${platformLabel}. Review and publish with one click.`,
+                  action: { label: 'View Queue', href },
                 });
               }
 
-              // Universal agent handoff (any agent → any agent)
+              // ── Universal agent handoff ───────────────────────────────────
               if (data.agentHandoff) {
-                const { conversationId, agentSlug, agentName, agentIcon } = data.agentHandoff;
+                const { conversationId: convId, agentSlug, agentName, agentIcon } = data.agentHandoff;
+                const href = `/agents?agent=${agentSlug}&conv=${convId}`;
+
                 toast.success(`${agentIcon} ${agentName} has your brief`, {
                   description: `A new ${agentName} conversation is ready with full context loaded.`,
-                  action: {
-                    label: `Open ${agentName}`,
-                    onClick: () => { window.location.href = `/agents?agent=${agentSlug}&conv=${conversationId}`; },
-                  },
+                  action: { label: `Open ${agentName}`, onClick: () => { window.location.href = href; } },
                   duration: 10000,
                 });
+                addNotification({
+                  type: 'agentHandoff',
+                  icon: agentIcon,
+                  title: `${agentName} has your brief`,
+                  body: `A conversation was started for ${agentName} with full context from this chat.`,
+                  action: { label: `Open ${agentName}`, href },
+                });
               }
-            } catch (e) {
-              // Ignore parse errors for incomplete chunks in SSE
+            } catch {
+              // Ignore parse errors for incomplete SSE chunks
             }
           }
         }
       }
     } catch (error) {
-      console.error("Streaming error:", error);
+      console.error('Streaming error:', error);
     } finally {
       setIsStreaming(false);
-      // Invalidate to fetch the final saved messages from DB
       queryClient.invalidateQueries({
         queryKey: getGetAnthropicConversationQueryKey(conversationId)
       });
       setStreamingMessage('');
     }
-  }, [conversationId, queryClient]);
+  }, [conversationId, queryClient, addNotification]);
 
   return { sendMessage, streamingMessage, isStreaming, savedPostCount };
 }
