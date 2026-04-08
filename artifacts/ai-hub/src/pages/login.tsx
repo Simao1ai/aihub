@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, ArrowRight, ChevronLeft } from 'lucide-react';
@@ -12,12 +12,25 @@ const DEFAULT_WORKSPACES: Workspace[] = [
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const [step, setStep] = useState<'pick' | 'password'>('pick');
+
+  // If ?ws=slug is in the URL, skip the picker and go straight to password
+  const urlWs = new URLSearchParams(window.location.search).get('ws') ?? '';
+  const [step, setStep] = useState<'pick' | 'password'>(urlWs ? 'password' : 'pick');
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
   const [password, setPassword] = useState('');
 
   const { data: workspaces = DEFAULT_WORKSPACES } = useWorkspaces();
   const loginMutation = useLogin();
+
+  // Auto-resolve the workspace from the ?ws= URL param once the list is loaded
+  useEffect(() => {
+    if (!urlWs || !workspaces.length) return;
+    const match = workspaces.find(w => w.slug === urlWs || w.slug.replace(/-/g, '_') === urlWs.replace(/-/g, '_'));
+    if (match) {
+      setSelectedWorkspace(match);
+      setStep('password');
+    }
+  }, [urlWs, workspaces]);
 
   const handleSelectWorkspace = (ws: Workspace) => {
     setSelectedWorkspace(ws);

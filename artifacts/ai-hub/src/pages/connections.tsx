@@ -6,6 +6,7 @@ import {
   Copy, Check, ArrowRight, Info,
 } from 'lucide-react';
 import { cn } from '@/components/ui-elements';
+import { useAppStore } from '@/store';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -640,13 +641,17 @@ export default function Connections() {
   const [setupPlatform, setSetupPlatform] = useState<typeof PLATFORMS[0] | null>(null);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
+  const account = useAppStore(s => s.account);
+  const ws = account?.workspace ?? 'general';
+  const wsHeaders = { 'X-Workspace': ws };
 
   const loadConnections = useCallback(async () => {
     try {
-      const res = await fetch('/api/connections');
+      const res = await fetch('/api/connections', { headers: wsHeaders });
       if (res.ok) setConnections(await res.json());
     } catch {}
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ws]);
 
   useEffect(() => {
     loadConnections();
@@ -676,7 +681,7 @@ export default function Connections() {
 
   const handleOAuth = async (platformKey: string) => {
     try {
-      const res = await fetch(`/api/connections/oauth/${platformKey}/initiate`);
+      const res = await fetch(`/api/connections/oauth/${platformKey}/initiate`, { headers: wsHeaders });
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
@@ -692,7 +697,7 @@ export default function Connections() {
     try {
       const res = await fetch('/api/connections', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...wsHeaders },
         body: JSON.stringify({ platform: platformKey, apiKey: token, accountLabel: label }),
       });
       if (!res.ok) throw new Error('Failed');
@@ -706,7 +711,7 @@ export default function Connections() {
 
   const handleTest = async (id: number) => {
     try {
-      const res = await fetch(`/api/connections/${id}/test`, { method: 'POST' });
+      const res = await fetch(`/api/connections/${id}/test`, { method: 'POST', headers: wsHeaders });
       const data = await res.json();
       setTestResult({ success: data?.success ?? true, message: data?.message ?? 'Connection tested' });
     } catch {
@@ -717,7 +722,7 @@ export default function Connections() {
   const handleDisconnect = async (id: number) => {
     if (!confirm('Disconnect this platform?')) return;
     try {
-      await fetch(`/api/connections/${id}`, { method: 'DELETE' });
+      await fetch(`/api/connections/${id}`, { method: 'DELETE', headers: wsHeaders });
       await loadConnections();
       setTestResult({ success: true, message: 'Platform disconnected' });
     } catch {

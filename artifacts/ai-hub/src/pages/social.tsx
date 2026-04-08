@@ -583,12 +583,16 @@ export default function Social() {
     } catch {}
   }, [businessTag]);
 
+  const { account } = useAppStore();
+  const wsHeader = { 'X-Workspace': account?.workspace ?? 'general' };
+
   const loadConnections = useCallback(async () => {
     try {
-      const res = await fetch('/api/connections');
+      const res = await fetch('/api/connections', { headers: wsHeader });
       if (res.ok) setConnections(await res.json());
     } catch {}
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account?.workspace]);
 
   useEffect(() => {
     Promise.all([loadPosts(), loadConnections()]).finally(() => setLoading(false));

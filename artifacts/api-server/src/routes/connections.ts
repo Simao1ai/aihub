@@ -1,7 +1,12 @@
 import { Router, type IRouter } from "express";
 import { db, connectionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { logger } from "../lib/logger";
+
+// Read workspace from X-Workspace header (falls back to 'general')
+function getWorkspace(req: any): string {
+  return (req.headers["x-workspace"] as string) || "general";
+}
 
 const router: IRouter = Router();
 
@@ -16,10 +21,13 @@ const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
 
 const OAUTH_PLATFORMS = ["linkedin", "google", "twitter", "meta"];
 
-// List all connections (hide sensitive tokens)
+// List connections — scoped to the calling workspace
 router.get("/", async (req, res) => {
   try {
-    const conns = await db.select().from(connectionsTable).orderBy(connectionsTable.platform);
+    const ws = getWorkspace(req);
+    const conns = await db.select().from(connectionsTable)
+      .where(eq(connectionsTable.workspaceSlug, ws))
+      .orderBy(connectionsTable.platform);
     const sanitized = conns.map(({ accessToken, refreshToken, apiKey, ...safe }) => ({
       ...safe,
       hasToken: !!(accessToken || apiKey),
@@ -31,12 +39,14 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Create API key connection — always inserts a new row (supports multiple pages per platform)
+// Create API key connection — scoped to the calling workspace
 router.post("/", async (req, res) => {
   try {
+    const ws = getWorkspace(req);
     const { platform, apiKey, accountLabel, metadata } = req.body;
 
     const [conn] = await db.insert(connectionsTable).values({
+      workspaceSlug: ws,
       platform,
       displayName: PLATFORM_DISPLAY_NAMES[platform] || platform,
       accountLabel,
@@ -179,7 +189,9 @@ router.get("/oauth/:platform/initiate", (req, res) => {
   const redirectUri = `${baseUrl}/api/connections/oauth/${platform}/callback`;
 
   let authUrl = "";
-  let state = Math.random().toString(36).substring(2);
+  const ws = getWorkspace(req);
+  // Encode workspace into state so the callback can associate the connection correctly
+  let state = `${ws}|${Math.random().toString(36).substring(2)}`;
 
   if (platform === "linkedin") {
     const clientId = process.env.LINKEDIN_CLIENT_ID || "";
@@ -254,6 +266,10 @@ router.get("/oauth/:platform/callback", async (req, res) => {
   const redirectUri = `${baseUrl}/api/connections/oauth/${platform}/callback`;
 
   try {
+    // Extract workspace encoded in state as "workspace|randomString"
+    const stateStr = (state as string) || "";
+    const workspaceSlug = stateStr.includes("|") ? stateStr.split("|")[0] : "general";
+
     let accessToken = "";
     let refreshToken = "";
     let accountLabel = "";
@@ -346,8 +362,9 @@ router.get("/oauth/:platform/callback", async (req, res) => {
       }
     }
 
-    // Upsert connection
-    const existing = await db.select().from(connectionsTable).where(eq(connectionsTable.platform, platform));
+    // Upsert connection — scoped to the workspace extracted from state
+    const existing = await db.select().from(connectionsTable)
+      .where(and(eq(connectionsTable.platform, platform), eq(connectionsTable.workspaceSlug, workspaceSlug)));
     if (existing.length > 0) {
       await db.update(connectionsTable).set({
         accessToken,
@@ -355,9 +372,11 @@ router.get("/oauth/:platform/callback", async (req, res) => {
         accountLabel,
         isConnected: true,
         expiresAt,
+        workspaceSlug,
       }).where(eq(connectionsTable.id, existing[0].id));
     } else {
       await db.insert(connectionsTable).values({
+        workspaceSlug,
         platform,
         displayName: PLATFORM_DISPLAY_NAMES[platform] || platform,
         authType: "oauth",

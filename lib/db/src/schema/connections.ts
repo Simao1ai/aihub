@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 export const connectionsTable = pgTable("connections", {
   id: serial("id").primaryKey(),
+  workspaceSlug: text("workspace_slug").notNull().default("general"), // which workspace owns this connection
   platform: text("platform").notNull(), // linkedin | google | twitter | meta | gohighlevel | email
   displayName: text("display_name").notNull(),
   accountLabel: text("account_label"),
