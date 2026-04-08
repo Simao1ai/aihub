@@ -182,9 +182,14 @@ router.get("/oauth/:platform/initiate", (req, res) => {
     });
   }
 
-  const baseUrl = process.env.REPLIT_DOMAINS?.split(",")[0] 
-    ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` 
-    : "http://localhost";
+  const appBaseUrl = process.env.APP_BASE_URL;
+  const replitDomain = process.env.REPLIT_DOMAINS?.split(",")[0];
+  const reqHost = req.get("x-forwarded-host") || req.get("host");
+  const reqProto = req.get("x-forwarded-proto") || "https";
+  const baseUrl = appBaseUrl
+    || (reqHost ? `${reqProto}://${reqHost}` : null)
+    || (replitDomain ? `https://${replitDomain}` : null)
+    || "http://localhost";
   const redirectUri = `${baseUrl}/api/connections/oauth/${platform}/callback`;
 
   let authUrl = "";
@@ -252,9 +257,14 @@ router.get("/oauth/:platform/callback", async (req, res) => {
     return res.redirect(`/?oauth_error=no_code&platform=${platform}`);
   }
 
-  const baseUrl = process.env.REPLIT_DOMAINS?.split(",")[0]
-    ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-    : "http://localhost";
+  const appBaseUrl = process.env.APP_BASE_URL;
+  const replitDomain = process.env.REPLIT_DOMAINS?.split(",")[0];
+  const reqHost = req.get("x-forwarded-host") || req.get("host");
+  const reqProto = req.get("x-forwarded-proto") || "https";
+  const baseUrl = appBaseUrl
+    || (reqHost ? `${reqProto}://${reqHost}` : null)
+    || (replitDomain ? `https://${replitDomain}` : null)
+    || "http://localhost";
   const redirectUri = `${baseUrl}/api/connections/oauth/${platform}/callback`;
 
   try {
