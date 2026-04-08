@@ -40,16 +40,16 @@ const PLATFORMS = [
     difficulty: 'Easy',
     timeEstimate: '~3 min',
     quickGuide: {
-      title: 'Get a Facebook Page Access Token (2 min)',
+      title: 'Get your Facebook User Token (2 min)',
       steps: [
         { text: 'Open the Graph API Explorer (link below) — sign in with your Facebook account', link: 'https://developers.facebook.com/tools/explorer/' },
         { text: 'In the "Meta App" dropdown (top right), select your app — e.g. "aihub"' },
-        { text: 'In the second dropdown (currently says "User Token"), scroll down and select your Facebook Page name — this switches to a Page token' },
-        { text: 'Click "Generate Access Token" → a pop-up appears → click "Continue as [your name]" → approve all permissions' },
-        { text: 'Copy the long token that appears in the Access Token box and paste it below' },
+        { text: 'Keep the second dropdown as "User Token" (don\'t switch to a Page — one User Token unlocks ALL your pages)' },
+        { text: 'Click "Generate Access Token" → approve all permissions in the popup' },
+        { text: 'Copy the token below — we\'ll then show your pages and you pick which one to use' },
       ],
       redirectPath: '',
-      tokenGuide: 'A Page Access Token lets your AI agents post directly to your Facebook Page. In the Graph API Explorer, switch from "User Token" to your Page name in the dropdown — this is key.',
+      tokenGuide: 'Paste your User Token — one token gives access to ALL your Facebook Pages. After pasting, click "Load My Pages" to pick which page this workspace posts to.',
       tokenLink: 'https://developers.facebook.com/tools/explorer/',
     },
   },
@@ -219,7 +219,7 @@ function SetupDrawer({
   baseUrl: string;
   onClose: () => void;
   onOAuth: () => void;
-  onTokenSubmit: (token: string, label: string) => void;
+  onTokenSubmit: (token: string, label: string, metadata?: Record<string, unknown>) => void;
 }) {
   const [mode, setMode] = useState<'guide' | 'token'>(platform.authType === 'token' ? 'token' : 'guide');
   const [token, setToken] = useState('');
@@ -227,13 +227,47 @@ function SetupDrawer({
   const [showToken, setShowToken] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Meta-specific: page picker
+  const [pages, setPages] = useState<Array<{ id: string; name: string; category: string }>>([]);
+  const [selectedPage, setSelectedPage] = useState<{ id: string; name: string } | null>(null);
+  const [fetchingPages, setFetchingPages] = useState(false);
+  const [pageError, setPageError] = useState('');
+
   const redirectUri = baseUrl ? `${baseUrl}${platform.quickGuide.redirectPath}` : `https://your-app.replit.app${platform.quickGuide.redirectPath}`;
   const oauthReady = status?.configured ?? false;
+
+  const handleFetchPages = async () => {
+    if (!token.trim()) return;
+    setFetchingPages(true);
+    setPageError('');
+    setPages([]);
+    setSelectedPage(null);
+    try {
+      const res = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${token.trim()}`);
+      const data = await res.json() as any;
+      if (data.error) {
+        setPageError(data.error.message || 'Invalid token — make sure you copied the full token from Graph API Explorer');
+      } else if (!data.data?.length) {
+        setPageError('No Facebook Pages found on this account. Make sure you manage at least one Facebook Page.');
+      } else {
+        setPages(data.data);
+        setSelectedPage(data.data[0]);
+      }
+    } catch {
+      setPageError('Failed to reach Facebook — check your connection and try again');
+    } finally {
+      setFetchingPages(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!token.trim()) return;
     setSaving(true);
-    await onTokenSubmit(token.trim(), label.trim() || platform.name);
+    const metadata = platform.key === 'meta' && selectedPage
+      ? { pageId: selectedPage.id, pageName: selectedPage.name }
+      : undefined;
+    const lbl = label.trim() || (selectedPage ? selectedPage.name : platform.name);
+    await onTokenSubmit(token.trim(), lbl, metadata);
     setSaving(false);
   };
 
@@ -425,15 +459,6 @@ function SetupDrawer({
               {/* Token input */}
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Account Label <span className="text-white/20">(optional)</span></label>
-                  <input
-                    value={label}
-                    onChange={e => setLabel(e.target.value)}
-                    placeholder={`e.g. Simao — ${platform.name}`}
-                    className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all"
-                  />
-                </div>
-                <div>
                   <label className="text-xs text-white/40 mb-1.5 block">
                     Access Token <span className="text-red-400">*</span>
                   </label>
@@ -441,7 +466,7 @@ function SetupDrawer({
                     <input
                       type={showToken ? 'text' : 'password'}
                       value={token}
-                      onChange={e => setToken(e.target.value)}
+                      onChange={e => { setToken(e.target.value); setPages([]); setSelectedPage(null); setPageError(''); }}
                       placeholder="Paste your access token here…"
                       className="w-full bg-white/4 border border-white/8 rounded-xl px-3 pr-10 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 font-mono transition-all"
                     />
@@ -453,13 +478,74 @@ function SetupDrawer({
                     </button>
                   </div>
                 </div>
+
+                {/* Meta: Load Pages button & picker */}
+                {platform.key === 'meta' && token.trim() && pages.length === 0 && (
+                  <div>
+                    <button
+                      onClick={handleFetchPages}
+                      disabled={fetchingPages}
+                      className="w-full py-2.5 rounded-xl border border-[#1877F2]/30 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {fetchingPages ? <RefreshCw className="w-4 h-4 animate-spin" /> : <span>📘</span>}
+                      {fetchingPages ? 'Loading your pages…' : 'Load My Facebook Pages'}
+                    </button>
+                    {pageError && <p className="text-[11px] text-red-400 mt-1.5 leading-relaxed">{pageError}</p>}
+                  </div>
+                )}
+
+                {/* Meta: Page list picker */}
+                {platform.key === 'meta' && pages.length > 0 && (
+                  <div>
+                    <label className="text-xs text-white/40 mb-2 block">
+                      Which Facebook Page should this workspace post to? <span className="text-red-400">*</span>
+                    </label>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {pages.map(page => (
+                        <button
+                          key={page.id}
+                          onClick={() => setSelectedPage(page)}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left",
+                            selectedPage?.id === page.id
+                              ? "border-[#1877F2]/40 bg-[#1877F2]/12 text-white"
+                              : "border-white/8 bg-white/3 text-white/60 hover:bg-white/6"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                            selectedPage?.id === page.id ? "border-[#1877F2] bg-[#1877F2]" : "border-white/20"
+                          )}>
+                            {selectedPage?.id === page.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate">{page.name}</p>
+                            {page.category && <p className="text-[10px] text-white/30 truncate">{page.category}</p>}
+                          </div>
+                          {selectedPage?.id === page.id && <CheckCircle2 className="w-4 h-4 text-[#1877F2] flex-shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-xs text-white/40 mb-1.5 block">Account Label <span className="text-white/20">(optional — defaults to page name)</span></label>
+                  <input
+                    value={label}
+                    onChange={e => setLabel(e.target.value)}
+                    placeholder={selectedPage ? selectedPage.name : `e.g. Simao — ${platform.name}`}
+                    className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all"
+                  />
+                </div>
+
                 <button
                   onClick={handleSave}
-                  disabled={saving || !token.trim()}
+                  disabled={saving || !token.trim() || (platform.key === 'meta' && pages.length > 0 && !selectedPage)}
                   className="w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-35 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2"
                 >
                   {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
-                  {saving ? 'Saving…' : 'Save & Connect'}
+                  {saving ? 'Saving…' : selectedPage ? `Connect as ${selectedPage.name}` : 'Save & Connect'}
                 </button>
               </div>
             </>
@@ -693,12 +779,12 @@ export default function Connections() {
     }
   };
 
-  const handleTokenSave = async (platformKey: string, token: string, label: string) => {
+  const handleTokenSave = async (platformKey: string, token: string, label: string, metadata?: Record<string, unknown>) => {
     try {
       const res = await fetch('/api/connections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...wsHeaders },
-        body: JSON.stringify({ platform: platformKey, apiKey: token, accountLabel: label }),
+        body: JSON.stringify({ platform: platformKey, apiKey: token, accountLabel: label, metadata }),
       });
       if (!res.ok) throw new Error('Failed');
       await loadConnections();
@@ -818,7 +904,7 @@ export default function Connections() {
             baseUrl={baseUrl}
             onClose={() => setSetupPlatform(null)}
             onOAuth={() => handleOAuth(setupPlatform.key)}
-            onTokenSubmit={(token, label) => handleTokenSave(setupPlatform.key, token, label)}
+            onTokenSubmit={(token, label, metadata) => handleTokenSave(setupPlatform.key, token, label, metadata)}
           />
         )}
       </AnimatePresence>
