@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
@@ -7,6 +7,7 @@ import {
   ChevronLeft, Users, ArrowRight, Share2, X, CheckCircle2,
   Download, Image, Wand2, RefreshCw,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useListAgents,
   useListAnthropicConversations,
@@ -498,8 +499,28 @@ function ChatView({
   const [showHandoff, setShowHandoff] = useState(false);
   const { sendMessage, streamingMessage, isStreaming } = useChatStream(convId);
   const endRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [conv?.messages, streamingMessage]);
+
+  const messages = conv?.messages ?? [];
+
+  // ── Handoff auto-response polling ─────────────────────────────────────────
+  // When the last message in a handoff conversation is from 'user' and no
+  // streaming is active, the agent's auto-response is being generated in the
+  // background. Poll every 2.5s until the assistant message arrives.
+  const lastMsg = messages[messages.length - 1];
+  const awaitingAutoResponse = !!convId && messages.length > 0 && lastMsg?.role === 'user' && !isStreaming;
+
+  const refetchConv = useCallback(() => {
+    if (convId) queryClient.invalidateQueries({ queryKey: [`/api/anthropic/conversations/${convId}`] });
+  }, [convId, queryClient]);
+
+  useEffect(() => {
+    if (!awaitingAutoResponse) return;
+    const timer = setInterval(refetchConv, 2500);
+    return () => clearInterval(timer);
+  }, [awaitingAutoResponse, refetchConv]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -507,8 +528,6 @@ function ChatView({
     sendMessage(input);
     setInput('');
   };
-
-  const messages = conv?.messages ?? [];
 
   return (
     <div className="flex flex-col h-full">
@@ -608,6 +627,21 @@ function ChatView({
               {[0, 1, 2].map(i => (
                 <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
               ))}
+            </div>
+          </div>
+        )}
+        {awaitingAutoResponse && (
+          <div className="flex gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0" style={{ background: `${agent.color}20` }}>
+              {agent.icon}
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1.5 px-4 py-3 bg-white/5 rounded-2xl border border-white/5">
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
+                ))}
+              </div>
+              <p className="text-[10px] text-white/25 pl-4">{agent.name} is reviewing the brief…</p>
             </div>
           </div>
         )}
