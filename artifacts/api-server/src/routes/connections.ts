@@ -31,35 +31,21 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Create API key connection (GoHighLevel, email, etc.)
+// Create API key connection — always inserts a new row (supports multiple pages per platform)
 router.post("/", async (req, res) => {
   try {
     const { platform, apiKey, accountLabel, metadata } = req.body;
 
-    // Upsert by platform
-    const existing = await db.select().from(connectionsTable).where(eq(connectionsTable.platform, platform));
-    
-    let conn;
-    if (existing.length > 0) {
-      [conn] = await db.update(connectionsTable).set({
-        apiKey,
-        accountLabel,
-        metadata,
-        isConnected: true,
-        displayName: PLATFORM_DISPLAY_NAMES[platform] || platform,
-      }).where(eq(connectionsTable.id, existing[0].id)).returning();
-    } else {
-      [conn] = await db.insert(connectionsTable).values({
-        platform,
-        displayName: PLATFORM_DISPLAY_NAMES[platform] || platform,
-        accountLabel,
-        authType: "api_key",
-        apiKey,
-        scopes: [],
-        metadata,
-        isConnected: true,
-      }).returning();
-    }
+    const [conn] = await db.insert(connectionsTable).values({
+      platform,
+      displayName: PLATFORM_DISPLAY_NAMES[platform] || platform,
+      accountLabel,
+      authType: "api_key",
+      apiKey,
+      scopes: [],
+      metadata,
+      isConnected: true,
+    }).returning();
 
     const { accessToken, refreshToken, apiKey: key, ...safe } = conn;
     res.status(201).json({ ...safe, hasToken: true });

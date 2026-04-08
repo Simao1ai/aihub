@@ -472,33 +472,31 @@ function SetupDrawer({
 // ── Platform Card ─────────────────────────────────────────────────────────────
 
 function PlatformCard({
-  platform, connection, status,
+  platform, connections, status,
   onSetup, onDisconnect, onTest, onOAuth,
 }: {
   platform: typeof PLATFORMS[0];
-  connection: any;
+  connections: any[];  // all connections for this platform
   status?: PlatformStatus;
   onSetup: () => void;
   onDisconnect: (id: number) => void;
   onTest: (id: number) => void;
   onOAuth: () => void;
 }) {
-  const isConnected = !!connection?.hasToken;
   const isOAuth = platform.authType === 'oauth';
   const oauthReady = isOAuth ? (status?.configured ?? false) : true;
+  const hasAny = connections.length > 0;
 
   return (
     <motion.div
       layout
       className={cn(
         "relative rounded-2xl border overflow-hidden transition-all",
-        isConnected
-          ? "border-emerald-500/25 bg-[#0f1119]"
-          : "border-white/6 bg-[#0f1119] hover:border-white/12"
+        hasAny ? "border-emerald-500/25 bg-[#0f1119]" : "border-white/6 bg-[#0f1119] hover:border-white/12"
       )}
     >
       {/* Color accent top bar */}
-      <div className="h-0.5 w-full" style={{ background: isConnected ? '#10b981' : `${platform.color}40` }} />
+      <div className="h-0.5 w-full" style={{ background: hasAny ? '#10b981' : `${platform.color}40` }} />
 
       <div className="p-5">
         {/* Header */}
@@ -509,9 +507,9 @@ function PlatformCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-bold text-white text-sm">{platform.name}</p>
-              {isConnected ? (
+              {hasAny ? (
                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/12 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold">
-                  <CheckCircle2 className="w-2.5 h-2.5" /> Connected
+                  <CheckCircle2 className="w-2.5 h-2.5" /> {connections.length} connected
                 </span>
               ) : (
                 <span className={cn(
@@ -522,9 +520,7 @@ function PlatformCard({
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-white/30 mt-0.5">
-              {isConnected ? connection.accountLabel || platform.subLabel : platform.subLabel}
-            </p>
+            <p className="text-[11px] text-white/30 mt-0.5">{platform.subLabel}</p>
           </div>
         </div>
 
@@ -537,48 +533,53 @@ function PlatformCard({
           ))}
         </div>
 
-        {/* Actions */}
-        {isConnected ? (
-          <div className="flex gap-2">
-            <button
-              onClick={() => onTest(connection.id)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/8 border border-white/8 text-white/55 hover:text-white text-xs font-semibold transition-all"
-            >
-              <RefreshCw className="w-3.5 h-3.5" /> Test
-            </button>
-            <button
-              onClick={() => onSetup()}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/8 border border-white/8 text-white/55 hover:text-white text-xs font-semibold transition-all"
-            >
-              <Key className="w-3.5 h-3.5" /> Re-connect
-            </button>
-            <button
-              onClick={() => onDisconnect(connection.id)}
-              className="w-10 flex items-center justify-center rounded-xl bg-red-500/6 hover:bg-red-500/12 border border-red-500/12 text-red-400/50 hover:text-red-400 transition-all"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+        {/* Connected accounts list */}
+        {hasAny && (
+          <div className="space-y-2 mb-3">
+            {connections.map(conn => (
+              <div key={conn.id} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span className="flex-1 text-xs text-white/70 truncate">{conn.accountLabel || platform.name}</span>
+                <button
+                  onClick={() => onTest(conn.id)}
+                  className="text-white/25 hover:text-white/60 transition-all"
+                  title="Test connection"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => onDisconnect(conn.id)}
+                  className="text-red-400/40 hover:text-red-400 transition-all"
+                  title="Disconnect"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
           </div>
-        ) : (
-          <button
-            onClick={onSetup}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all border"
-            style={{
-              background: `${platform.color}15`,
-              borderColor: `${platform.color}30`,
-              color: platform.color,
-            }}
-          >
-            {isOAuth && oauthReady ? (
-              <><ShieldCheck className="w-3.5 h-3.5" /> Connect with OAuth</>
-            ) : isOAuth && !oauthReady ? (
-              <><Key className="w-3.5 h-3.5" /> View Setup Guide</>
-            ) : (
-              <><Key className="w-3.5 h-3.5" /> Connect with Token</>
-            )}
-            <ChevronRight className="w-3.5 h-3.5 ml-auto" />
-          </button>
         )}
+
+        {/* Connect / Add button */}
+        <button
+          onClick={isOAuth && oauthReady ? onOAuth : onSetup}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all border"
+          style={{
+            background: `${platform.color}12`,
+            borderColor: `${platform.color}28`,
+            color: hasAny ? 'rgba(255,255,255,0.45)' : platform.color,
+          }}
+        >
+          {hasAny ? (
+            <><Key className="w-3.5 h-3.5" /> Add Another {platform.name === 'Meta' ? 'Page' : 'Account'}</>
+          ) : isOAuth && oauthReady ? (
+            <><ShieldCheck className="w-3.5 h-3.5" /> Connect with OAuth</>
+          ) : isOAuth && !oauthReady ? (
+            <><Key className="w-3.5 h-3.5" /> View Setup Guide</>
+          ) : (
+            <><Key className="w-3.5 h-3.5" /> Connect with Token</>
+          )}
+          <ChevronRight className="w-3.5 h-3.5 ml-auto" />
+        </button>
       </div>
     </motion.div>
   );
@@ -724,7 +725,7 @@ export default function Connections() {
     }
   };
 
-  const connectedCount = connections.filter((c: any) => c.hasToken).length;
+  const connectedCount = PLATFORMS.filter(p => connections.some((c: any) => c.platform === p.key && c.hasToken)).length;
   const linkedinPlatform = PLATFORMS.find(p => p.key === 'linkedin')!;
 
   return (
@@ -744,7 +745,7 @@ export default function Connections() {
           </div>
           {connectedCount > 0 && (
             <div className="flex items-center gap-1.5">
-              {PLATFORMS.filter(p => connections.find((c: any) => c.platform === p.key)?.hasToken).map(p => (
+              {PLATFORMS.filter(p => connections.some((c: any) => c.platform === p.key && c.hasToken)).map(p => (
                 <div key={p.key} className="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style={{ background: p.bg }} title={p.name}>
                   {p.emoji}
                 </div>
@@ -781,13 +782,13 @@ export default function Connections() {
         {/* Platform Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {PLATFORMS.map(platform => {
-            const connection = connections.find((c: any) => c.platform === platform.key);
+            const platformConns = connections.filter((c: any) => c.platform === platform.key && c.hasToken);
             const status = platformStatus[platform.key as keyof ConnectionStatus];
             return (
               <PlatformCard
                 key={platform.key}
                 platform={platform}
-                connection={connection}
+                connections={platformConns}
                 status={status}
                 onSetup={() => setSetupPlatform(platform)}
                 onOAuth={() => handleOAuth(platform.key)}
