@@ -173,9 +173,11 @@ function PostCard({
                 className="w-full appearance-none bg-white/5 border border-white/8 rounded-xl px-3 py-2 text-xs text-white/60 focus:outline-none pr-7"
               >
                 <option value="">Select account...</option>
-                {platformConns.map(c => (
-                  <option key={c.id} value={c.id}>{c.accountLabel || c.displayName}</option>
-                ))}
+                {platformConns.map(c => {
+                  const meta = c.metadata as Record<string, unknown> | null;
+                  const display = (meta?.pageName as string) || (meta?.businessName as string) || c.accountLabel || c.displayName || c.platform;
+                  return <option key={c.id} value={c.id}>{display}</option>;
+                })}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-white/30 pointer-events-none" />
             </div>
@@ -420,9 +422,11 @@ function Composer({
                 className="w-full appearance-none bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white/60 focus:outline-none pr-7"
               >
                 <option value="">Select account to publish...</option>
-                {platformConns.map(c => (
-                  <option key={c.id} value={c.id}>{c.accountLabel || c.displayName}</option>
-                ))}
+                {platformConns.map(c => {
+                  const meta = c.metadata as Record<string, unknown> | null;
+                  const display = (meta?.pageName as string) || (meta?.businessName as string) || c.accountLabel || c.displayName || c.platform;
+                  return <option key={c.id} value={c.id}>{display}</option>;
+                })}
               </select>
               <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" />
             </div>

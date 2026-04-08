@@ -529,7 +529,7 @@ function SetupDrawer({
     } else {
       if (!token.trim()) { setSaving(false); return; }
       const metadata = platform.key === 'meta' && selectedPage
-        ? { pageId: selectedPage.id, pageName: selectedPage.name }
+        ? { pageId: selectedPage.id, pageName: selectedPage.name, pageAccessToken: (selectedPage as any).access_token }
         : undefined;
       const lbl = label.trim() || (selectedPage ? selectedPage.name : platform.name);
       await onTokenSubmit(token.trim(), lbl, metadata);

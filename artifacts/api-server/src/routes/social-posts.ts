@@ -217,44 +217,35 @@ router.post("/:id/post-now", async (req, res) => {
         platformPostId = data?.data?.id;
 
       } else if (conn.platform === "meta") {
-        const token = conn.accessToken || conn.apiKey || (conn.metadata as any)?.pageAccessToken || "";
-        if (!token) throw new Error("No Meta access token found — go to Integrations → Meta → Connect and paste your Page Access Token");
-
+        const userToken = conn.accessToken || conn.apiKey || "";
         const meta = conn.metadata as any;
 
-        // First try to use it as a User Access Token (fetch page list, get page-specific token)
-        // If that fails or returns no pages, treat the token itself as a Page Access Token
-        let postToken = token;
-        let pageId: string | undefined = meta?.pageId;
+        // Prefer the stored Page Access Token (set when user connected the page)
+        let postToken: string = meta?.pageAccessToken || "";
+        let pageId: string = meta?.pageId || "";
 
-        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${token}`);
-        const pagesData = await pagesResp.json() as any;
-
-        if (!pagesData.error && pagesData.data?.length > 0) {
-          // User Access Token — pick the matching page or first available
+        if (!postToken || !pageId) {
+          // Fallback: re-fetch from /me/accounts using the user token
+          if (!userToken) throw new Error("No Meta access token — reconnect via Integrations → Meta");
+          const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${userToken}`);
+          const pagesData = await pagesResp.json() as any;
+          if (pagesData.error) {
+            const code = pagesData.error.code;
+            if (code === 190) throw new Error("Meta token expired — go to Connections → Meta and reconnect with a fresh token.");
+            if (code === 10 || code === 200 || code === 230) throw new Error("Token missing pages_manage_posts permission. In Graph API Explorer add pages_show_list, pages_read_engagement and pages_manage_posts, then reconnect.");
+            throw new Error(`Meta error: ${pagesData.error.message}`);
+          }
+          if (!pagesData.data?.length) throw new Error("No Facebook Pages found on this account. Make sure the token has pages_show_list and pages_manage_posts permissions.");
           const page = pagesData.data.find((p: any) => p.id === meta?.pageId) ?? pagesData.data[0];
           postToken = page.access_token;
           pageId = page.id;
-          // Cache page details
-          if (!meta?.pageId || meta.pageId !== page.id) {
-            await db.update(connectionsTable)
-              .set({ metadata: { ...(meta ?? {}), pageId: page.id, pageName: page.name } })
-              .where(eq(connectionsTable.id, conn.id));
-          }
-        } else {
-          // Page Access Token path — /me returns the page itself
-          if (!pageId) {
-            const meResp = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${token}`);
-            const meData = await meResp.json() as any;
-            if (meData.error) throw new Error(`Meta token error: ${meData.error.message} — your token may have expired. Go to Integrations → Meta → reconnect.`);
-            pageId = meData.id;
-            await db.update(connectionsTable)
-              .set({ metadata: { ...(meta ?? {}), pageId: meData.id, pageName: meData.name } })
-              .where(eq(connectionsTable.id, conn.id));
-          }
+          // Cache for next time
+          await db.update(connectionsTable)
+            .set({ metadata: { ...(meta ?? {}), pageId: page.id, pageName: page.name, pageAccessToken: page.access_token } })
+            .where(eq(connectionsTable.id, conn.id));
         }
 
-        if (!pageId) throw new Error("Could not determine Facebook Page ID. Make sure your token has access to a Facebook Page.");
+        if (!pageId) throw new Error("Could not determine Facebook Page ID — please reconnect your Meta account.");
 
         const postResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
           method: "POST",
@@ -262,7 +253,13 @@ router.post("/:id/post-now", async (req, res) => {
           body: JSON.stringify({ message: post.content, access_token: postToken }),
         });
         const data = await postResp.json() as any;
-        if (data.error) throw new Error(data.error.message);
+        if (data.error) {
+          const code = data.error.code;
+          if (code === 200 || code === 230) {
+            throw new Error("Posting failed: the Page Access Token is missing pages_manage_posts permission. Go to Connections → Meta, delete this connection, then reconnect — in Graph API Explorer make sure to add pages_show_list, pages_read_engagement AND pages_manage_posts before generating your token.");
+          }
+          throw new Error(data.error.message);
+        }
         success = !!data.id;
         platformPostId = data.id;
       }
