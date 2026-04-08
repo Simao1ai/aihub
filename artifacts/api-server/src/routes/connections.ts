@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, connectionsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import nodemailer from "nodemailer";
 
 // Read workspace from X-Workspace header (falls back to 'general')
 function getWorkspace(req: any): string {
@@ -17,6 +18,8 @@ const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
   meta: "Meta (Instagram & Facebook)",
   gohighlevel: "GoHighLevel CRM",
   email: "Email Account",
+  smtp: "SMTP Email",
+  twilio: "Twilio SMS",
 };
 
 const OAUTH_PLATFORMS = ["linkedin", "google", "twitter", "meta"];
@@ -123,6 +126,32 @@ router.post("/:id/test", async (req, res) => {
       } else {
         res.json({ success: false, message: "Twitter/X token expired. Please reconnect." });
       }
+    } else if (conn.platform === "smtp" && conn.apiKey) {
+      const m = conn.metadata as Record<string, string> | null ?? {};
+      try {
+        const transporter = nodemailer.createTransport({
+          host: m.host,
+          port: parseInt(m.port || "587"),
+          secure: parseInt(m.port || "587") === 465,
+          auth: { user: m.username, pass: conn.apiKey },
+        });
+        await transporter.verify();
+        res.json({ success: true, message: `SMTP verified — sending as ${m.fromAddress}` });
+      } catch (e: any) {
+        res.json({ success: false, message: `SMTP error: ${e.message || "Invalid credentials or host"}` });
+      }
+    } else if (conn.platform === "twilio" && conn.apiKey) {
+      const m = conn.metadata as Record<string, string> | null ?? {};
+      const accountSid = m.accountSid || "";
+      const resp = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}.json`, {
+        headers: { Authorization: `Basic ${Buffer.from(`${accountSid}:${conn.apiKey}`).toString("base64")}` },
+      });
+      if (resp.ok) {
+        const data = await resp.json() as Record<string, unknown>;
+        res.json({ success: true, message: `Twilio verified — account: ${data.friendly_name || accountSid}` });
+      } else {
+        res.json({ success: false, message: "Twilio credentials invalid — check your Account SID and Auth Token" });
+      }
     } else {
       res.json({ success: conn.isConnected, message: conn.isConnected ? "Connected" : "Not connected" });
     }
@@ -154,6 +183,8 @@ router.get("/status", (req, res) => {
     tiktok: { configured: false, envVars: [] },
     gohighlevel: { configured: true, envVars: [] },
     email: { configured: true, envVars: [] },
+    smtp: { configured: true, envVars: [] },
+    twilio: { configured: true, envVars: [] },
   });
 });
 
@@ -541,6 +572,47 @@ router.post("/:id/actions/send-message", async (req, res) => {
         res.json({ success: true, message: "Message sent via GoHighLevel" });
       } else {
         res.json({ success: false, message: "Failed to send via GoHighLevel" });
+      }
+    } else if (conn.platform === "smtp" && conn.apiKey) {
+      const m = conn.metadata as Record<string, string> | null ?? {};
+      try {
+        const transporter = nodemailer.createTransport({
+          host: m.host,
+          port: parseInt(m.port || "587"),
+          secure: parseInt(m.port || "587") === 465,
+          auth: { user: m.username, pass: conn.apiKey },
+        });
+        const subject = req.body.subject || "Message from SynthDesk AI";
+        await transporter.sendMail({
+          from: m.fromName ? `"${m.fromName}" <${m.fromAddress}>` : m.fromAddress,
+          to: recipientId,
+          subject,
+          text: message,
+          html: message.replace(/\n/g, "<br>"),
+        });
+        res.json({ success: true, message: `Email sent from ${m.fromAddress} to ${recipientId}` });
+      } catch (e: any) {
+        res.json({ success: false, message: `Email failed: ${e.message}` });
+      }
+    } else if (conn.platform === "twilio" && conn.apiKey) {
+      const m = conn.metadata as Record<string, string> | null ?? {};
+      const accountSid = m.accountSid || "";
+      const from = m.phoneNumber || "";
+      const body = new URLSearchParams({ From: from, To: recipientId, Body: message });
+      const sendResp = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${accountSid}:${conn.apiKey}`).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: body.toString(),
+      });
+      if (sendResp.ok) {
+        const data = await sendResp.json() as { sid: string };
+        res.json({ success: true, message: `SMS sent from ${from} to ${recipientId}`, sid: data.sid });
+      } else {
+        const err = await sendResp.json() as Record<string, unknown>;
+        res.json({ success: false, message: `Twilio error: ${err.message || JSON.stringify(err)}` });
       }
     } else {
       res.json({ success: false, message: `Messaging not supported for ${conn.platform}` });

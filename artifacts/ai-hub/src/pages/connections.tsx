@@ -22,6 +22,18 @@ interface ConnectionStatus {
   twitter?: PlatformStatus;
   tiktok?: PlatformStatus;
   gohighlevel?: PlatformStatus;
+  smtp?: PlatformStatus;
+  twilio?: PlatformStatus;
+}
+
+interface PlatformField {
+  key: string;
+  label: string;
+  placeholder: string;
+  required?: boolean;
+  type?: 'text' | 'password' | 'email' | 'number' | 'tel';
+  isApiKey?: boolean;
+  hint?: string;
 }
 
 // ── Platform Definitions ──────────────────────────────────────────────────────
@@ -181,6 +193,69 @@ const PLATFORMS = [
       tokenLink: 'https://app.gohighlevel.com/settings/api-keys',
     },
   },
+  {
+    key: 'smtp',
+    name: 'SMTP Email',
+    subLabel: 'Your Own Domain Email',
+    emoji: '✉️',
+    color: '#6366f1',
+    bg: '#6366f115',
+    authType: 'fields' as const,
+    envVars: [],
+    capabilities: ['Send from your own domain', 'AI drafts & sends emails', 'Works with any provider'],
+    difficulty: 'Easy',
+    timeEstimate: '~5 min',
+    fields: [
+      { key: 'fromName', label: 'From Name', placeholder: 'Simao Alves — LES A Inspections', required: true, type: 'text' as const },
+      { key: 'fromAddress', label: 'From Email', placeholder: 'hello@lesainspections.com', required: true, type: 'email' as const },
+      { key: 'host', label: 'SMTP Host', placeholder: 'mail.yourdomain.com', required: true, type: 'text' as const, hint: 'Common: smtp.gmail.com · smtp.office365.com · mail.zoho.com' },
+      { key: 'port', label: 'SMTP Port', placeholder: '587', required: true, type: 'number' as const, hint: '587 (TLS, recommended) · 465 (SSL) · 25 (unencrypted)' },
+      { key: 'username', label: 'SMTP Username', placeholder: 'hello@lesainspections.com', required: true, type: 'text' as const },
+      { key: 'password', label: 'SMTP Password / App Password', placeholder: '••••••••••••', required: true, type: 'password' as const, isApiKey: true },
+    ] as PlatformField[],
+    quickGuide: {
+      title: 'Connect your own email domain',
+      steps: [
+        { text: 'Find SMTP settings in your email provider (look for "Outgoing Mail" or "SMTP")' },
+        { text: 'Google Workspace / Gmail: enable 2FA → create App Password at myaccount.google.com/apppasswords', link: 'https://myaccount.google.com/apppasswords' },
+        { text: 'Zoho / GoDaddy / Namecheap: check your hosting control panel → Email Accounts → SMTP settings' },
+        { text: 'Fill in all fields below — your agents will send from YOUR domain, not a shared address' },
+      ],
+      redirectPath: '',
+      tokenGuide: '',
+      tokenLink: '',
+    },
+  },
+  {
+    key: 'twilio',
+    name: 'Twilio SMS',
+    subLabel: 'Direct SMS & WhatsApp',
+    emoji: '📱',
+    color: '#F22F46',
+    bg: '#F22F4615',
+    authType: 'fields' as const,
+    envVars: [],
+    capabilities: ['Send SMS from your number', 'WhatsApp messages', 'Automated follow-ups'],
+    difficulty: 'Easy',
+    timeEstimate: '~5 min',
+    fields: [
+      { key: 'accountSid', label: 'Account SID', placeholder: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, type: 'text' as const, hint: 'Starts with "AC" — visible on your Twilio Console dashboard' },
+      { key: 'authToken', label: 'Auth Token', placeholder: '••••••••••••••••••••••••••••••••', required: true, type: 'password' as const, isApiKey: true },
+      { key: 'phoneNumber', label: 'Twilio Phone Number', placeholder: '+15551234567', required: true, type: 'tel' as const, hint: 'The number you bought in Twilio, in +1XXXXXXXXXX format' },
+    ] as PlatformField[],
+    quickGuide: {
+      title: 'Get your Twilio credentials',
+      steps: [
+        { text: 'Log into Twilio Console', link: 'https://console.twilio.com/' },
+        { text: 'On the dashboard, find your Account SID and Auth Token (click the eye icon to reveal token)' },
+        { text: 'Go to Phone Numbers → Manage → Active Numbers → copy your SMS-enabled number' },
+        { text: 'Paste all three fields below — done!' },
+      ],
+      redirectPath: '',
+      tokenGuide: 'Your Account SID starts with "AC" and is safe to share. The Auth Token is secret — keep it private.',
+      tokenLink: 'https://console.twilio.com/',
+    },
+  },
 ];
 
 const DIFFICULTY_COLOR = {
@@ -233,6 +308,14 @@ function SetupDrawer({
   const [fetchingPages, setFetchingPages] = useState(false);
   const [pageError, setPageError] = useState('');
 
+  // Multi-field platforms (smtp, twilio, etc.)
+  const platformFields = (platform as any).fields as PlatformField[] | undefined;
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  const [showFieldSecrets, setShowFieldSecrets] = useState<Record<string, boolean>>({});
+  const allFieldsFilled = platformFields
+    ? platformFields.filter(f => f.required).every(f => (fieldValues[f.key] || '').trim())
+    : true;
+
   const redirectUri = baseUrl ? `${baseUrl}${platform.quickGuide.redirectPath}` : `https://your-app.replit.app${platform.quickGuide.redirectPath}`;
   const oauthReady = status?.configured ?? false;
 
@@ -261,13 +344,28 @@ function SetupDrawer({
   };
 
   const handleSave = async () => {
-    if (!token.trim()) return;
     setSaving(true);
-    const metadata = platform.key === 'meta' && selectedPage
-      ? { pageId: selectedPage.id, pageName: selectedPage.name }
-      : undefined;
-    const lbl = label.trim() || (selectedPage ? selectedPage.name : platform.name);
-    await onTokenSubmit(token.trim(), lbl, metadata);
+    if (platform.authType === 'fields' && platformFields) {
+      const apiKeyField = platformFields.find(f => f.isApiKey);
+      const apiKey = apiKeyField ? (fieldValues[apiKeyField.key] || '').trim() : '';
+      const metadata: Record<string, unknown> = {};
+      platformFields.forEach(f => {
+        if (!f.isApiKey) metadata[f.key] = (fieldValues[f.key] || '').trim();
+      });
+      const defaultLabel = platform.key === 'smtp'
+        ? (fieldValues['fromAddress'] || platform.name)
+        : platform.key === 'twilio'
+          ? (fieldValues['phoneNumber'] || platform.name)
+          : platform.name;
+      await onTokenSubmit(apiKey, label.trim() || defaultLabel, metadata);
+    } else {
+      if (!token.trim()) { setSaving(false); return; }
+      const metadata = platform.key === 'meta' && selectedPage
+        ? { pageId: selectedPage.id, pageName: selectedPage.name }
+        : undefined;
+      const lbl = label.trim() || (selectedPage ? selectedPage.name : platform.name);
+      await onTokenSubmit(token.trim(), lbl, metadata);
+    }
     setSaving(false);
   };
 
@@ -324,6 +422,87 @@ function SetupDrawer({
         )}
 
         <div className="px-5 py-4 space-y-4 max-h-[65vh] overflow-y-auto">
+
+          {/* ── FIELDS MODE (SMTP, Twilio, etc.) ── */}
+          {platform.authType === 'fields' && platformFields && (
+            <>
+              {/* Steps guide */}
+              <div>
+                <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">{platform.quickGuide.title}</p>
+                <div className="space-y-2">
+                  {platform.quickGuide.steps.map((step, i) => (
+                    <div key={i} className="flex gap-3 items-start">
+                      <span className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                      <div className="flex-1">
+                        <p className="text-sm text-white/65 leading-relaxed">{step.text}</p>
+                        {step.link && (
+                          <a href={step.link} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] text-primary/70 hover:text-primary mt-0.5 transition-all">
+                            <ExternalLink className="w-3 h-3" /> Open link
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dynamic field inputs */}
+              <div className="space-y-3">
+                {platformFields.map(field => {
+                  const isSecret = field.type === 'password';
+                  const revealed = showFieldSecrets[field.key];
+                  return (
+                    <div key={field.key}>
+                      <label className="text-xs text-white/40 mb-1.5 flex items-center gap-1">
+                        {field.label}
+                        {field.required && <span className="text-red-400">*</span>}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={isSecret && !revealed ? 'password' : field.type === 'number' ? 'number' : 'text'}
+                          value={fieldValues[field.key] || ''}
+                          onChange={e => setFieldValues(v => ({ ...v, [field.key]: e.target.value }))}
+                          placeholder={field.placeholder}
+                          className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all pr-10"
+                        />
+                        {isSecret && (
+                          <button
+                            onClick={() => setShowFieldSecrets(s => ({ ...s, [field.key]: !s[field.key] }))}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50 transition-all"
+                          >
+                            {revealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        )}
+                      </div>
+                      {field.hint && <p className="text-[10px] text-white/25 mt-1 leading-relaxed">{field.hint}</p>}
+                    </div>
+                  );
+                })}
+
+                {/* Optional label override */}
+                <div>
+                  <label className="text-xs text-white/40 mb-1.5 block">Account Label <span className="text-white/20">(optional)</span></label>
+                  <input
+                    value={label}
+                    onChange={e => setLabel(e.target.value)}
+                    placeholder={platform.key === 'smtp' ? fieldValues['fromAddress'] || 'e.g. hello@lesainspections.com' : fieldValues['phoneNumber'] || `e.g. ${platform.name}`}
+                    className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all"
+                  />
+                </div>
+
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !allFieldsFilled}
+                  className="w-full py-3 rounded-xl disabled:opacity-35 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                  style={{ background: allFieldsFilled ? platform.color : undefined, backgroundColor: !allFieldsFilled ? 'rgba(255,255,255,0.05)' : undefined }}
+                >
+                  {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+                  {saving ? 'Connecting…' : `Connect ${platform.name}`}
+                </button>
+              </div>
+            </>
+          )}
 
           {/* ── OAUTH GUIDE MODE ── */}
           {mode === 'guide' && platform.authType === 'oauth' && (
