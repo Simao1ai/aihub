@@ -187,6 +187,65 @@ NEVER say you cannot post, cannot connect to Facebook, or need OAuth. You queue 
   }
 }
 
+// ── Auto-respond on behalf of a target agent after handoff ───────────────────
+// Builds the agent's full system prompt and gets an immediate AI response so
+// the conversation is live the moment the user opens it.
+async function autoRespondAfterHandoff(
+  targetAgent: { id: number; name: string; slug: string; systemPrompt: string | null },
+  newConvId: number,
+  businessTag: string,
+  seedMessage: string,
+): Promise<void> {
+  try {
+    // Workspace context
+    let businessContext = "";
+    try {
+      const [ws] = await db.select().from(workspacesTable).where(eq(workspacesTable.slug, businessTag));
+      if (ws?.businessContext) {
+        businessContext = `━━━ BUSINESS CONTEXT ━━━\n${ws.businessContext}\n━━━━━━━━━━━━━━━━━━━━`;
+      } else if (ws?.name) {
+        businessContext = `━━━ BUSINESS CONTEXT ━━━\nYou are working in the "${ws.name}" workspace for Simao Alves.\n━━━━━━━━━━━━━━━━━━━━`;
+      } else {
+        businessContext = `━━━ BUSINESS CONTEXT ━━━\nYou are working for Simao Alves, a serial entrepreneur with 5 active businesses.\n━━━━━━━━━━━━━━━━━━━━`;
+      }
+    } catch { /* use default */ }
+
+    const soshiContext = targetAgent.slug === "soshi" ? await getSoshiConnectionsContext() : "";
+    const brainContext = await getBrainContext(seedMessage);
+    const brainBlock = brainContext
+      ? `━━━ BRAIN DOCUMENTS (knowledge base) ━━━\n${brainContext}\n━━━━━━━━━━━━━━━━━━━━`
+      : "";
+
+    const systemPrompt = [
+      buildHubIdentityBlock(targetAgent.name),
+      businessContext,
+      soshiContext,
+      targetAgent.systemPrompt,
+      `Today's date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}.`,
+      brainBlock,
+    ].filter(Boolean).join("\n\n");
+
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: [{ role: "user", content: seedMessage }],
+    });
+
+    const textContent = response.content.find((b: any) => b.type === "text");
+    if (textContent && textContent.type === "text" && textContent.text) {
+      await db.insert(messages).values({
+        conversationId: newConvId,
+        role: "assistant",
+        content: textContent.text,
+      });
+    }
+  } catch (err) {
+    // Non-fatal: if auto-response fails, the user can still open and prompt manually
+    console.error("autoRespondAfterHandoff error:", err);
+  }
+}
+
 function formatTimeAgo(date: Date | string): string {
   const d = new Date(date);
   const diffMs = Date.now() - d.getTime();
@@ -336,7 +395,16 @@ router.post("/conversations/:id/handoff", async (req, res) => {
       content: handoffMsg,
     });
 
+    // Respond to the client immediately, then auto-generate the target agent's reply
     res.status(201).json({ conversationId: newConv.id, agentId: targetAgentId });
+
+    // Fire-and-forget: target agent responds to the handoff context automatically
+    autoRespondAfterHandoff(
+      { id: targetAgent.id, name: targetAgent.name, slug: targetAgent.slug, systemPrompt: targetAgent.systemPrompt },
+      newConv.id,
+      sourceConv.businessTag,
+      handoffMsg,
+    ).catch(e => console.error("Manual handoff auto-respond error:", e));
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Failed to create handoff" });
@@ -542,10 +610,14 @@ router.post("/conversations/:id/messages", async (req, res) => {
                 }
               })}\n\n`);
 
+              // Fire-and-forget: get the target agent's immediate response
+              autoRespondAfterHandoff(targetAgent, newConv.id, conv.businessTag, seedMessage)
+                .catch(e => console.error("Auto-respond error:", e));
+
               toolResults.push({
                 type: "tool_result",
                 tool_use_id: toolUse.id,
-                content: `Successfully handed off to ${targetAgent.name}. A new conversation (ID: ${newConv.id}) has been created and pre-loaded with context. Simao will see a notification to open it.`,
+                content: `Successfully handed off to ${targetAgent.name}. A new conversation (ID: ${newConv.id}) has been created and ${targetAgent.name} is generating their response now. Simao will see a notification to open it.`,
               });
             }
           } catch {
