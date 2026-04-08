@@ -320,7 +320,7 @@ function Composer({
         setTopic('');
         showToast(`Posted to ${plt?.label}! 🎉`);
       } else {
-        showToast('Post may have failed — check your connection credentials', 'error');
+        showToast(result.errorMessage ?? 'Post failed — check your connection credentials', 'error');
       }
     } catch {
       showToast('Failed to post', 'error');
@@ -635,7 +635,7 @@ export default function Social() {
       if (result.success) {
         showGlobalToast(`Posted to ${PLATFORMS[post.platform]?.label ?? post.platform}! 🎉`);
       } else {
-        showGlobalToast('Post may have failed — check connection credentials', 'error');
+        showGlobalToast(result.errorMessage ?? 'Post failed — check connection credentials', 'error');
       }
     } catch {
       showGlobalToast('Failed to post', 'error');

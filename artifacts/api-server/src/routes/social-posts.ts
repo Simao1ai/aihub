@@ -217,27 +217,30 @@ router.post("/:id/post-now", async (req, res) => {
         platformPostId = data?.data?.id;
 
       } else if (conn.platform === "meta") {
-        const meta = conn.metadata as any;
-        let pageId = meta?.pageId;
-        const pageToken = conn.apiKey ?? meta?.pageAccessToken ?? conn.accessToken ?? "";
-        if (!pageToken) throw new Error("No Meta access token stored");
+        const userToken = conn.accessToken || conn.apiKey || (conn.metadata as any)?.pageAccessToken || "";
+        if (!userToken) throw new Error("No Meta access token found — please reconnect your Meta account in Integrations");
 
-        // Auto-discover page ID from the token if not stored
-        if (!pageId) {
-          const meResp = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${pageToken}`);
-          const meData = await meResp.json() as any;
-          if (meData.error) throw new Error(`Meta token error: ${meData.error.message}`);
-          pageId = meData.id;
-          // Cache the page ID back to metadata for future calls
+        // Fetch the user's Facebook Pages and use the page-specific access token
+        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${userToken}`);
+        const pagesData = await pagesResp.json() as any;
+        if (pagesData.error) throw new Error(`Meta auth error: ${pagesData.error.message}. Your token may have expired — reconnect in Integrations.`);
+        if (!pagesData.data || pagesData.data.length === 0) throw new Error("No Facebook Pages found on this account. Make sure you have admin access to a Facebook Page.");
+
+        // Use the page matching the stored connection account label, or fall back to the first page
+        const meta = conn.metadata as any;
+        const page = pagesData.data.find((p: any) => p.id === meta?.pageId) ?? pagesData.data[0];
+
+        // Cache the resolved page details for future calls
+        if (!meta?.pageId || meta.pageId !== page.id) {
           await db.update(connectionsTable)
-            .set({ metadata: { ...(meta ?? {}), pageId, pageName: meData.name } })
+            .set({ metadata: { ...(meta ?? {}), pageId: page.id, pageName: page.name } })
             .where(eq(connectionsTable.id, conn.id));
         }
 
-        const postResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
+        const postResp = await fetch(`https://graph.facebook.com/v19.0/${page.id}/feed`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: post.content, access_token: pageToken }),
+          body: JSON.stringify({ message: post.content, access_token: page.access_token }),
         });
         const data = await postResp.json() as any;
         if (data.error) throw new Error(data.error.message);
@@ -258,7 +261,7 @@ router.post("/:id/post-now", async (req, res) => {
       .where(eq(socialPostsTable.id, id))
       .returning();
 
-    res.json({ success, post: updated, platformPostId });
+    res.json({ success, post: updated, platformPostId, errorMessage: errorMessage ?? null });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

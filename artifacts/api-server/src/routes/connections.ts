@@ -220,7 +220,7 @@ router.get("/oauth/:platform/initiate", (req, res) => {
       client_id: clientId,
       redirect_uri: redirectUri,
       state,
-      scope: "email,public_profile",
+      scope: "email,public_profile,pages_manage_posts,pages_read_engagement,pages_show_list",
     });
     authUrl = `https://www.facebook.com/v19.0/dialog/oauth?${params}`;
   } else {
