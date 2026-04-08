@@ -234,7 +234,7 @@ router.get("/oauth/:platform/initiate", (req, res) => {
       client_id: clientId,
       redirect_uri: redirectUri,
       state,
-      scope: "pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish,email",
+      scope: "email,public_profile",
     });
     authUrl = `https://www.facebook.com/v19.0/dialog/oauth?${params}`;
   } else {
