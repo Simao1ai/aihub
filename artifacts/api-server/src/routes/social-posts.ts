@@ -218,16 +218,29 @@ router.post("/:id/post-now", async (req, res) => {
 
       } else if (conn.platform === "meta") {
         const meta = conn.metadata as any;
-        const pageId = meta?.pageId;
-        const pageToken = meta?.pageAccessToken ?? conn.accessToken;
-        if (!pageId) throw new Error("No Facebook page configured");
+        let pageId = meta?.pageId;
+        const pageToken = conn.apiKey ?? meta?.pageAccessToken ?? conn.accessToken ?? "";
+        if (!pageToken) throw new Error("No Meta access token stored");
 
-        const postResp = await fetch(`https://graph.facebook.com/${pageId}/feed`, {
+        // Auto-discover page ID from the token if not stored
+        if (!pageId) {
+          const meResp = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${pageToken}`);
+          const meData = await meResp.json() as any;
+          if (meData.error) throw new Error(`Meta token error: ${meData.error.message}`);
+          pageId = meData.id;
+          // Cache the page ID back to metadata for future calls
+          await db.update(connectionsTable)
+            .set({ metadata: { ...(meta ?? {}), pageId, pageName: meData.name } })
+            .where(eq(connectionsTable.id, conn.id));
+        }
+
+        const postResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: post.content, access_token: pageToken }),
         });
         const data = await postResp.json() as any;
+        if (data.error) throw new Error(data.error.message);
         success = !!data.id;
         platformPostId = data.id;
       }

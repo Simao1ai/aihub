@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, conversations, messages, agentsTable, workspacesTable } from "@workspace/db";
+import { db, conversations, messages, agentsTable, workspacesTable, connectionsTable } from "@workspace/db";
 import { eq, desc, ne, and, gte } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getBrainContext } from "./brain";
@@ -128,6 +128,40 @@ async function getCrossAgentContext(businessTag: string, currentAgentId: number)
 The following is recent work your AI colleagues have completed in this workspace. Use this for context — if a colleague has already done relevant work, build on it rather than starting from scratch.
 
 ${teamActivity.join("\n\n")}
+━━━━━━━━━━━━━━━━━━━━`;
+  } catch {
+    return "";
+  }
+}
+
+// ── SOSHI Social Connections Context ─────────────────────────────────────────
+// When SOSHI is the agent, inject info about connected platforms so she knows
+// she CAN queue posts and which platforms are ready.
+
+async function getSoshiConnectionsContext(): Promise<string> {
+  try {
+    const conns = await db.select().from(connectionsTable);
+    const connected = conns.filter(c => c.isConnected && (c.accessToken || c.apiKey));
+    if (connected.length === 0) {
+      return `━━━ SOCIAL CONNECTIONS (your posting power) ━━━
+No social platforms are connected yet. When Simao asks you to schedule or post content, let him know he can connect platforms in the Connections section of the hub (Meta/Facebook, LinkedIn, Twitter/X, TikTok). Once connected, you can save posts directly to the Social Queue for his review and one-click publishing.
+━━━━━━━━━━━━━━━━━━━━`;
+    }
+    const lines = connected.map(c => {
+      const label = c.accountLabel ? `${c.platform} — ${c.accountLabel}` : c.platform;
+      return `  ✅ ${label}`;
+    });
+    return `━━━ SOCIAL CONNECTIONS (your posting power) ━━━
+IMPORTANT — YOU CAN QUEUE POSTS DIRECTLY: The following social platforms are connected and ready. When Simao asks you to create and schedule posts, YOU CAN save them to the Social Queue — they go into a pending approval list that Simao reviews, then posts with one click. You do NOT need to tell him to use an external tool.
+
+Connected platforms:
+${lines.join("\n")}
+
+WORKFLOW — when asked to create and schedule posts:
+1. Write the posts (as you normally do — excellent copy, hashtags, timing)
+2. Tell Simao: "I've drafted these posts. Go to the Social Media section in the hub to review and post them to [platform] with one click."
+3. Mention the specific connected platform(s) by name (e.g. "your LES A Inspections Facebook page")
+4. Do NOT refer to Meta Business Suite, Buffer, Hootsuite, or any external tool — the hub handles posting.
 ━━━━━━━━━━━━━━━━━━━━`;
   } catch {
     return "";
@@ -335,6 +369,9 @@ router.post("/conversations/:id/messages", async (req, res) => {
     // Get cross-agent team activity (what other agents have been doing)
     const teamContext = await getCrossAgentContext(conv.businessTag, conv.agentId);
 
+    // SOSHI-specific: inject connected platforms so she knows she can queue posts
+    const soshiContext = agent.slug === "soshi" ? await getSoshiConnectionsContext() : "";
+
     // Brain context block
     const brainBlock = brainContext
       ? `━━━ BRAIN DOCUMENTS (knowledge base) ━━━\n${brainContext}\n━━━━━━━━━━━━━━━━━━━━`
@@ -344,6 +381,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
     const systemPrompt = [
       buildHubIdentityBlock(agent.name),
       businessContext,
+      soshiContext,
       teamContext,
       agent.systemPrompt,
       `Today's date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}.`,
