@@ -649,6 +649,7 @@ export default function Agents() {
   const [selectedConvId, setSelectedConvId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [deepLinkHandled, setDeepLinkHandled] = useState(false);
 
   const { data: agents = [] } = useListAgents();
   const { data: conversations = [] } = useListAnthropicConversations(
@@ -663,6 +664,25 @@ export default function Agents() {
 
   const filteredConvs = conversations.filter(c => c.businessTag === businessTag);
   const activeAgent = agents.find(a => a.id === selectedAgentId);
+
+  // ── Deep-link support: ?agent=pixel&conv=123 ─────────────────────────────
+  // Used by SOSHI's "Open PIXEL" toast button
+  useEffect(() => {
+    if (deepLinkHandled || agents.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const agentSlug = params.get('agent');
+    const convId = params.get('conv');
+    if (agentSlug) {
+      const target = agents.find(a => a.slug === agentSlug);
+      if (target) {
+        setSelectedAgentId(target.id);
+        if (convId) setSelectedConvId(parseInt(convId));
+        // Clean up the URL without a full reload
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+    setDeepLinkHandled(true);
+  }, [agents, deepLinkHandled]);
 
   const categories = ['all', ...Array.from(new Set(
     agents.map(a => AGENT_META[a.slug]?.category ?? 'Other')

@@ -158,11 +158,16 @@ ${connected.length > 0
   ? `Connected platforms: ${platformNames}. These are ready for publishing after Simao approves.`
   : `No platforms are connected yet — but you can still save drafts to the queue for when they get connected.`}
 
-MANDATORY WORKFLOW when asked to create social posts:
-1. Write excellent, ready-to-publish post copy for each platform requested
-2. Call save_posts_to_queue with ALL the posts — do not skip this step
-3. After the tool confirms they are saved, tell Simao: "I've just saved [X] posts to your Social Queue — go to the Social Media section to review and publish them with one click."
-4. NEVER say you cannot post, cannot connect to Facebook, or need OAuth. You queue the posts — Simao publishes them.
+YOUR TWO ACTION TOOLS:
+• save_posts_to_queue — saves posts directly to the Social Queue (Simao reviews + publishes with one click from the Social Media section)
+• handoff_to_pixel — creates a PIXEL conversation pre-loaded with a visual brief (PIXEL appears in sidebar ready to generate the image)
+
+MANDATORY WORKFLOWS:
+When asked to create/schedule posts → write them → call save_posts_to_queue → confirm to Simao
+When asked for a visual/graphic → call handoff_to_pixel with a detailed brief → PIXEL gets it instantly
+When asked to create posts AND a visual → call BOTH tools in the same response
+
+NEVER say you cannot post, cannot connect to Facebook, or need OAuth. You queue — Simao publishes.
 ━━━━━━━━━━━━━━━━━━━━`;
   } catch {
     return "";
@@ -405,12 +410,12 @@ router.post("/conversations/:id/messages", async (req, res) => {
 
     let fullResponse = "";
 
-    // ── SOSHI: tool calling for real social post queuing ─────────────────────
+    // ── SOSHI: tool calling for real post queuing + PIXEL handoff ────────────
     if (agent.slug === "soshi") {
       const soshiTools: any[] = [
         {
           name: "save_posts_to_queue",
-          description: "Save drafted social media posts to the Social Queue for Simao's review and one-click publishing. Call this EVERY time you create posts that Simao wants scheduled or published. Do not ask the user to go find a section — just call this tool and the posts will be there.",
+          description: "Save drafted social media posts to the Social Queue for Simao's review and one-click publishing. Call this EVERY time you create posts that Simao wants scheduled or published.",
           input_schema: {
             type: "object",
             properties: {
@@ -423,7 +428,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
                     platform: {
                       type: "string",
                       enum: ["meta", "linkedin", "twitter", "tiktok"],
-                      description: "Social platform slug: meta (Facebook/Instagram), linkedin, twitter, tiktok",
+                      description: "Platform slug: meta (Facebook/Instagram), linkedin, twitter, tiktok",
                     },
                     content: {
                       type: "string",
@@ -441,6 +446,28 @@ router.post("/conversations/:id/messages", async (req, res) => {
             required: ["posts"],
           },
         },
+        {
+          name: "handoff_to_pixel",
+          description: "Create a new conversation with PIXEL (the AI visual artist) pre-loaded with a visual brief so PIXEL can immediately generate or describe the image. Use this whenever Simao asks for a visual, graphic, or image to go with a post. PIXEL will appear in the sidebar ready to generate.",
+          input_schema: {
+            type: "object",
+            properties: {
+              visual_brief: {
+                type: "string",
+                description: "Complete visual brief for PIXEL: subject, mood/emotion, style (photo-realistic, illustration, etc.), platform dimensions, color palette, composition, any text overlay. Be very detailed.",
+              },
+              post_context: {
+                type: "string",
+                description: "The social post copy this visual is being created for (so PIXEL has full context)",
+              },
+              platform: {
+                type: "string",
+                description: "Target platform for sizing: facebook, instagram, linkedin, twitter, tiktok",
+              },
+            },
+            required: ["visual_brief"],
+          },
+        },
       ];
 
       // Phase 1: non-streaming call to detect tool use
@@ -454,13 +481,14 @@ router.post("/conversations/:id/messages", async (req, res) => {
       });
 
       if (phase1.stop_reason === "tool_use") {
-        // Execute every tool call
         const toolUseBlocks = phase1.content.filter((b: any) => b.type === "tool_use");
         const toolResults: any[] = [];
         const savedPosts: any[] = [];
 
         for (const toolUse of toolUseBlocks) {
           if (toolUse.type !== "tool_use") continue;
+
+          // ── Tool: save_posts_to_queue ───────────────────────────────────
           if (toolUse.name === "save_posts_to_queue") {
             const input = toolUse.input as { posts: { platform: string; content: string; topic?: string }[] };
             for (const post of input.posts) {
@@ -474,14 +502,57 @@ router.post("/conversations/:id/messages", async (req, res) => {
                 agentSlug: "soshi",
               }).returning();
               savedPosts.push(saved);
-              // Notify the frontend in real time
               res.write(`data: ${JSON.stringify({ socialPostSaved: { id: saved.id, platform: saved.platform, topic: saved.topic } })}\n\n`);
             }
             toolResults.push({
               type: "tool_result",
               tool_use_id: toolUse.id,
-              content: `Successfully saved ${savedPosts.length} post(s) to the Social Queue. Posts are now in the Social Media section awaiting Simao's review and one-click publishing.`,
+              content: `Successfully saved ${savedPosts.length} post(s) to the Social Queue. Simao can now review and publish them in the Social Media section with one click.`,
             });
+          }
+
+          // ── Tool: handoff_to_pixel ──────────────────────────────────────
+          if (toolUse.name === "handoff_to_pixel") {
+            const input = toolUse.input as { visual_brief: string; post_context?: string; platform?: string };
+            try {
+              const [pixelAgent] = await db.select().from(agentsTable).where(eq(agentsTable.slug, "pixel"));
+              if (pixelAgent) {
+                const platformLabel = input.platform ?? "social media";
+                const seedMessage = [
+                  `SOSHI is passing you a visual brief for a ${platformLabel} post. Please create a detailed AI image prompt and generate the visual.`,
+                  input.post_context ? `\n**Post copy:**\n${input.post_context}` : "",
+                  `\n**Visual brief from SOSHI:**\n${input.visual_brief}`,
+                  `\nPlease generate the image now using this brief.`,
+                ].filter(Boolean).join("\n");
+
+                const [newConv] = await db.insert(conversations).values({
+                  title: `Visual from SOSHI — ${new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
+                  agentId: pixelAgent.id,
+                  businessTag: conv.businessTag,
+                }).returning();
+
+                await db.insert(messages).values({
+                  conversationId: newConv.id,
+                  role: "user",
+                  content: seedMessage,
+                });
+
+                res.write(`data: ${JSON.stringify({ pixelHandoff: { conversationId: newConv.id, agentId: pixelAgent.id } })}\n\n`);
+
+                toolResults.push({
+                  type: "tool_result",
+                  tool_use_id: toolUse.id,
+                  content: `Successfully created a new PIXEL conversation (ID: ${newConv.id}) pre-loaded with the visual brief. PIXEL is now ready to generate the image — Simao will see a notification to open PIXEL.`,
+                });
+              }
+            } catch (err) {
+              toolResults.push({
+                type: "tool_result",
+                tool_use_id: toolUse.id,
+                content: "Could not create PIXEL handoff — but the brief has been shared in this conversation.",
+                is_error: true,
+              });
+            }
           }
         }
 
@@ -507,11 +578,10 @@ router.post("/conversations/:id/messages", async (req, res) => {
           }
         }
       } else {
-        // No tool use — stream the text content from phase1 response
+        // No tool use — stream text content from phase1 response
         for (const block of phase1.content) {
           if (block.type === "text") {
             fullResponse += block.text;
-            // Stream in ~100-char chunks so it feels live
             const chunks = block.text.match(/.{1,100}/g) ?? [block.text];
             for (const chunk of chunks) {
               res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);

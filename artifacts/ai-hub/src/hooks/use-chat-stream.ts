@@ -58,7 +58,7 @@ export function useChatStream(conversationId: number | null) {
                 setStreamingMessage((prev) => prev + data.content);
               }
 
-              // SOSHI tool call: a social post was just saved to the DB
+              // SOSHI tool: social post saved to the queue
               if (data.socialPostSaved) {
                 const post = data.socialPostSaved;
                 const platformLabel = PLATFORM_LABELS[post.platform] ?? post.platform;
@@ -68,11 +68,22 @@ export function useChatStream(conversationId: number | null) {
                   description: `${label} — ${platformLabel}`,
                   action: {
                     label: 'View Queue',
-                    onClick: () => {
-                      window.location.href = '/social';
-                    },
+                    onClick: () => { window.location.href = '/social'; },
                   },
                   duration: 6000,
+                });
+              }
+
+              // SOSHI tool: PIXEL handoff created
+              if (data.pixelHandoff) {
+                const { conversationId } = data.pixelHandoff;
+                toast.success(`PIXEL has your visual brief`, {
+                  description: 'A new PIXEL conversation is ready with the full brief loaded.',
+                  action: {
+                    label: 'Open PIXEL',
+                    onClick: () => { window.location.href = `/agents?agent=pixel&conv=${conversationId}`; },
+                  },
+                  duration: 10000,
                 });
               }
             } catch (e) {
