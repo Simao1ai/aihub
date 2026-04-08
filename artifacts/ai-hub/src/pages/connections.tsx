@@ -55,16 +55,17 @@ const PLATFORMS = [
     difficulty: 'Easy',
     timeEstimate: '~3 min',
     quickGuide: {
-      title: 'Get your Facebook User Token (2 min)',
+      title: 'Get your Facebook User Token (3 min)',
       steps: [
-        { text: 'Open the Graph API Explorer (link below) — sign in with your Facebook account', link: 'https://developers.facebook.com/tools/explorer/' },
-        { text: 'In the "Meta App" dropdown (top right), select your app — e.g. "aihub"' },
-        { text: 'Keep the second dropdown as "User Token" (don\'t switch to a Page — one User Token unlocks ALL your pages)' },
+        { text: 'Open Graph API Explorer (link below) and sign in with your Facebook account', link: 'https://developers.facebook.com/tools/explorer/' },
+        { text: 'In the "Meta App" dropdown (top right) select your app — e.g. "aihub"' },
+        { text: 'Keep the second dropdown as "User Token" (not a Page token)' },
+        { text: 'IMPORTANT: Click "+ Add a Permission" and add these three: pages_show_list, pages_read_engagement, pages_manage_posts' },
         { text: 'Click "Generate Access Token" → approve all permissions in the popup' },
-        { text: 'Copy the token below — we\'ll then show your pages and you pick which one to use' },
+        { text: 'Copy the token below — we\'ll fetch your pages so you can pick which one this workspace uses' },
       ],
       redirectPath: '',
-      tokenGuide: 'Paste your User Token — one token gives access to ALL your Facebook Pages. After pasting, click "Load My Pages" to pick which page this workspace posts to.',
+      tokenGuide: 'Paste your User Token — one token covers ALL your pages. Make sure you added pages_show_list permission before generating it.',
       tokenLink: 'https://developers.facebook.com/tools/explorer/',
     },
   },
@@ -436,15 +437,51 @@ function SetupDrawer({
     setPages([]);
     setSelectedPage(null);
     try {
-      const res = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${token.trim()}`);
+      const t = token.trim();
+      const fields = 'id,name,access_token,category,fan_count,picture{url}';
+
+      // 1. Try /me/accounts (works for direct page admins)
+      const res = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=${fields}&limit=200&access_token=${t}`);
       const data = await res.json() as any;
+
       if (data.error) {
-        setPageError(data.error.message || 'Invalid token — make sure you copied the full token from Graph API Explorer');
-      } else if (!data.data?.length) {
-        setPageError('No Facebook Pages found on this account. Make sure you manage at least one Facebook Page.');
+        const code = data.error.code;
+        if (code === 190) {
+          setPageError('Token is invalid or expired — please generate a new one from Graph API Explorer.');
+        } else if (code === 10 || code === 200 || code === 230) {
+          setPageError('Your token is missing the "pages_show_list" permission. In Graph API Explorer, click "+ Add a Permission" and add pages_show_list before generating the token.');
+        } else {
+          setPageError(`Facebook error: ${data.error.message}`);
+        }
+        return;
+      }
+
+      let pages: any[] = data.data || [];
+
+      // 2. If /me/accounts is empty, try the Business Portfolio fallback
+      if (!pages.length) {
+        const bizRes = await fetch(`https://graph.facebook.com/v19.0/me/businesses?fields=owned_pages{${fields}}&limit=50&access_token=${t}`);
+        const bizData = await bizRes.json() as any;
+        if (!bizData.error && bizData.data?.length) {
+          for (const biz of bizData.data) {
+            const bizPages: any[] = biz.owned_pages?.data || [];
+            pages = [...pages, ...bizPages];
+          }
+        }
+      }
+
+      if (!pages.length) {
+        setPageError(
+          'No Facebook Pages found. Two common fixes:\n' +
+          '1. In Graph API Explorer, click "+ Add a Permission" → add pages_show_list and pages_read_engagement, then re-generate your token.\n' +
+          '2. Make sure your Facebook account is an Admin of at least one Page.'
+        );
       } else {
-        setPages(data.data);
-        setSelectedPage(data.data[0]);
+        // Dedupe by id
+        const seen = new Set<string>();
+        const unique = pages.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
+        setPages(unique);
+        setSelectedPage(unique[0]);
       }
     } catch {
       setPageError('Failed to reach Facebook — check your connection and try again');
@@ -974,7 +1011,13 @@ function SetupDrawer({
                       {fetchingPages ? <RefreshCw className="w-4 h-4 animate-spin" /> : <span>📘</span>}
                       {fetchingPages ? 'Loading your pages…' : 'Load My Facebook Pages'}
                     </button>
-                    {pageError && <p className="text-[11px] text-red-400 mt-1.5 leading-relaxed">{pageError}</p>}
+                    {pageError && (
+                      <div className="mt-2 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                        {pageError.split('\n').map((line, i) => (
+                          <p key={i} className="text-[11px] text-red-400 leading-relaxed">{line}</p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
