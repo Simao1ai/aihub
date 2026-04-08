@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, conversations, messages, agentsTable, workspacesTable, connectionsTable } from "@workspace/db";
+import { db, conversations, messages, agentsTable, workspacesTable, connectionsTable, socialPostsTable } from "@workspace/db";
 import { eq, desc, ne, and, gte } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getBrainContext } from "./brain";
@@ -147,27 +147,22 @@ ${teamActivity.join("\n\n")}
 async function getSoshiConnectionsContext(): Promise<string> {
   try {
     const conns = await db.select().from(connectionsTable);
-    const connected = conns.filter(c => c.isConnected && (c.accessToken || c.apiKey));
-    if (connected.length === 0) {
-      return `━━━ SOCIAL CONNECTIONS (your posting power) ━━━
-No social platforms are connected yet. When Simao asks you to schedule or post content, let him know he can connect platforms in the Connections section of the hub (Meta/Facebook, LinkedIn, Twitter/X, TikTok). Once connected, you can save posts directly to the Social Queue for his review and one-click publishing.
-━━━━━━━━━━━━━━━━━━━━`;
-    }
-    const lines = connected.map(c => {
-      const label = c.accountLabel ? `${c.platform} — ${c.accountLabel}` : c.platform;
-      return `  ✅ ${label}`;
-    });
-    return `━━━ SOCIAL CONNECTIONS (your posting power) ━━━
-IMPORTANT — YOU CAN QUEUE POSTS DIRECTLY: The following social platforms are connected and ready. When Simao asks you to create and schedule posts, YOU CAN save them to the Social Queue — they go into a pending approval list that Simao reviews, then posts with one click. You do NOT need to tell him to use an external tool.
+    // Include any connection marked isConnected — token presence checked separately at publish time
+    const connected = conns.filter(c => c.isConnected);
+    const platformNames = connected.map(c => c.accountLabel || c.platform).join(", ");
 
-Connected platforms:
-${lines.join("\n")}
+    return `━━━ SOCIAL QUEUE TOOL ━━━
+You have a REAL tool called save_posts_to_queue. When Simao asks you to create, schedule, or queue social media posts, you MUST call this tool — it actually saves the posts to the hub's Social Queue database so Simao can review and publish with one click.
 
-WORKFLOW — when asked to create and schedule posts:
-1. Write the posts (as you normally do — excellent copy, hashtags, timing)
-2. Tell Simao: "I've drafted these posts. Go to the Social Media section in the hub to review and post them to [platform] with one click."
-3. Mention the specific connected platform(s) by name (e.g. "your LES A Inspections Facebook page")
-4. Do NOT refer to Meta Business Suite, Buffer, Hootsuite, or any external tool — the hub handles posting.
+${connected.length > 0
+  ? `Connected platforms: ${platformNames}. These are ready for publishing after Simao approves.`
+  : `No platforms are connected yet — but you can still save drafts to the queue for when they get connected.`}
+
+MANDATORY WORKFLOW when asked to create social posts:
+1. Write excellent, ready-to-publish post copy for each platform requested
+2. Call save_posts_to_queue with ALL the posts — do not skip this step
+3. After the tool confirms they are saved, tell Simao: "I've just saved [X] posts to your Social Queue — go to the Social Media section to review and publish them with one click."
+4. NEVER say you cannot post, cannot connect to Facebook, or need OAuth. You queue the posts — Simao publishes them.
 ━━━━━━━━━━━━━━━━━━━━`;
   } catch {
     return "";
@@ -410,17 +405,134 @@ router.post("/conversations/:id/messages", async (req, res) => {
 
     let fullResponse = "";
 
-    const stream = anthropic.messages.stream({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8192,
-      system: systemPrompt,
-      messages: chatMessages,
-    });
+    // ── SOSHI: tool calling for real social post queuing ─────────────────────
+    if (agent.slug === "soshi") {
+      const soshiTools: any[] = [
+        {
+          name: "save_posts_to_queue",
+          description: "Save drafted social media posts to the Social Queue for Simao's review and one-click publishing. Call this EVERY time you create posts that Simao wants scheduled or published. Do not ask the user to go find a section — just call this tool and the posts will be there.",
+          input_schema: {
+            type: "object",
+            properties: {
+              posts: {
+                type: "array",
+                description: "Array of posts to save",
+                items: {
+                  type: "object",
+                  properties: {
+                    platform: {
+                      type: "string",
+                      enum: ["meta", "linkedin", "twitter", "tiktok"],
+                      description: "Social platform slug: meta (Facebook/Instagram), linkedin, twitter, tiktok",
+                    },
+                    content: {
+                      type: "string",
+                      description: "The complete, ready-to-publish post text including hashtags",
+                    },
+                    topic: {
+                      type: "string",
+                      description: "Brief topic/label for this post",
+                    },
+                  },
+                  required: ["platform", "content"],
+                },
+              },
+            },
+            required: ["posts"],
+          },
+        },
+      ];
 
-    for await (const event of stream) {
-      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-        fullResponse += event.delta.text;
-        res.write(`data: ${JSON.stringify({ content: event.delta.text })}\n\n`);
+      // Phase 1: non-streaming call to detect tool use
+      const phase1 = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 8192,
+        system: systemPrompt,
+        messages: chatMessages,
+        tools: soshiTools,
+        tool_choice: { type: "auto" },
+      });
+
+      if (phase1.stop_reason === "tool_use") {
+        // Execute every tool call
+        const toolUseBlocks = phase1.content.filter((b: any) => b.type === "tool_use");
+        const toolResults: any[] = [];
+        const savedPosts: any[] = [];
+
+        for (const toolUse of toolUseBlocks) {
+          if (toolUse.type !== "tool_use") continue;
+          if (toolUse.name === "save_posts_to_queue") {
+            const input = toolUse.input as { posts: { platform: string; content: string; topic?: string }[] };
+            for (const post of input.posts) {
+              const [saved] = await db.insert(socialPostsTable).values({
+                platform: post.platform,
+                content: post.content,
+                topic: post.topic ?? null,
+                businessTag: conv.businessTag,
+                status: "pending_approval",
+                aiGenerated: true,
+                agentSlug: "soshi",
+              }).returning();
+              savedPosts.push(saved);
+              // Notify the frontend in real time
+              res.write(`data: ${JSON.stringify({ socialPostSaved: { id: saved.id, platform: saved.platform, topic: saved.topic } })}\n\n`);
+            }
+            toolResults.push({
+              type: "tool_result",
+              tool_use_id: toolUse.id,
+              content: `Successfully saved ${savedPosts.length} post(s) to the Social Queue. Posts are now in the Social Media section awaiting Simao's review and one-click publishing.`,
+            });
+          }
+        }
+
+        // Phase 2: stream the final response after tool results
+        const phase2Messages: any[] = [
+          ...chatMessages,
+          { role: "assistant", content: phase1.content },
+          { role: "user", content: toolResults },
+        ];
+
+        const stream2 = anthropic.messages.stream({
+          model: "claude-sonnet-4-6",
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: phase2Messages,
+          tools: soshiTools,
+        });
+
+        for await (const event of stream2) {
+          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+            fullResponse += event.delta.text;
+            res.write(`data: ${JSON.stringify({ content: event.delta.text })}\n\n`);
+          }
+        }
+      } else {
+        // No tool use — stream the text content from phase1 response
+        for (const block of phase1.content) {
+          if (block.type === "text") {
+            fullResponse += block.text;
+            // Stream in ~100-char chunks so it feels live
+            const chunks = block.text.match(/.{1,100}/g) ?? [block.text];
+            for (const chunk of chunks) {
+              res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+            }
+          }
+        }
+      }
+    } else {
+      // ── All other agents: standard streaming ─────────────────────────────
+      const stream = anthropic.messages.stream({
+        model: "claude-sonnet-4-6",
+        max_tokens: 8192,
+        system: systemPrompt,
+        messages: chatMessages,
+      });
+
+      for await (const event of stream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          fullResponse += event.delta.text;
+          res.write(`data: ${JSON.stringify({ content: event.delta.text })}\n\n`);
+        }
       }
     }
 

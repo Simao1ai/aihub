@@ -1,10 +1,19 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getGetAnthropicConversationQueryKey } from '@workspace/api-client-react';
+import { toast } from 'sonner';
+
+const PLATFORM_LABELS: Record<string, string> = {
+  meta: 'Facebook / Instagram',
+  linkedin: 'LinkedIn',
+  twitter: 'Twitter / X',
+  tiktok: 'TikTok',
+};
 
 export function useChatStream(conversationId: number | null) {
   const [streamingMessage, setStreamingMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [savedPostCount, setSavedPostCount] = useState(0);
   const queryClient = useQueryClient();
 
   const sendMessage = useCallback(async (content: string) => {
@@ -12,6 +21,7 @@ export function useChatStream(conversationId: number | null) {
     
     setIsStreaming(true);
     setStreamingMessage('');
+    setSavedPostCount(0);
 
     try {
       const response = await fetch(`/api/anthropic/conversations/${conversationId}/messages`, {
@@ -25,22 +35,45 @@ export function useChatStream(conversationId: number | null) {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        // Keep the last (potentially incomplete) line in the buffer
+        buffer = lines.pop() ?? '';
 
         for (const line of lines) {
           if (line.trim() === '') continue;
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
+
               if (data.done) break;
+
               if (data.content) {
                 setStreamingMessage((prev) => prev + data.content);
+              }
+
+              // SOSHI tool call: a social post was just saved to the DB
+              if (data.socialPostSaved) {
+                const post = data.socialPostSaved;
+                const platformLabel = PLATFORM_LABELS[post.platform] ?? post.platform;
+                const label = post.topic ? `"${post.topic}"` : 'post';
+                setSavedPostCount(prev => prev + 1);
+                toast.success(`Post saved to Social Queue`, {
+                  description: `${label} — ${platformLabel}`,
+                  action: {
+                    label: 'View Queue',
+                    onClick: () => {
+                      window.location.href = '/social';
+                    },
+                  },
+                  duration: 6000,
+                });
               }
             } catch (e) {
               // Ignore parse errors for incomplete chunks in SSE
@@ -60,5 +93,5 @@ export function useChatStream(conversationId: number | null) {
     }
   }, [conversationId, queryClient]);
 
-  return { sendMessage, streamingMessage, isStreaming };
+  return { sendMessage, streamingMessage, isStreaming, savedPostCount };
 }
