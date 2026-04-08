@@ -74,14 +74,14 @@ export function useChatStream(conversationId: number | null) {
                 });
               }
 
-              // SOSHI tool: PIXEL handoff created
-              if (data.pixelHandoff) {
-                const { conversationId } = data.pixelHandoff;
-                toast.success(`PIXEL has your visual brief`, {
-                  description: 'A new PIXEL conversation is ready with the full brief loaded.',
+              // Universal agent handoff (any agent → any agent)
+              if (data.agentHandoff) {
+                const { conversationId, agentSlug, agentName, agentIcon } = data.agentHandoff;
+                toast.success(`${agentIcon} ${agentName} has your brief`, {
+                  description: `A new ${agentName} conversation is ready with full context loaded.`,
                   action: {
-                    label: 'Open PIXEL',
-                    onClick: () => { window.location.href = `/agents?agent=pixel&conv=${conversationId}`; },
+                    label: `Open ${agentName}`,
+                    onClick: () => { window.location.href = `/agents?agent=${agentSlug}&conv=${conversationId}`; },
                   },
                   duration: 10000,
                 });

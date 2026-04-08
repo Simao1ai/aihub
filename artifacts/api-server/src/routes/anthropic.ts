@@ -11,62 +11,75 @@ const router: IRouter = Router();
 // who they are, who their teammates are, and what the hub can/can't do.
 
 const AGENT_ROSTER = [
-  { name: "COMPASS",  icon: "🧭", role: "Business strategy, growth, prioritization"       },
-  { name: "OUTREACH", icon: "📬", role: "Cold email, B2B sales sequences, outreach copy"   },
-  { name: "INKWELL",  icon: "✍️", role: "Copywriting, proposals, web content, blog posts"  },
-  { name: "SCOUT",    icon: "🔍", role: "Market research, competitor analysis, intelligence"},
-  { name: "OPS",      icon: "⚙️", role: "Operations, SOPs, checklists, process design"     },
-  { name: "DESK",     icon: "💬", role: "Client communication, onboarding, correspondence"  },
-  { name: "CASSIE",   icon: "🎧", role: "Customer support, FAQ, complaint resolution"       },
-  { name: "SOSHI",    icon: "📱", role: "Social media, content calendars, paid ad strategy" },
-  { name: "FINN",     icon: "💰", role: "Finance, bookkeeping, reports, budget planning"    },
-  { name: "SEOMI",    icon: "🔎", role: "SEO, keyword research, content optimization"       },
-  { name: "DEXIE",    icon: "📊", role: "Data analysis, KPI reporting, trend spotting"      },
-  { name: "EMMA",     icon: "📧", role: "Email marketing, drip campaigns, newsletters"      },
-  { name: "MILLI",    icon: "🏆", role: "Sales coaching, scripts, objection handling"       },
-  { name: "HIRO",     icon: "👥", role: "HR, recruiting, job descriptions, onboarding"           },
-  { name: "LEX",      icon: "⚖️", role: "Legal, contracts, compliance, terms & privacy"         },
-  { name: "NOVA",     icon: "🗂️", role: "Project management, timelines, sprint planning"        },
-  { name: "PIXEL",    icon: "🎨", role: "AI visual artist — social media graphics & image prompts" },
+  { name: "COMPASS",  slug: "compass",  icon: "🧭", role: "Business strategy, growth, prioritization"              },
+  { name: "OUTREACH", slug: "outreach", icon: "📬", role: "Cold email, B2B sales sequences, outreach copy"          },
+  { name: "INKWELL",  slug: "inkwell",  icon: "✍️", role: "Copywriting, proposals, web content, blog posts"         },
+  { name: "SCOUT",    slug: "scout",    icon: "🔍", role: "Market research, competitor analysis, intelligence"       },
+  { name: "OPS",      slug: "ops",      icon: "⚙️", role: "Operations, SOPs, checklists, process design"            },
+  { name: "DESK",     slug: "desk",     icon: "💬", role: "Client communication, onboarding, correspondence"         },
+  { name: "CASSIE",   slug: "cassie",   icon: "🎧", role: "Customer support, FAQ, complaint resolution"              },
+  { name: "SOSHI",    slug: "soshi",    icon: "📱", role: "Social media manager — posts, calendars, paid ad copy"    },
+  { name: "FINN",     slug: "finn",     icon: "💰", role: "Finance, bookkeeping, reports, budget planning"           },
+  { name: "SEOMI",    slug: "seomi",    icon: "🔎", role: "SEO, keyword research, on-page & content optimization"    },
+  { name: "DEXIE",    slug: "dexie",    icon: "📊", role: "Data analysis, KPI reporting, trend spotting"             },
+  { name: "EMMA",     slug: "emma",     icon: "📧", role: "Email marketing, drip campaigns, newsletters"             },
+  { name: "MILLI",    slug: "milli",    icon: "🏆", role: "Sales coaching, scripts, objection handling, closing"     },
+  { name: "HIRO",     slug: "hiro",     icon: "👥", role: "HR, recruiting, job descriptions, onboarding"             },
+  { name: "LEX",      slug: "lex",      icon: "⚖️", role: "Legal, contracts, compliance, terms & privacy"            },
+  { name: "NOVA",     slug: "nova",     icon: "🗂️", role: "Project management, timelines, sprint planning"           },
+  { name: "PIXEL",    slug: "pixel",    icon: "🎨", role: "AI visual artist — social media graphics & image prompts" },
 ];
+
+// Per-agent collaboration triggers — tells each agent exactly when to hand off and to whom
+const COLLABORATION_TRIGGERS: Record<string, string> = {
+  COMPASS:  "Strategy → OUTREACH (turn into email campaign), INKWELL (write pitch/proposal), NOVA (build project plan), SCOUT (validate with research)",
+  OUTREACH: "Sequences need polish → INKWELL. Objections arise → MILLI. Email marketing → EMMA. Needs a social push → SOSHI.",
+  INKWELL:  "Content needs social posts → SOSHI. Needs SEO → SEOMI. Needs a visual → PIXEL. Needs a sales angle → MILLI.",
+  SCOUT:    "Research done → COMPASS (strategic takeaways), DEXIE (data analysis), SOSHI (content angles from market insights).",
+  OPS:      "Process involves hiring → HIRO. Involves legal/compliance → LEX. Becomes a project → NOVA. Needs client-facing copy → DESK.",
+  DESK:     "Client support issue → CASSIE. Sales opportunity found → MILLI. Needs follow-up sequences → OUTREACH. Formal doc needed → INKWELL.",
+  CASSIE:   "Needs formal correspondence → DESK. Upsell opportunity → MILLI. Recurring issue = process problem → OPS. FAQ becomes content → INKWELL.",
+  SOSHI:    "Needs a visual → PIXEL. Campaign needs email support → EMMA. Needs landing page copy → INKWELL. Ad creative → use the Ads section.",
+  FINN:     "Numbers reveal strategic issues → COMPASS. Needs data visualization → DEXIE. Investor/board reporting → INKWELL.",
+  SEOMI:    "Keywords need content written → INKWELL. Social signals needed → SOSHI. Technical process → OPS. Content calendar → SOSHI.",
+  DEXIE:    "Data has strategic implications → COMPASS. Financial dimension → FINN. Needs content/story from data → INKWELL.",
+  EMMA:     "Cold outreach version → OUTREACH. Social media version → SOSHI. Landing page copy → INKWELL. Lead scoring/CRM → DEXIE.",
+  MILLI:    "Outreach sequences → OUTREACH. Follow-up correspondence → DESK. Training materials → OPS. Contract/terms → LEX.",
+  HIRO:     "HR processes/SOPs → OPS. Employment law/contracts → LEX. Onboarding content → INKWELL. Team performance data → DEXIE.",
+  LEX:      "Client communications about legal matters → DESK. Risk management strategy → COMPASS. Compliance processes → OPS.",
+  NOVA:     "Resource planning → HIRO. Process documentation → OPS. Budget → FINN. Go-to-market plan → COMPASS. Communications → DESK.",
+  PIXEL:    "Visual complete → SOSHI gets the full post + image. Copy to pair with visual → INKWELL. Campaign strategy → COMPASS.",
+};
 
 function buildHubIdentityBlock(agentName: string): string {
   const teammates = AGENT_ROSTER.filter(a => a.name !== agentName);
   const rosterLines = teammates.map(a => `  • ${a.name} ${a.icon} — ${a.role}`).join("\n");
+  const collabTrigger = COLLABORATION_TRIGGERS[agentName] ?? "";
 
   return `━━━ HUB IDENTITY ━━━
-You are ${agentName}, a specialized AI employee in Simao Alves' Personal AI Business Hub — a private, integrated system built to run all of Simao's businesses. You are NOT a generic AI or standalone assistant. You are part of a team of 16 AI agents all working together for Simao.
+You are ${agentName}, a specialized AI employee in Simao Alves' Personal AI Business Hub — a private, integrated system built to run all of Simao's businesses. You are NOT a generic AI or standalone assistant. You are part of a coordinated team of 16 AI agents.
 
-YOUR TEAM MEMBERS (colleagues you can reference, collaborate with, and hand off to):
+YOUR TEAM (colleagues you can reference, collaborate with, or pass work to):
 ${rosterLines}
 
-WHAT YOU CAN DO INSIDE THIS HUB:
+YOUR COLLABORATION TRIGGERS — know exactly when to hand off:
+${collabTrigger}
+When you reach the edge of your expertise, proactively say: "I've done my part — you should now pass this to [AGENT NAME] because [specific reason]." Then use the create_agent_handoff tool to make it happen.
+
+WHAT YOU CAN DO:
 ✅ Access Simao's active business workspace context (injected below)
-✅ Read from the Brain (Simao's knowledge base — relevant docs are injected automatically)
-✅ Generate content that Simao can queue to Social Media via SOSHI
-✅ Write ad copy that feeds directly into the Ad Creator
-✅ Have your work handed off to a colleague agent to continue
-✅ See what your team has been working on (injected below when available)
-✅ PIXEL 🎨 can generate actual AI images — when a visual is needed, recommend passing to PIXEL
+✅ Read from the Brain (Simao's knowledge base — relevant docs injected automatically)
+✅ Hand off work to any teammate using the create_agent_handoff tool — this creates a real pre-seeded conversation immediately
+✅ See what your teammates have been working on (injected below when available)
+✅ PIXEL 🎨 can generate actual AI images — always recommend PIXEL when visuals are needed
 
-WHAT YOU CANNOT DO (be honest, then redirect to what CAN be done):
+WHAT YOU CANNOT DO:
 ${agentName === "SOSHI"
-  ? `⚠️ Cannot post autonomously without Simao's approval — posts go to the Social Queue first for Simao to review and publish with one click
-⚠️ Cannot browse the internet or access live data — work from the business context and Brain documents provided
-⚠️ Cannot read Simao's CRM or email inbox — but Simao can paste content for you to work with`
-  : `⚠️ Cannot directly post to Facebook, Instagram, LinkedIn, TikTok, or any platform — write ready-to-post copy that Simao queues via SOSHI or the Social Media section
-⚠️ Cannot browse the internet or access live data — but you work from the business context and Brain documents provided
-⚠️ Cannot read Simao's CRM, email inbox, or external files directly — but Simao can paste content for you to work with
-⚠️ Cannot execute actions (send emails, post content) autonomously — you generate the work, Simao or the hub executes it`}
-
-VISUAL CREATION WORKFLOW — IMPORTANT:
-When any agent produces content that needs a visual (social post, ad, blog header, etc.), end your response with:
-🎨 **Need a visual for this?** Pass to PIXEL to generate the AI image.
-PIXEL will take the content context and create a detailed, platform-perfect image prompt that can be turned into a real image inside the hub.
-
-${agentName === "SOSHI"
-  ? `When Simao asks you to schedule or post content: write the posts, then tell him clearly: "Your posts are ready — go to the Social Media section in the hub to review and publish them to your connected [platform name] with one click. No external tools needed."`
-  : `When you lack an ability, always suggest the hub-based alternative. For example: "I can't post directly to Facebook, but I can write you 3 ready-to-post variations right now that you can queue in the Social Media section."`}
+  ? `⚠️ Cannot post autonomously — posts go to the Social Queue for Simao's one-click approval
+⚠️ Cannot browse the internet — work from business context and Brain documents`
+  : `⚠️ Cannot directly post to social media — route content through SOSHI or the Social Media section
+⚠️ Cannot browse the internet — work from business context and Brain documents
+⚠️ Cannot execute actions autonomously — generate the work, Simao executes it`}
 ━━━━━━━━━━━━━━━━━━━━`;
 }
 
@@ -158,13 +171,13 @@ ${connected.length > 0
   ? `Connected platforms: ${platformNames}. These are ready for publishing after Simao approves.`
   : `No platforms are connected yet — but you can still save drafts to the queue for when they get connected.`}
 
-YOUR TWO ACTION TOOLS:
-• save_posts_to_queue — saves posts directly to the Social Queue (Simao reviews + publishes with one click from the Social Media section)
-• handoff_to_pixel — creates a PIXEL conversation pre-loaded with a visual brief (PIXEL appears in sidebar ready to generate the image)
+YOUR ACTION TOOLS:
+• save_posts_to_queue — saves posts directly to the Social Queue (Simao reviews + publishes with one click)
+• create_agent_handoff — passes work to any teammate agent (target_agent_slug: "pixel" for visuals, "emma" for email campaigns, etc.) — creates a real pre-seeded conversation in their sidebar instantly
 
 MANDATORY WORKFLOWS:
 When asked to create/schedule posts → write them → call save_posts_to_queue → confirm to Simao
-When asked for a visual/graphic → call handoff_to_pixel with a detailed brief → PIXEL gets it instantly
+When asked for a visual/graphic → call create_agent_handoff with target_agent_slug "pixel" and a detailed visual brief
 When asked to create posts AND a visual → call BOTH tools in the same response
 
 NEVER say you cannot post, cannot connect to Facebook, or need OAuth. You queue — Simao publishes.
@@ -410,198 +423,196 @@ router.post("/conversations/:id/messages", async (req, res) => {
 
     let fullResponse = "";
 
-    // ── SOSHI: tool calling for real post queuing + PIXEL handoff ────────────
-    if (agent.slug === "soshi") {
-      const soshiTools: any[] = [
-        {
-          name: "save_posts_to_queue",
-          description: "Save drafted social media posts to the Social Queue for Simao's review and one-click publishing. Call this EVERY time you create posts that Simao wants scheduled or published.",
-          input_schema: {
-            type: "object",
-            properties: {
-              posts: {
-                type: "array",
-                description: "Array of posts to save",
-                items: {
-                  type: "object",
-                  properties: {
-                    platform: {
-                      type: "string",
-                      enum: ["meta", "linkedin", "twitter", "tiktok"],
-                      description: "Platform slug: meta (Facebook/Instagram), linkedin, twitter, tiktok",
-                    },
-                    content: {
-                      type: "string",
-                      description: "The complete, ready-to-publish post text including hashtags",
-                    },
-                    topic: {
-                      type: "string",
-                      description: "Brief topic/label for this post",
-                    },
-                  },
-                  required: ["platform", "content"],
+    // ── Universal tool definitions ────────────────────────────────────────────
+    // ALL 16 agents get create_agent_handoff. SOSHI also gets save_posts_to_queue.
+    const otherAgentSlugs = AGENT_ROSTER
+      .filter(a => a.slug !== agent.slug)
+      .map(a => a.slug);
+
+    const universalTools: any[] = [
+      {
+        name: "create_agent_handoff",
+        description: "Pass work to a specialist colleague agent. This ACTUALLY creates a new conversation for the target agent, pre-loaded with context, so they can immediately pick up where you left off. Use this whenever the work reaches the edge of your specialty — don't just mention the colleague, actually hand off to them.",
+        input_schema: {
+          type: "object",
+          properties: {
+            target_agent_slug: {
+              type: "string",
+              enum: otherAgentSlugs,
+              description: "Which agent to hand off to (slug: compass, outreach, inkwell, scout, ops, desk, cassie, soshi, finn, seomi, dexie, emma, milli, hiro, lex, nova, pixel)",
+            },
+            context_summary: {
+              type: "string",
+              description: "What was worked on in this conversation — what the target agent needs to know to continue seamlessly",
+            },
+            task_for_target: {
+              type: "string",
+              description: "The specific task or deliverable you are asking the target agent to produce",
+            },
+          },
+          required: ["target_agent_slug", "context_summary", "task_for_target"],
+        },
+      },
+    ];
+
+    // SOSHI-only: save social posts directly to the queue
+    const soshiOnlyTools: any[] = agent.slug === "soshi" ? [
+      {
+        name: "save_posts_to_queue",
+        description: "Save drafted social media posts to the Social Queue for Simao's one-click review and publishing. Call this EVERY time you create posts that Simao wants scheduled or published.",
+        input_schema: {
+          type: "object",
+          properties: {
+            posts: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  platform: { type: "string", enum: ["meta", "linkedin", "twitter", "tiktok"] },
+                  content:  { type: "string", description: "Complete post text with hashtags" },
+                  topic:    { type: "string", description: "Short topic label" },
                 },
+                required: ["platform", "content"],
               },
             },
-            required: ["posts"],
           },
+          required: ["posts"],
         },
-        {
-          name: "handoff_to_pixel",
-          description: "Create a new conversation with PIXEL (the AI visual artist) pre-loaded with a visual brief so PIXEL can immediately generate or describe the image. Use this whenever Simao asks for a visual, graphic, or image to go with a post. PIXEL will appear in the sidebar ready to generate.",
-          input_schema: {
-            type: "object",
-            properties: {
-              visual_brief: {
-                type: "string",
-                description: "Complete visual brief for PIXEL: subject, mood/emotion, style (photo-realistic, illustration, etc.), platform dimensions, color palette, composition, any text overlay. Be very detailed.",
-              },
-              post_context: {
-                type: "string",
-                description: "The social post copy this visual is being created for (so PIXEL has full context)",
-              },
-              platform: {
-                type: "string",
-                description: "Target platform for sizing: facebook, instagram, linkedin, twitter, tiktok",
-              },
-            },
-            required: ["visual_brief"],
-          },
-        },
-      ];
+      },
+    ] : [];
 
-      // Phase 1: non-streaming call to detect tool use
-      const phase1 = await anthropic.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 8192,
-        system: systemPrompt,
-        messages: chatMessages,
-        tools: soshiTools,
-        tool_choice: { type: "auto" },
-      });
+    const agentTools = [...universalTools, ...soshiOnlyTools];
 
-      if (phase1.stop_reason === "tool_use") {
-        const toolUseBlocks = phase1.content.filter((b: any) => b.type === "tool_use");
-        const toolResults: any[] = [];
-        const savedPosts: any[] = [];
+    // ── Phase 1: call Claude with tools (non-streaming) ───────────────────────
+    const phase1 = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 8192,
+      system: systemPrompt,
+      messages: chatMessages,
+      tools: agentTools,
+      tool_choice: { type: "auto" },
+    });
 
-        for (const toolUse of toolUseBlocks) {
-          if (toolUse.type !== "tool_use") continue;
+    if (phase1.stop_reason === "tool_use") {
+      // ── Execute tool calls ────────────────────────────────────────────────
+      const toolUseBlocks = phase1.content.filter((b: any) => b.type === "tool_use");
+      const toolResults: any[] = [];
 
-          // ── Tool: save_posts_to_queue ───────────────────────────────────
-          if (toolUse.name === "save_posts_to_queue") {
-            const input = toolUse.input as { posts: { platform: string; content: string; topic?: string }[] };
-            for (const post of input.posts) {
-              const [saved] = await db.insert(socialPostsTable).values({
-                platform: post.platform,
-                content: post.content,
-                topic: post.topic ?? null,
+      for (const toolUse of toolUseBlocks) {
+        if (toolUse.type !== "tool_use") continue;
+
+        // ── Tool: create_agent_handoff (available to ALL agents) ────────────
+        if (toolUse.name === "create_agent_handoff") {
+          const input = toolUse.input as {
+            target_agent_slug: string;
+            context_summary: string;
+            task_for_target: string;
+          };
+          try {
+            const [targetAgent] = await db.select().from(agentsTable).where(eq(agentsTable.slug, input.target_agent_slug));
+            if (targetAgent) {
+              const targetInfo = AGENT_ROSTER.find(a => a.slug === input.target_agent_slug);
+              const seedMessage = [
+                `${agent.name} is handing this work to you. Here is the context:`,
+                `\n**What was worked on:**\n${input.context_summary}`,
+                `\n**Your task:**\n${input.task_for_target}`,
+                `\nPlease pick up immediately and deliver your best work.`,
+              ].join("\n");
+
+              const [newConv] = await db.insert(conversations).values({
+                title: `From ${agent.name} — ${new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
+                agentId: targetAgent.id,
                 businessTag: conv.businessTag,
-                status: "pending_approval",
-                aiGenerated: true,
-                agentSlug: "soshi",
               }).returning();
-              savedPosts.push(saved);
-              res.write(`data: ${JSON.stringify({ socialPostSaved: { id: saved.id, platform: saved.platform, topic: saved.topic } })}\n\n`);
-            }
-            toolResults.push({
-              type: "tool_result",
-              tool_use_id: toolUse.id,
-              content: `Successfully saved ${savedPosts.length} post(s) to the Social Queue. Simao can now review and publish them in the Social Media section with one click.`,
-            });
-          }
 
-          // ── Tool: handoff_to_pixel ──────────────────────────────────────
-          if (toolUse.name === "handoff_to_pixel") {
-            const input = toolUse.input as { visual_brief: string; post_context?: string; platform?: string };
-            try {
-              const [pixelAgent] = await db.select().from(agentsTable).where(eq(agentsTable.slug, "pixel"));
-              if (pixelAgent) {
-                const platformLabel = input.platform ?? "social media";
-                const seedMessage = [
-                  `SOSHI is passing you a visual brief for a ${platformLabel} post. Please create a detailed AI image prompt and generate the visual.`,
-                  input.post_context ? `\n**Post copy:**\n${input.post_context}` : "",
-                  `\n**Visual brief from SOSHI:**\n${input.visual_brief}`,
-                  `\nPlease generate the image now using this brief.`,
-                ].filter(Boolean).join("\n");
+              await db.insert(messages).values({
+                conversationId: newConv.id,
+                role: "user",
+                content: seedMessage,
+              });
 
-                const [newConv] = await db.insert(conversations).values({
-                  title: `Visual from SOSHI — ${new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
-                  agentId: pixelAgent.id,
-                  businessTag: conv.businessTag,
-                }).returning();
-
-                await db.insert(messages).values({
+              // Notify frontend with full details for the toast
+              res.write(`data: ${JSON.stringify({
+                agentHandoff: {
                   conversationId: newConv.id,
-                  role: "user",
-                  content: seedMessage,
-                });
+                  agentId: targetAgent.id,
+                  agentSlug: input.target_agent_slug,
+                  agentName: targetAgent.name,
+                  agentIcon: targetInfo?.icon ?? "🤖",
+                }
+              })}\n\n`);
 
-                res.write(`data: ${JSON.stringify({ pixelHandoff: { conversationId: newConv.id, agentId: pixelAgent.id } })}\n\n`);
-
-                toolResults.push({
-                  type: "tool_result",
-                  tool_use_id: toolUse.id,
-                  content: `Successfully created a new PIXEL conversation (ID: ${newConv.id}) pre-loaded with the visual brief. PIXEL is now ready to generate the image — Simao will see a notification to open PIXEL.`,
-                });
-              }
-            } catch (err) {
               toolResults.push({
                 type: "tool_result",
                 tool_use_id: toolUse.id,
-                content: "Could not create PIXEL handoff — but the brief has been shared in this conversation.",
-                is_error: true,
+                content: `Successfully handed off to ${targetAgent.name}. A new conversation (ID: ${newConv.id}) has been created and pre-loaded with context. Simao will see a notification to open it.`,
               });
             }
+          } catch {
+            toolResults.push({
+              type: "tool_result",
+              tool_use_id: toolUse.id,
+              content: "Could not create the handoff conversation — please describe the next steps for the colleague in your response.",
+              is_error: true,
+            });
           }
         }
 
-        // Phase 2: stream the final response after tool results
-        const phase2Messages: any[] = [
-          ...chatMessages,
-          { role: "assistant", content: phase1.content },
-          { role: "user", content: toolResults },
-        ];
-
-        const stream2 = anthropic.messages.stream({
-          model: "claude-sonnet-4-6",
-          max_tokens: 4096,
-          system: systemPrompt,
-          messages: phase2Messages,
-          tools: soshiTools,
-        });
-
-        for await (const event of stream2) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-            fullResponse += event.delta.text;
-            res.write(`data: ${JSON.stringify({ content: event.delta.text })}\n\n`);
+        // ── Tool: save_posts_to_queue (SOSHI only) ─────────────────────────
+        if (toolUse.name === "save_posts_to_queue") {
+          const input = toolUse.input as { posts: { platform: string; content: string; topic?: string }[] };
+          const savedPosts: any[] = [];
+          for (const post of input.posts) {
+            const [saved] = await db.insert(socialPostsTable).values({
+              platform: post.platform,
+              content: post.content,
+              topic: post.topic ?? null,
+              businessTag: conv.businessTag,
+              status: "pending_approval",
+              aiGenerated: true,
+              agentSlug: "soshi",
+            }).returning();
+            savedPosts.push(saved);
+            res.write(`data: ${JSON.stringify({ socialPostSaved: { id: saved.id, platform: saved.platform, topic: saved.topic } })}\n\n`);
           }
-        }
-      } else {
-        // No tool use — stream text content from phase1 response
-        for (const block of phase1.content) {
-          if (block.type === "text") {
-            fullResponse += block.text;
-            const chunks = block.text.match(/.{1,100}/g) ?? [block.text];
-            for (const chunk of chunks) {
-              res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
-            }
-          }
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: toolUse.id,
+            content: `Successfully saved ${savedPosts.length} post(s) to the Social Queue. Simao can review and publish in the Social Media section with one click.`,
+          });
         }
       }
-    } else {
-      // ── All other agents: standard streaming ─────────────────────────────
-      const stream = anthropic.messages.stream({
+
+      // ── Phase 2: stream final response after tool results ─────────────────
+      const phase2Messages: any[] = [
+        ...chatMessages,
+        { role: "assistant", content: phase1.content },
+        { role: "user", content: toolResults },
+      ];
+
+      const stream2 = anthropic.messages.stream({
         model: "claude-sonnet-4-6",
-        max_tokens: 8192,
+        max_tokens: 4096,
         system: systemPrompt,
-        messages: chatMessages,
+        messages: phase2Messages,
+        tools: agentTools,
       });
 
-      for await (const event of stream) {
+      for await (const event of stream2) {
         if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
           fullResponse += event.delta.text;
           res.write(`data: ${JSON.stringify({ content: event.delta.text })}\n\n`);
+        }
+      }
+    } else {
+      // ── No tool use: stream the text from phase1 in chunks ────────────────
+      for (const block of phase1.content) {
+        if (block.type === "text") {
+          fullResponse += block.text;
+          const chunks = block.text.match(/.{1,120}/g) ?? [block.text];
+          for (const chunk of chunks) {
+            res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+          }
         }
       }
     }
