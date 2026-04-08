@@ -20,9 +20,65 @@ const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
   email: "Email Account",
   smtp: "SMTP Email",
   twilio: "Twilio SMS",
+  commhub: "CommHub SMS",
+  mailbase: "MailBase Email",
 };
 
+const COMMHUB_BASE = "https://commhub.replit.app";
+const MAILBASE_BASE = "https://mail-base-platform.replit.app";
+
 const OAUTH_PLATFORMS = ["linkedin", "google", "twitter", "meta"];
+
+// ── CommHub proxy routes (no auth stored) ─────────────────────────────────────
+
+router.post("/proxy/commhub/businesses", async (req, res) => {
+  try {
+    const { adminUser, adminPass } = req.body;
+    if (!adminUser || !adminPass) return res.status(400).json({ error: "adminUser and adminPass required" });
+    const auth = Buffer.from(`${adminUser}:${adminPass}`).toString("base64");
+    const resp = await fetch(`${COMMHUB_BASE}/api/businesses/`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    if (resp.status === 401) return res.status(401).json({ error: "Invalid CommHub credentials" });
+    const data = await resp.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to reach CommHub" });
+  }
+});
+
+router.post("/proxy/commhub/apikey", async (req, res) => {
+  try {
+    const { adminUser, adminPass, businessId } = req.body;
+    if (!adminUser || !adminPass || !businessId) return res.status(400).json({ error: "Missing required fields" });
+    const auth = Buffer.from(`${adminUser}:${adminPass}`).toString("base64");
+    const resp = await fetch(`${COMMHUB_BASE}/api/businesses/${businessId}/credentials`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    if (!resp.ok) return res.status(401).json({ error: "Failed to fetch API key" });
+    const data = await resp.json() as { api_key: string };
+    res.json({ apiKey: data.api_key });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to reach CommHub" });
+  }
+});
+
+// ── MailBase proxy routes ─────────────────────────────────────────────────────
+
+router.post("/proxy/mailbase/tenants", async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+    if (!apiKey) return res.status(400).json({ error: "apiKey required" });
+    const resp = await fetch(`${MAILBASE_BASE}/api/tenants`, {
+      headers: { "x-api-key": apiKey },
+    });
+    if (resp.status === 401) return res.status(401).json({ error: "Invalid MailBase API key" });
+    const data = await resp.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to reach MailBase" });
+  }
+});
 
 // List connections — scoped to the calling workspace
 router.get("/", async (req, res) => {
@@ -152,6 +208,26 @@ router.post("/:id/test", async (req, res) => {
       } else {
         res.json({ success: false, message: "Twilio credentials invalid — check your Account SID and Auth Token" });
       }
+    } else if (conn.platform === "commhub" && conn.apiKey) {
+      const resp = await fetch(`${COMMHUB_BASE}/api/v1/me`, {
+        headers: { Authorization: `Bearer ${conn.apiKey}` },
+      });
+      if (resp.ok) {
+        const data = await resp.json() as Record<string, unknown>;
+        const name = (data as any).name || (data as any).business_name || "business";
+        res.json({ success: true, message: `CommHub verified — connected to: ${name}` });
+      } else {
+        res.json({ success: false, message: "CommHub API key invalid or expired" });
+      }
+    } else if (conn.platform === "mailbase" && conn.apiKey) {
+      const resp = await fetch(`${MAILBASE_BASE}/api/tenants`, {
+        headers: { "x-api-key": conn.apiKey },
+      });
+      if (resp.ok) {
+        res.json({ success: true, message: "MailBase API key verified" });
+      } else {
+        res.json({ success: false, message: "MailBase API key invalid" });
+      }
     } else {
       res.json({ success: conn.isConnected, message: conn.isConnected ? "Connected" : "Not connected" });
     }
@@ -185,6 +261,8 @@ router.get("/status", (req, res) => {
     email: { configured: true, envVars: [] },
     smtp: { configured: true, envVars: [] },
     twilio: { configured: true, envVars: [] },
+    commhub: { configured: true, envVars: [] },
+    mailbase: { configured: true, envVars: [] },
   });
 });
 
@@ -613,6 +691,48 @@ router.post("/:id/actions/send-message", async (req, res) => {
       } else {
         const err = await sendResp.json() as Record<string, unknown>;
         res.json({ success: false, message: `Twilio error: ${err.message || JSON.stringify(err)}` });
+      }
+    } else if (conn.platform === "commhub" && conn.apiKey) {
+      const channel = req.body.channel || "sms";
+      const sendResp = await fetch(`${COMMHUB_BASE}/api/v1/send`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${conn.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ to: recipientId, body: message, channel }),
+      });
+      if (sendResp.ok) {
+        const data = await sendResp.json() as Record<string, unknown>;
+        res.json({ success: true, message: `${channel.toUpperCase()} sent via CommHub`, messageId: data.message_id });
+      } else {
+        const err = await sendResp.json() as Record<string, unknown>;
+        res.json({ success: false, message: `CommHub error: ${(err as any).detail || JSON.stringify(err)}` });
+      }
+    } else if (conn.platform === "mailbase" && conn.apiKey) {
+      const m = conn.metadata as Record<string, string> | null ?? {};
+      const subject = req.body.subject || "Message from SynthDesk AI";
+      const htmlContent = message.replace(/\n/g, "<br>");
+      const sendResp = await fetch(`${MAILBASE_BASE}/api/transactional/send`, {
+        method: "POST",
+        headers: {
+          "x-api-key": conn.apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          toEmail: recipientId,
+          fromEmail: m.fromEmail || m.fromAddress,
+          fromName: m.fromName,
+          subject,
+          htmlContent,
+          tenantId: m.tenantId,
+        }),
+      });
+      if (sendResp.ok) {
+        res.json({ success: true, message: `Email sent via MailBase from ${m.fromEmail || m.fromAddress} to ${recipientId}` });
+      } else {
+        const err = await sendResp.json() as Record<string, unknown>;
+        res.json({ success: false, message: `MailBase error: ${(err as any).message || JSON.stringify(err)}` });
       }
     } else {
       res.json({ success: false, message: `Messaging not supported for ${conn.platform}` });
