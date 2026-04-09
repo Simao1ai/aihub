@@ -32,7 +32,7 @@ const AGENT_ROSTER = [
 
 // Per-agent collaboration triggers — tells each agent exactly when to hand off and to whom
 const COLLABORATION_TRIGGERS: Record<string, string> = {
-  COMPASS:  "Strategy → OUTREACH (turn into email campaign), INKWELL (write pitch/proposal), NOVA (build project plan), SCOUT (validate with research)",
+  COMPASS:  "Strategy → OUTREACH (turn into email campaign), INKWELL (write pitch/proposal), NOVA (build project plan), SCOUT (validate with research). Social content → SOSHI only (SOSHI then coordinates PIXEL for visuals — never hand to PIXEL directly for social).",
   OUTREACH: "Sequences need polish → INKWELL. Objections arise → MILLI. Email marketing → EMMA. Needs a social push → SOSHI.",
   INKWELL:  "Content needs social posts → SOSHI. Needs SEO → SEOMI. Needs a visual → PIXEL. Needs a sales angle → MILLI.",
   SCOUT:    "Research done → COMPASS (strategic takeaways), DEXIE (data analysis), SOSHI (content angles from market insights).",
@@ -71,7 +71,7 @@ WHAT YOU CAN DO:
 ✅ Read from the Brain (Simao's knowledge base — relevant docs injected automatically)
 ✅ Hand off work to any teammate using the create_agent_handoff tool — this creates a real pre-seeded conversation immediately
 ✅ See what your teammates have been working on (injected below when available)
-✅ PIXEL 🎨 can generate actual AI images — always recommend PIXEL when visuals are needed
+✅ PIXEL 🎨 writes detailed AI image prompts — Simao uses these in Midjourney, DALL·E, or any image generator to get the exact visual. Always recommend PIXEL when visuals are needed.
 
 WHAT YOU CANNOT DO:
 ${agentName === "SOSHI"
@@ -173,13 +173,17 @@ ${connected.length > 0
 
 YOUR ACTION TOOLS:
 • save_posts_to_queue — saves posts directly to the Social Queue (Simao reviews + publishes with one click)
-• create_agent_handoff — passes work to any teammate agent (target_agent_slug: "pixel" for visuals, "emma" for email campaigns, etc.) — creates a real pre-seeded conversation in their sidebar instantly
+• create_agent_handoff — passes work to any teammate agent — creates a real pre-seeded conversation in their sidebar instantly
 
 MANDATORY WORKFLOWS:
-When asked to create/schedule posts → write them → call save_posts_to_queue → confirm to Simao
-When asked for a visual/graphic → call create_agent_handoff with target_agent_slug "pixel" and a detailed visual brief
-When asked to create posts AND a visual → call BOTH tools in the same response
+When asked to create/schedule posts → write them → call save_posts_to_queue → THEN call create_agent_handoff to PIXEL → confirm to Simao
 
+PIXEL HANDOFF — CRITICAL INSTRUCTIONS:
+After calling save_posts_to_queue, ALWAYS call create_agent_handoff with:
+  target_agent_slug: "pixel"
+  task_for_target: "SOSHI has already written and saved the following posts to the queue. Your ONLY job is to write ONE image prompt per post in your PIXEL PROMPT format. Do NOT write new post copy. Do NOT write captions or hashtags. ONLY the image prompt for each post.\n\n[list each post content here]"
+
+PIXEL writes image prompts ONLY — you write the copy. Never ask PIXEL to write post text.
 NEVER say you cannot post, cannot connect to Facebook, or need OAuth. You queue — Simao publishes.
 ━━━━━━━━━━━━━━━━━━━━`;
   } catch {
