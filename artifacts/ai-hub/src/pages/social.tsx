@@ -24,6 +24,8 @@ interface SocialPost {
   scheduledAt: string | null;
   postedAt: string | null;
   errorMessage: string | null;
+  imageUrl: string | null;
+  imagePrompt: string | null;
   createdAt: string;
 }
 
@@ -77,6 +79,7 @@ function PostCard({
   onPostNow,
   onDelete,
   onEdit,
+  onPostUpdated,
   showActions = true,
 }: {
   post: SocialPost;
@@ -85,11 +88,35 @@ function PostCard({
   onPostNow: (post: SocialPost, connectionId: number) => void;
   onDelete: (post: SocialPost) => void;
   onEdit: (post: SocialPost) => void;
+  onPostUpdated?: (post: SocialPost) => void;
   showActions?: boolean;
 }) {
   const [selectedConn, setSelectedConn] = useState<number | null>(post.connectionId);
   const [posting, setPosting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState(false);
+  const [localImageUrl, setLocalImageUrl] = useState<string | null>(post.imageUrl);
+
+  const handleGenerateImage = async () => {
+    if (!post.imagePrompt) return;
+    setGeneratingImage(true);
+    try {
+      const res = await fetch(`/api/social-posts/${post.id}/generate-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imagePrompt: post.imagePrompt }),
+      });
+      const data = await res.json();
+      if (data.imageUrl) {
+        setLocalImageUrl(data.imageUrl);
+        if (onPostUpdated) onPostUpdated(data.post);
+      }
+    } catch (err) {
+      console.error('Image generation failed:', err);
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
 
   const platformConns = connections.filter(c => c.platform === post.platform && c.hasToken && c.isConnected);
   const status = STATUS_CONFIG[post.status] ?? STATUS_CONFIG.draft;
@@ -144,6 +171,47 @@ function PostCard({
           </div>
         )}
       </div>
+
+      {/* Generated image */}
+      {localImageUrl && (
+        <div className="px-4 pb-3">
+          <div className="rounded-xl overflow-hidden border border-white/8 bg-white/3">
+            <img
+              src={localImageUrl}
+              alt="AI-generated visual for post"
+              className="w-full object-cover max-h-72"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          </div>
+          <p className="text-[10px] text-white/25 mt-1.5 flex items-center gap-1">
+            <span>🎨</span> PIXEL-generated visual
+          </p>
+        </div>
+      )}
+
+      {/* Generate image button — shown when PIXEL wrote a prompt but image not generated yet */}
+      {!localImageUrl && post.imagePrompt && showActions && (
+        <div className="px-4 pb-3">
+          <button
+            onClick={handleGenerateImage}
+            disabled={generatingImage}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/8 text-xs font-medium transition-all disabled:opacity-50"
+          >
+            {generatingImage ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                Generating image…
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                Generate PIXEL Image
+              </>
+            )}
+          </button>
+          <p className="text-[10px] text-white/20 mt-1 text-center">PIXEL wrote a prompt — click to generate the actual image</p>
+        </div>
+      )}
 
       {/* Error message */}
       {post.errorMessage && (
@@ -828,6 +896,7 @@ export default function Social() {
                           onPostNow={handlePostNow}
                           onDelete={handleDelete}
                           onEdit={p => { setEditPost(p); setEditContent(p.content); }}
+                          onPostUpdated={handlePostCreated}
                         />
                       ))}
                     </AnimatePresence>

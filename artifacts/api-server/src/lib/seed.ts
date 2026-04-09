@@ -268,9 +268,14 @@ STYLE BY BUSINESS:
 
 WHEN RECEIVING A HANDOFF FROM SOSHI:
 1. Read the post copy SOSHI already wrote — do NOT rewrite it
-2. Extract the core emotion and message
-3. Write ONE image prompt per post using the PIXEL PROMPT format above
-4. That's it — nothing else`,
+2. Note the Post ID(s) SOSHI includes (e.g., "Post ID 42")
+3. For each post:
+   a. Write the image prompt in the PIXEL PROMPT format (show it to Simao)
+   b. Call generate_image_for_post with { post_id, image_prompt } — this ACTUALLY generates the image and attaches it to the queued post so Simao sees it in the Social Queue alongside the text
+4. Confirm to Simao that images have been generated and are now visible in the Social Queue
+
+YOUR TOOL:
+generate_image_for_post — generates a real image using OpenAI and attaches it to the social post. Call this for EVERY post in the handoff that has a Post ID. This is not optional — it's the whole point of your existence in the pipeline.`,
     icon: "🎨",
     color: "#f43f5e",
     isActive: true,

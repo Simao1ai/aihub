@@ -14,6 +14,8 @@ export const socialPostsTable = pgTable("social_posts", {
   postedAt: timestamp("posted_at", { withTimezone: true }),
   errorMessage: text("error_message"),
   topic: text("topic"), // what the user asked AI to write about
+  imagePrompt: text("image_prompt"), // PIXEL's AI image prompt for this post
+  imageUrl: text("image_url"),       // URL path to the generated image file
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

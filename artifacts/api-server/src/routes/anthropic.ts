@@ -2,7 +2,14 @@ import { Router, type IRouter } from "express";
 import { db, conversations, messages, agentsTable, workspacesTable, connectionsTable, socialPostsTable } from "@workspace/db";
 import { eq, desc, ne, and, gte } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/image";
 import { getBrainContext } from "./brain";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const IMAGES_DIR = path.resolve(__dirname, "../../generated-images");
 
 const router: IRouter = Router();
 
@@ -527,6 +534,28 @@ router.post("/conversations/:id/messages", async (req, res) => {
       },
     ];
 
+    // PIXEL-only: generate a real image for a queued social post
+    const pixelOnlyTools: any[] = agent.slug === "pixel" ? [
+      {
+        name: "generate_image_for_post",
+        description: "Generate a real AI image for a social media post that SOSHI already saved to the queue. This ACTUALLY creates an image using OpenAI and attaches it directly to the queued post so Simao can see it in the Social Queue alongside the post text. Call this once per post after writing your image prompt.",
+        input_schema: {
+          type: "object",
+          properties: {
+            post_id: {
+              type: "number",
+              description: "The ID of the social post saved by SOSHI (provided in the handoff message)",
+            },
+            image_prompt: {
+              type: "string",
+              description: "The detailed AI image prompt you have crafted — this is what gets sent to the image generator",
+            },
+          },
+          required: ["post_id", "image_prompt"],
+        },
+      },
+    ] : [];
+
     // SOSHI-only: save social posts directly to the queue
     const soshiOnlyTools: any[] = agent.slug === "soshi" ? [
       {
@@ -553,7 +582,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
       },
     ] : [];
 
-    const agentTools = [...universalTools, ...soshiOnlyTools];
+    const agentTools = [...universalTools, ...soshiOnlyTools, ...pixelOnlyTools];
 
     // ── Phase 1: call Claude with tools (non-streaming) ───────────────────────
     const phase1 = await anthropic.messages.create({
@@ -651,11 +680,56 @@ router.post("/conversations/:id/messages", async (req, res) => {
             savedPosts.push(saved);
             res.write(`data: ${JSON.stringify({ socialPostSaved: { id: saved.id, platform: saved.platform, topic: saved.topic } })}\n\n`);
           }
+          // Include post IDs so SOSHI can pass them to PIXEL in the handoff message
+          const postSummary = savedPosts.map(p => `- Post ID ${p.id} (${p.platform}): "${p.content.slice(0, 80)}..."`).join("\n");
           toolResults.push({
             type: "tool_result",
             tool_use_id: toolUse.id,
-            content: `Successfully saved ${savedPosts.length} post(s) to the Social Queue. Simao can review and publish in the Social Media section with one click.`,
+            content: `Successfully saved ${savedPosts.length} post(s) to the Social Queue.\n\nPOST IDs (pass these to PIXEL in your handoff):\n${postSummary}\n\nNow call create_agent_handoff with target "pixel" and include the Post IDs and full post content so PIXEL can generate images for each.`,
           });
+        }
+
+        // ── Tool: generate_image_for_post (PIXEL only) ─────────────────────
+        if (toolUse.name === "generate_image_for_post") {
+          const input = toolUse.input as { post_id: number; image_prompt: string };
+          try {
+            // Ensure images directory exists
+            if (!fs.existsSync(IMAGES_DIR)) fs.mkdirSync(IMAGES_DIR, { recursive: true });
+
+            // Generate the image
+            const buffer = await generateImageBuffer(input.image_prompt, "1024x1024");
+
+            const filename = `social-${input.post_id}-${Date.now()}.png`;
+            const filepath = path.join(IMAGES_DIR, filename);
+            fs.writeFileSync(filepath, buffer);
+
+            const imageUrl = `/api/generated-images/${filename}`;
+
+            // Attach image to the social post
+            await db.update(socialPostsTable)
+              .set({ imageUrl, imagePrompt: input.image_prompt, updatedAt: new Date() })
+              .where(eq(socialPostsTable.id, input.post_id));
+
+            // Notify frontend of the image attachment
+            res.write(`data: ${JSON.stringify({ imageGenerated: { postId: input.post_id, imageUrl } })}\n\n`);
+
+            toolResults.push({
+              type: "tool_result",
+              tool_use_id: toolUse.id,
+              content: `Image generated and attached to Post #${input.post_id}. Simao will see the image alongside the post text in the Social Queue. Image saved at: ${imageUrl}`,
+            });
+          } catch (imgErr: any) {
+            toolResults.push({
+              type: "tool_result",
+              tool_use_id: toolUse.id,
+              content: `Image generation failed: ${imgErr.message}. The image prompt has been noted — Simao can manually trigger generation from the Social Queue.`,
+              is_error: true,
+            });
+            // Still save the prompt even if generation failed
+            await db.update(socialPostsTable)
+              .set({ imagePrompt: input.image_prompt, updatedAt: new Date() })
+              .where(eq(socialPostsTable.id, input.post_id));
+          }
         }
       }
 

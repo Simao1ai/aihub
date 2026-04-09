@@ -2,6 +2,13 @@ import { Router, type IRouter } from "express";
 import { db, socialPostsTable, connectionsTable, agentsTable, workspacesTable } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/image";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const IMAGES_DIR = path.resolve(__dirname, "../../generated-images");
 
 const router: IRouter = Router();
 
@@ -65,6 +72,45 @@ router.put("/:id", async (req, res) => {
     if (!post) return res.status(404).json({ error: "Post not found" });
 
     res.json(post);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/social-posts/:id/generate-image ─────────────────────────────
+// Generates a real image from the post's imagePrompt using OpenAI gpt-image-1,
+// saves it to disk, and stores the URL on the post record.
+router.post("/:id/generate-image", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [post] = await db.select().from(socialPostsTable).where(eq(socialPostsTable.id, id));
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    const imagePrompt = req.body.imagePrompt ?? post.imagePrompt;
+    if (!imagePrompt) return res.status(400).json({ error: "No image prompt available — PIXEL must provide one first" });
+
+    // Ensure images directory exists
+    if (!fs.existsSync(IMAGES_DIR)) fs.mkdirSync(IMAGES_DIR, { recursive: true });
+
+    // Determine aspect ratio from platform
+    const size = post.platform === "meta" || post.platform === "instagram"
+      ? "1024x1024"
+      : "1024x1024";
+
+    const buffer = await generateImageBuffer(imagePrompt, size);
+
+    const filename = `social-${id}-${Date.now()}.png`;
+    const filepath = path.join(IMAGES_DIR, filename);
+    fs.writeFileSync(filepath, buffer);
+
+    const imageUrl = `/api/generated-images/${filename}`;
+
+    const [updated] = await db.update(socialPostsTable)
+      .set({ imageUrl, imagePrompt, updatedAt: new Date() })
+      .where(eq(socialPostsTable.id, id))
+      .returning();
+
+    res.json({ success: true, imageUrl, post: updated });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
