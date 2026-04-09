@@ -4,7 +4,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import {
   Share2, Sparkles, Send, Check, X, Edit3, Trash2,
   Clock, ChevronDown, RefreshCw, AlertCircle, BarChart2,
-  ThumbsUp, Eye, Repeat2, MessageCircle, TrendingUp, Plus, Bot
+  ThumbsUp, Eye, Repeat2, MessageCircle, TrendingUp, Plus, Bot, Calendar, Copy
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { cn } from '@/components/ui-elements';
@@ -52,6 +52,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   draft:            { label: 'Draft',           color: '#6b7280', bg: '#6b728015' },
   pending_approval: { label: 'Needs Approval',  color: '#f59e0b', bg: '#f59e0b15' },
   approved:         { label: 'Approved',         color: '#10b981', bg: '#10b98115' },
+  scheduled:        { label: 'Scheduled',        color: '#8b5cf6', bg: '#8b5cf615' },
   posted:           { label: 'Posted',           color: '#3b82f6', bg: '#3b82f615' },
   failed:           { label: 'Failed',           color: '#ef4444', bg: '#ef444415' },
 };
@@ -91,11 +92,16 @@ function PostCard({
   onPostUpdated?: (post: SocialPost) => void;
   showActions?: boolean;
 }) {
+  const { addNotification } = useAppStore();
   const [selectedConn, setSelectedConn] = useState<number | null>(post.connectionId);
   const [posting, setPosting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [generatingImage, setGeneratingImage] = useState(false);
   const [localImageUrl, setLocalImageUrl] = useState<string | null>(post.imageUrl);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduling, setScheduling] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleGenerateImage = async () => {
     if (!post.imagePrompt) return;
@@ -129,6 +135,43 @@ function PostCard({
     setPosting(false);
   };
 
+  const handleSchedule = async () => {
+    if (!scheduleDate || !selectedConn) return;
+    setScheduling(true);
+    try {
+      const res = await fetch(`/api/social-posts/${post.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'approved',
+          scheduledAt: new Date(scheduleDate).toISOString(),
+          connectionId: selectedConn,
+        }),
+      });
+      const updated = await res.json();
+      if (onPostUpdated) onPostUpdated(updated);
+      setShowSchedule(false);
+      addNotification({
+        type: 'socialPost',
+        icon: '📅',
+        title: 'Post Scheduled',
+        body: `Your ${PLATFORMS[post.platform]?.label ?? post.platform} post is scheduled for ${format(new Date(scheduleDate), 'MMM d, h:mm a')}.`,
+        action: { label: 'View queue', href: '/social' },
+      });
+    } catch (err) {
+      console.error('Scheduling failed:', err);
+    } finally {
+      setScheduling(false);
+    }
+  };
+
+  const handleCopyContent = () => {
+    navigator.clipboard.writeText(post.content).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   return (
     <motion.div
       layout
@@ -154,22 +197,40 @@ function PostCard({
           <span className="text-[10px] px-2 py-0.5 rounded-md font-medium" style={{ background: status.bg, color: status.color }}>
             {status.label}
           </span>
+          {post.scheduledAt && post.status === 'approved' && !post.postedAt && (
+            <span className="text-[10px] text-violet-400 flex items-center gap-1">
+              <Calendar className="w-2.5 h-2.5" />
+              {format(new Date(post.scheduledAt), 'MMM d, h:mm a')}
+            </span>
+          )}
           <span className="text-[10px] text-white/20">{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
         </div>
       </div>
 
       {/* Content preview */}
-      <div className="px-4 py-3">
+      <div className="px-4 py-3 group/content relative">
         <p className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap line-clamp-5">
           {post.content || <span className="italic text-white/20">Empty draft</span>}
         </p>
-        {plt?.maxChars && (
-          <div className="mt-2 flex justify-end">
+        <div className="mt-2 flex items-center justify-between">
+          {plt?.maxChars ? (
             <span className={cn("text-[10px]", post.content.length > plt.maxChars ? 'text-red-400' : 'text-white/20')}>
               {post.content.length}/{plt.maxChars}
             </span>
-          </div>
-        )}
+          ) : <span />}
+          {post.content && (
+            <button
+              onClick={handleCopyContent}
+              className="flex items-center gap-1 text-[10px] text-white/25 hover:text-white/60 transition-all opacity-0 group-hover/content:opacity-100"
+            >
+              {copied ? (
+                <><Check className="w-2.5 h-2.5 text-emerald-400" /><span className="text-emerald-400">Copied!</span></>
+              ) : (
+                <><Copy className="w-2.5 h-2.5" />Copy text</>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Generated image */}
@@ -231,6 +292,7 @@ function PostCard({
 
       {/* Actions */}
       {showActions && post.status !== 'posted' && (
+        <>
         <div className="px-4 pb-4 flex items-center gap-2">
           {/* Connection selector */}
           {platformConns.length > 0 ? (
@@ -273,6 +335,17 @@ function PostCard({
             {posting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
             Post
           </button>
+          <button
+            onClick={() => setShowSchedule(v => !v)}
+            disabled={platformConns.length === 0}
+            className={cn(
+              "w-8 h-8 rounded-xl flex items-center justify-center text-xs transition-all disabled:opacity-30",
+              showSchedule ? "bg-violet-500/20 text-violet-400" : "bg-white/5 hover:bg-white/10 text-white/40 hover:text-violet-400"
+            )}
+            title="Schedule this post"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+          </button>
           {confirmDelete ? (
             <div className="flex gap-1">
               <button onClick={() => onDelete(post)} className="w-8 h-8 rounded-xl bg-red-500/15 text-red-400 flex items-center justify-center hover:bg-red-500/25">
@@ -288,6 +361,39 @@ function PostCard({
             </button>
           )}
         </div>
+
+        {/* Inline schedule picker */}
+        <AnimatePresence>
+          {showSchedule && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-2 p-3 rounded-xl bg-violet-500/8 border border-violet-500/20 flex items-center gap-2"
+            >
+              <Calendar className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+              <input
+                type="datetime-local"
+                value={scheduleDate}
+                onChange={e => setScheduleDate(e.target.value)}
+                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                className="flex-1 bg-transparent text-xs text-white focus:outline-none [color-scheme:dark]"
+              />
+              <button
+                onClick={handleSchedule}
+                disabled={!scheduleDate || !selectedConn || scheduling}
+                className="px-3 py-1.5 rounded-lg bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 text-xs font-semibold disabled:opacity-40 transition-all flex items-center gap-1"
+              >
+                {scheduling ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                Schedule
+              </button>
+              <button onClick={() => setShowSchedule(false)} className="text-white/25 hover:text-white/50">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        </>
       )}
     </motion.div>
   );

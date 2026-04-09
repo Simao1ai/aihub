@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import {
   Send, Plus, MessageSquare, Bot, Search, Sparkles,
   ChevronLeft, Users, ArrowRight, Share2, X, CheckCircle2,
-  Download, Image, Wand2, RefreshCw,
+  Download, Image, Wand2, RefreshCw, Copy, Check,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -348,6 +348,7 @@ function HandoffModal({
   onClose: () => void;
   onHandoff: (targetAgentId: number, convId: number) => void;
 }) {
+  const { addNotification } = useAppStore();
   const [targetAgentId, setTargetAgentId] = useState<number | null>(null);
   const [note, setNote] = useState('');
   const [sending, setSending] = useState(false);
@@ -366,6 +367,14 @@ function HandoffModal({
       });
       const data = await res.json();
       if (res.ok) {
+        const tgt = allAgents.find(a => a.id === targetAgentId);
+        addNotification({
+          type: 'agentHandoff',
+          icon: tgt?.icon ?? '🤝',
+          title: 'Conversation handed off',
+          body: `${currentAgent.name} passed this conversation to ${tgt?.name ?? 'a colleague'}.`,
+          action: { label: 'Open chat', href: '/agents' },
+        });
         setDone(true);
         setTimeout(() => {
           onHandoff(targetAgentId, data.conversationId);
@@ -497,9 +506,38 @@ function ChatView({
 }) {
   const [input, setInput] = useState('');
   const [showHandoff, setShowHandoff] = useState(false);
+  const [copiedMsgId, setCopiedMsgId] = useState<number | null>(null);
   const { sendMessage, streamingMessage, isStreaming } = useChatStream(convId);
   const endRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+
+  const handleCopyMessage = (id: number, content: string) => {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopiedMsgId(id);
+      setTimeout(() => setCopiedMsgId(null), 2000);
+    });
+  };
+
+  const handleExportConversation = () => {
+    const msgs = conv?.messages ?? [];
+    if (!msgs.length) return;
+    const lines = [
+      `Conversation with ${agent.name}`,
+      `Exported: ${format(new Date(), 'PPPp')}`,
+      '─'.repeat(60),
+      '',
+      ...msgs.map((m: any) => [
+        `[${m.role === 'user' ? 'You' : agent.name}]`,
+        m.content,
+        '',
+      ].join('\n')),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${agent.slug}-chat-${format(new Date(), 'yyyy-MM-dd')}.txt`;
+    a.click();
+  };
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [conv?.messages, streamingMessage]);
 
@@ -554,6 +592,17 @@ function ChatView({
             <span className="hidden sm:inline">Pass to</span>
           </button>
         )}
+        {/* Export conversation */}
+        {conv?.messages?.length > 0 && (
+          <button
+            onClick={handleExportConversation}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white text-xs transition-all"
+            title="Export conversation as .txt"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Export</span>
+          </button>
+        )}
         <button onClick={onNewConv} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-xs transition-all">
           <Plus className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">New chat</span>
@@ -586,23 +635,39 @@ function ChatView({
           </div>
         )}
         {messages.map((msg: any) => (
-          <div key={msg.id} className={cn("flex gap-3", msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+          <div key={msg.id} className={cn("flex gap-3 group", msg.role === 'user' ? 'justify-end' : 'justify-start')}>
             {msg.role === 'assistant' && (
               <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 mt-0.5" style={{ background: `${agent.color}20` }}>
                 {agent.icon}
               </div>
             )}
-            <div className={cn(
-              "max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
-              msg.role === 'user'
-                ? 'bg-primary text-white rounded-br-sm'
-                : 'bg-white/5 text-white/85 rounded-bl-sm border border-white/5'
-            )}>
-              {msg.role === 'assistant' ? (
-                <div className="prose prose-invert prose-sm max-w-none text-white/85">
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
-                </div>
-              ) : msg.content}
+            <div className="relative flex flex-col max-w-[75%]">
+              <div className={cn(
+                "rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                msg.role === 'user'
+                  ? 'bg-primary text-white rounded-br-sm'
+                  : 'bg-white/5 text-white/85 rounded-bl-sm border border-white/5'
+              )}>
+                {msg.role === 'assistant' ? (
+                  <div className="prose prose-invert prose-sm max-w-none text-white/85">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                ) : msg.content}
+              </div>
+              {/* Copy button — visible on group hover */}
+              <button
+                onClick={() => handleCopyMessage(msg.id, msg.content)}
+                className={cn(
+                  "absolute -bottom-5 flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] transition-all opacity-0 group-hover:opacity-100",
+                  msg.role === 'user' ? 'right-0 text-white/30 hover:text-white/60' : 'left-0 text-white/30 hover:text-white/60'
+                )}
+              >
+                {copiedMsgId === msg.id ? (
+                  <><Check className="w-2.5 h-2.5 text-emerald-400" /><span className="text-emerald-400">Copied</span></>
+                ) : (
+                  <><Copy className="w-2.5 h-2.5" />Copy</>
+                )}
+              </button>
             </div>
           </div>
         ))}
@@ -682,6 +747,7 @@ export default function Agents() {
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
   const [selectedConvId, setSelectedConvId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
+  const [convSearch, setConvSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
 
@@ -696,7 +762,9 @@ export default function Agents() {
   );
   const createConvMutation = useCreateAnthropicConversation();
 
-  const filteredConvs = conversations.filter(c => c.businessTag === businessTag);
+  const filteredConvs = conversations
+    .filter(c => c.businessTag === businessTag)
+    .filter(c => !convSearch || c.title?.toLowerCase().includes(convSearch.toLowerCase()));
   const activeAgent = agents.find(a => a.id === selectedAgentId);
 
   // ── Deep-link support: ?agent=pixel&conv=123 ─────────────────────────────
@@ -793,6 +861,17 @@ export default function Agents() {
             >
               <Plus className="w-3.5 h-3.5" /> New conversation
             </button>
+            {conversations.filter(c => c.businessTag === businessTag).length > 3 && (
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/20" />
+                <input
+                  value={convSearch}
+                  onChange={e => setConvSearch(e.target.value)}
+                  placeholder="Search chats..."
+                  className="w-full bg-white/4 border border-white/8 rounded-lg pl-7 pr-3 py-1.5 text-[11px] text-white placeholder:text-white/20 focus:outline-none focus:border-white/15"
+                />
+              </div>
+            )}
             {filteredConvs.map(conv => (
               <button
                 key={conv.id}

@@ -1,6 +1,6 @@
 import cron from "node-cron";
-import { db, automationsTable, automationRunsTable, agentsTable, conversations, messages } from "@workspace/db";
-import { eq, lte, and } from "drizzle-orm";
+import { db, automationsTable, automationRunsTable, agentsTable, conversations, messages, socialPostsTable } from "@workspace/db";
+import { eq, lte, and, isNotNull, isNull } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { logger } from "./logger";
 
@@ -64,6 +64,9 @@ export async function runAutomationById(automationId: number) {
 }
 
 export function startCronScheduler() {
+  const port = process.env.PORT || 8080;
+  const internalBase = `http://localhost:${port}`;
+
   // Check every minute for due automations
   cron.schedule("* * * * *", async () => {
     try {
@@ -76,7 +79,6 @@ export function startCronScheduler() {
       for (const automation of activeAutomations) {
         if (!automation.scheduleCron) continue;
 
-        // Check if automation is due
         const shouldRun = automation.nextRunAt ? automation.nextRunAt <= now : false;
 
         if (shouldRun) {
@@ -88,6 +90,41 @@ export function startCronScheduler() {
       }
     } catch (err) {
       logger.error(err, "Cron scheduler error");
+    }
+  });
+
+  // Check every minute for scheduled social posts that are due to publish
+  cron.schedule("* * * * *", async () => {
+    try {
+      const now = new Date();
+      const duePosts = await db
+        .select()
+        .from(socialPostsTable)
+        .where(
+          and(
+            eq(socialPostsTable.status, "approved"),
+            isNotNull(socialPostsTable.scheduledAt),
+            lte(socialPostsTable.scheduledAt, now),
+            isNull(socialPostsTable.postedAt),
+          )
+        );
+
+      for (const post of duePosts) {
+        if (!post.connectionId) continue;
+        logger.info({ postId: post.id, platform: post.platform }, "Publishing scheduled social post");
+        fetch(`${internalBase}/api/social-posts/${post.id}/post-now`, { method: "POST" })
+          .then(r => r.json())
+          .then((result: any) => {
+            if (result.success) {
+              logger.info({ postId: post.id }, "Scheduled social post published successfully");
+            } else {
+              logger.warn({ postId: post.id, error: result.errorMessage }, "Scheduled social post publish failed");
+            }
+          })
+          .catch(err => logger.error(err, "Scheduled social post publish error"));
+      }
+    } catch (err) {
+      logger.error(err, "Scheduled posts cron error");
     }
   });
 

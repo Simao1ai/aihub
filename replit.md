@@ -53,16 +53,17 @@ lib/
 
 ## Key Features
 
-### Navigation (9 sections)
-1. **📊 Dashboard** — Command center: stat cards (agents, brain, tasks, contacts, connections, pending), KPI section per workspace, cross-business overview (General only), pending approvals queue, agent shortcuts, recent chats.
-2. **🤖 Agents** — Chat with 6 specialized AI agents (COMPASS, OUTREACH, INKWELL, SCOUT, OPS, DESK). Streaming SSE responses. Conversation history per agent. Workspace-aware AI context injected per conversation.
+### Navigation (10 sections)
+1. **📊 Dashboard** — Command center: stat cards (agents, brain, tasks, contacts, connections, pending), KPI section per workspace, cross-business overview (General only), pending approvals queue, agent shortcuts, recent chats, social post stats widget.
+2. **🤖 Agents** — Chat with 17 specialized AI agents. Streaming SSE responses. Conversation history with search. Export conversation to .txt. Per-message copy buttons. Manual handoff routing between agents. Workspace-aware AI context injected per conversation.
 3. **🧠 Brain** — Upload PDFs, paste text, fetch URLs. Brain context injected into every AI call automatically.
 4. **✅ Tasks** — Kanban board with To Do / In Progress / Done columns. Create, edit, move, delete tasks. Priority (low/medium/high), due dates with overdue detection. Scoped per workspace.
 5. **👥 Contacts** — CRM list with search and status filters (Lead → Prospect → Client → Partner). Add/edit/delete contacts with name, company, email, phone, notes. Scoped per workspace.
 6. **⚡ Automations** — Scheduled and on-demand AI tasks. All outputs require approval before saving. Pre-built templates.
 7. **🔀 Pipelines** — Multi-agent sequential workflows. Chain agents where each step receives the previous output as context.
-8. **🔗 Connections** — OAuth connections for LinkedIn, Google/Gmail, Twitter/X, Meta. API key connections for GoHighLevel.
-9. **⚙️ Workspaces** — Create and manage workspaces (name, emoji, color, password). Each workspace has isolated data.
+8. **📱 Social** — Social Media Command Center. AI-generated posts per platform (SOSHI agent). Image generation via PIXEL agent. Post to Facebook/Instagram via Meta API (`/photos` endpoint for image posts). One-click post copy. Schedule posts with datetime picker (cron auto-publish). Social stats (queued/scheduled/posted today/total).
+9. **🔗 Connections** — OAuth connections for LinkedIn, Google/Gmail, Twitter/X, Meta. API key connections for GoHighLevel.
+10. **⚙️ Workspaces** — Create and manage workspaces (name, emoji, color, password). Each workspace has isolated data.
 
 ### Workspace System
 - DB-backed workspaces with per-workspace passwords, emoji, color
@@ -86,15 +87,26 @@ lib/
 - Dashboard shows editable KPI cards per workspace
 - Full CRUD API at `/api/kpis`
 
-### Agents (seeded on first run)
-| Name | Emoji | Color | Role |
-|------|-------|-------|------|
-| COMPASS | 🧭 | #6366f1 | Strategy |
-| OUTREACH | 📬 | #f59e0b | Sales & Email |
-| INKWELL | ✍️ | #10b981 | Copywriter |
-| SCOUT | 🔍 | #3b82f6 | Research |
-| OPS | ⚙️ | #8b5cf6 | Admin |
-| DESK | 💬 | #ef4444 | Client Comms |
+### Agents (17 seeded on first run)
+| Name | Role |
+|------|------|
+| COMPASS | Strategy |
+| OUTREACH | Sales & Email |
+| INKWELL | Copywriter |
+| SCOUT | Research |
+| OPS | Admin |
+| DESK | Client Comms |
+| SOSHI | Social Media Content |
+| PIXEL | Image Generation (generates images via OpenAI, saves to /generated-images/) |
+| NEXUS | Integration & Data |
+| PRISM | Analytics & Insights |
+| FORGE | Product & Development |
+| VAULT | Finance & Legal |
+| HERALD | PR & Communications |
+| CATALYST | Growth & Marketing |
+| ORACLE | Forecasting |
+| GUARDIAN | Risk & Compliance |
+| MENTOR | Training & Onboarding |
 
 ## DB Schema (all tables)
 - `agents` — AI agent definitions
@@ -107,6 +119,7 @@ lib/
 - `tasks` — Kanban tasks per workspace
 - `contacts` — CRM contacts per workspace
 - `kpis` — KPI metrics per workspace
+- `social_posts` — Social media posts (status: draft/pending_approval/approved/posted/failed, platform, imageUrl, scheduledAt, postedAt)
 
 ## Environment Variables
 

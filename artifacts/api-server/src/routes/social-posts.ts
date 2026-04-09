@@ -12,6 +12,32 @@ const IMAGES_DIR = path.resolve(__dirname, "../../generated-images");
 
 const router: IRouter = Router();
 
+// ── GET /api/social-posts/stats ───────────────────────────────────────────
+router.get("/stats", async (req, res) => {
+  try {
+    const { businessTag } = req.query as Record<string, string>;
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const allPosts = businessTag
+      ? await db.select().from(socialPostsTable).where(eq(socialPostsTable.businessTag, businessTag))
+      : await db.select().from(socialPostsTable);
+
+    const queued = allPosts.filter(p => p.status === 'pending_approval').length;
+    const scheduled = allPosts.filter(p =>
+      p.status === 'approved' && p.scheduledAt && new Date(p.scheduledAt) > now
+    ).length;
+    const postedToday = allPosts.filter(p =>
+      p.status === 'posted' && p.postedAt && new Date(p.postedAt) >= todayStart
+    ).length;
+    const totalPosted = allPosts.filter(p => p.status === 'posted').length;
+
+    res.json({ queued, scheduled, postedToday, totalPosted, total: allPosts.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── GET /api/social-posts ─────────────────────────────────────────────────
 router.get("/", async (req, res) => {
   try {
@@ -293,11 +319,27 @@ router.post("/:id/post-now", async (req, res) => {
 
         if (!pageId) throw new Error("Could not determine Facebook Page ID — please reconnect your Meta account.");
 
-        const postResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: post.content, access_token: postToken }),
-        });
+        // If the post has a generated image, use the /photos endpoint (text + image)
+        // otherwise use /feed (text only)
+        let postResp: Response;
+        if (post.imageUrl) {
+          // Construct public image URL using Replit dev domain
+          const host = process.env.REPLIT_DEV_DOMAIN
+            ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+            : `http://localhost:${process.env.PORT || 8080}`;
+          const fullImageUrl = `${host}${post.imageUrl}`;
+          postResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}/photos`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: fullImageUrl, caption: post.content, access_token: postToken }),
+          });
+        } else {
+          postResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: post.content, access_token: postToken }),
+          });
+        }
         const data = await postResp.json() as any;
         if (data.error) {
           const code = data.error.code;
@@ -306,8 +348,8 @@ router.post("/:id/post-now", async (req, res) => {
           }
           throw new Error(data.error.message);
         }
-        success = !!data.id;
-        platformPostId = data.id;
+        success = !!(data.id || data.post_id);
+        platformPostId = data.id ?? data.post_id;
       }
     } catch (postErr: any) {
       errorMessage = postErr.message;

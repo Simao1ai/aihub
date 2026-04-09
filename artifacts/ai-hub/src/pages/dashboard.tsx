@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import {
   Bot, Brain, Zap, Link2, ShieldAlert, CheckSquare, Users,
   ArrowRight, Clock, Sparkles, GitFork, TrendingUp,
-  Plus, Pencil, Trash2, Check, X
+  Plus, Pencil, Trash2, Check, X, Share2, Calendar, Send
 } from 'lucide-react';
 import {
   useListAgents,
@@ -267,6 +267,62 @@ function CrossBusinessOverview() {
   );
 }
 
+// ─── Social Stats Widget ──────────────────────────────────────────────────
+
+function SocialStatsWidget({ businessTag, onNavigate }: { businessTag: string; onNavigate: () => void }) {
+  const [stats, setStats] = useState<{ queued: number; scheduled: number; postedToday: number; totalPosted: number } | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/social-posts/stats?businessTag=${businessTag}`)
+      .then(r => r.json())
+      .then(setStats)
+      .catch(() => {});
+  }, [businessTag]);
+
+  if (!stats || (stats.queued === 0 && stats.scheduled === 0 && stats.totalPosted === 0)) return null;
+
+  const items = [
+    { label: 'Needs Review', value: stats.queued, icon: Share2, color: '#f59e0b', bg: '#f59e0b15' },
+    { label: 'Scheduled', value: stats.scheduled, icon: Calendar, color: '#8b5cf6', bg: '#8b5cf615' },
+    { label: 'Posted Today', value: stats.postedToday, icon: Send, color: '#10b981', bg: '#10b98115' },
+    { label: 'Total Published', value: stats.totalPosted, icon: TrendingUp, color: '#3b82f6', bg: '#3b82f615' },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-white/5 bg-[#111520] p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-display font-semibold text-white text-sm flex items-center gap-2">
+          <Share2 className="w-4 h-4 text-violet-400" /> Social Media
+        </h3>
+        <button
+          onClick={onNavigate}
+          className="text-xs text-white/30 hover:text-white/60 flex items-center gap-1 transition-colors"
+        >
+          View all <ArrowRight className="w-3 h-3" />
+        </button>
+      </div>
+      <div className="grid grid-cols-4 gap-3">
+        {items.map(it => {
+          const Icon = it.icon;
+          return (
+            <button
+              key={it.label}
+              onClick={onNavigate}
+              className="text-left p-3 rounded-xl border border-white/5 hover:border-white/10 hover:bg-white/3 transition-all group"
+            >
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center mb-2" style={{ background: it.bg, color: it.color }}>
+                <Icon className="w-3.5 h-3.5" />
+              </div>
+              <p className="text-lg font-display font-bold text-white">{it.value}</p>
+              <p className="text-[10px] text-white/30 mt-0.5">{it.label}</p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Dashboard ──────────────────────────────────────────────────────
 
 export default function Dashboard() {
@@ -374,6 +430,11 @@ export default function Dashboard() {
           {/* KPI Section */}
           <motion.div variants={item} className="rounded-2xl border border-white/5 bg-[#111520] p-6">
             <KpiSection businessTag={businessTag} />
+          </motion.div>
+
+          {/* Social Media Stats */}
+          <motion.div variants={item}>
+            <SocialStatsWidget businessTag={businessTag} onNavigate={() => setLocation('/social')} />
           </motion.div>
 
           {/* Cross-business overview (General only) */}
