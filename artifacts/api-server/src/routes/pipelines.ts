@@ -1,7 +1,17 @@
 import { Router, type IRouter } from "express";
-import { db, pipelinesTable, pipelineRunsTable } from "@workspace/db";
+import { db, pipelinesTable, pipelineRunsTable, socialPostsTable, brainDocumentsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { runPipelineById, pipelineEmitter } from "../lib/pipeline";
+import { sendEmail } from "../lib/email";
+
+// Detect pipeline type from its name for smart approve side-effects
+function detectPipelineType(name: string): "social" | "blog" | "email" | "generic" {
+  const n = name.toLowerCase();
+  if (n.includes("social") || n.includes("post") || n.includes("soshi")) return "social";
+  if (n.includes("blog") || n.includes("content") || n.includes("article")) return "blog";
+  if (n.includes("email") || n.includes("newsletter") || n.includes("campaign")) return "email";
+  return "generic";
+}
 
 const router: IRouter = Router();
 
@@ -178,7 +188,7 @@ router.get("/runs/list", async (req, res) => {
   }
 });
 
-// Approve pipeline run
+// Approve pipeline run — smart side-effects based on pipeline type
 router.post("/runs/:id/approve", async (req, res) => {
   try {
     const id = parseId(req.params.id);
@@ -186,14 +196,52 @@ router.post("/runs/:id/approve", async (req, res) => {
     const [run] = await db.select().from(pipelineRunsTable).where(eq(pipelineRunsTable.id, id));
     if (!run) return res.status(404).json({ error: "Run not found" });
 
+    const [pipeline] = await db.select().from(pipelinesTable).where(eq(pipelinesTable.id, run.pipelineId));
+    const pipelineType = detectPipelineType(pipeline?.name ?? "");
+    const output = run.finalOutput ?? "";
+    const businessTag = (run as any).businessTag ?? "general";
+    const sideEffects: string[] = [];
+
+    // Smart side-effects: create artefacts from approved output
+    if (pipelineType === "social" && output) {
+      const platform = pipeline?.name?.toLowerCase().includes("linkedin") ? "linkedin"
+        : pipeline?.name?.toLowerCase().includes("twitter") ? "twitter"
+        : "meta";
+      await db.insert(socialPostsTable).values({
+        platform,
+        content: output,
+        businessTag,
+        topic: pipeline?.name,
+        status: "pending_approval",
+        aiGenerated: true,
+        agentSlug: "pipeline",
+      });
+      sideEffects.push("social_post_created");
+    } else if (pipelineType === "blog" && output) {
+      await db.insert(brainDocumentsTable).values({
+        title: pipeline?.name ?? "Pipeline Output",
+        content: output,
+        type: "text",
+        category: "marketing",
+        businessTag,
+      });
+      sideEffects.push("brain_doc_created");
+    } else if (pipelineType === "email" && output) {
+      await sendEmail({
+        subject: `📧 Pipeline Draft: ${pipeline?.name}`,
+        html: `<div style="font-family: system-ui; max-width: 600px; margin: 0 auto; padding: 24px; background: #0f0f14; color: #e5e7eb;">
+          <h2 style="color: #a78bfa;">${pipeline?.name}</h2>
+          <div style="white-space: pre-wrap; font-size: 14px; line-height: 1.6; background: #1a1a2e; padding: 16px; border-radius: 8px;">${output}</div>
+        </div>`,
+        text: output,
+      });
+      sideEffects.push("email_sent");
+    }
+
     const [updated] = await db.update(pipelineRunsTable).set({ status: "success" }).where(eq(pipelineRunsTable.id, id)).returning();
+    await db.update(pipelinesTable).set({ lastOutput: run.finalOutput, status: "idle" }).where(eq(pipelinesTable.id, run.pipelineId));
 
-    await db.update(pipelinesTable).set({
-      lastOutput: run.finalOutput,
-      status: "idle",
-    }).where(eq(pipelinesTable.id, run.pipelineId));
-
-    res.json(updated);
+    res.json({ ...updated, sideEffects, pipelineType });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Failed to approve run" });

@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import {
   Bot, Brain, Zap, Link2, ShieldAlert, CheckSquare, Users,
   ArrowRight, Clock, Sparkles, GitFork, TrendingUp,
-  Plus, Pencil, Trash2, Check, X, Share2, Calendar, Send
+  Plus, Pencil, Trash2, Check, X, Share2, Calendar, Send, AlertTriangle, ExternalLink
 } from 'lucide-react';
 import {
   useListAgents,
@@ -208,26 +208,76 @@ function KpiSection({ businessTag }: { businessTag: string }) {
   );
 }
 
+// ─── Active Pipeline Runs Widget ─────────────────────────────────────────
+
+function ActivePipelinesWidget({ onNavigate }: { onNavigate: () => void }) {
+  const [runs, setRuns] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/pipelines/runs/list?status=pending_approval')
+      .then(r => r.json())
+      .then(d => setRuns(Array.isArray(d) ? d.slice(0, 4) : []))
+      .catch(() => {});
+  }, []);
+
+  if (runs.length === 0) return null;
+
+  return (
+    <motion.div variants={item} className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-display font-semibold text-white text-sm flex items-center gap-2">
+          <GitFork className="w-4 h-4 text-indigo-400" />
+          {runs.length} Pipeline run{runs.length > 1 ? 's' : ''} awaiting review
+        </h3>
+        <button onClick={onNavigate} className="text-xs text-indigo-400/60 hover:text-indigo-400 flex items-center gap-1 transition-colors">
+          Review <ArrowRight className="w-3 h-3" />
+        </button>
+      </div>
+      <div className="space-y-2">
+        {runs.map((run: any) => (
+          <div key={run.id} className="flex items-center gap-3 bg-black/20 rounded-xl px-4 py-2.5 border border-white/5">
+            <GitFork className="w-4 h-4 text-indigo-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-white truncate">{run.pipelineName ?? `Pipeline Run #${run.id}`}</p>
+              <p className="text-[10px] text-white/30">{run.ranAt ? format(new Date(run.ranAt), 'MMM d, h:mm a') : ''}</p>
+            </div>
+            <button
+              onClick={onNavigate}
+              className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1"
+            >
+              Review <ExternalLink className="w-2.5 h-2.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Cross-Business Overview (General workspace only) ────────────────────
 
 function CrossBusinessOverview() {
   const [, setLocation] = useLocation();
   const [allWorkspaces, setAllWorkspaces] = useState<any[]>([]);
   const [taskCounts, setTaskCounts] = useState<Record<string, number>>({});
+  const [overdueCounts, setOverdueCounts] = useState<Record<string, number>>({});
   const [contactCounts, setContactCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetch('/api/auth/workspaces').then(r => r.json()).then(ws => {
       const active = ws.filter((w: any) => w.slug !== 'general');
       setAllWorkspaces(active);
-      // Load counts for each workspace
+      const today = new Date().toISOString().split('T')[0];
       active.forEach(async (w: any) => {
         try {
           const [tasks, contacts] = await Promise.all([
             fetch(`/api/tasks?businessTag=${w.slug}`).then(r => r.json()),
             fetch(`/api/contacts?businessTag=${w.slug}`).then(r => r.json()),
           ]);
-          setTaskCounts(prev => ({ ...prev, [w.slug]: Array.isArray(tasks) ? tasks.length : 0 }));
+          const activeTasks = Array.isArray(tasks) ? tasks.filter((t: any) => t.status !== 'done') : [];
+          const overdue = activeTasks.filter((t: any) => t.dueDate && t.dueDate < today).length;
+          setTaskCounts(prev => ({ ...prev, [w.slug]: activeTasks.length }));
+          setOverdueCounts(prev => ({ ...prev, [w.slug]: overdue }));
           setContactCounts(prev => ({ ...prev, [w.slug]: Array.isArray(contacts) ? contacts.length : 0 }));
         } catch {}
       });
@@ -242,26 +292,34 @@ function CrossBusinessOverview() {
         <Sparkles className="w-4 h-4 text-primary" /> All Businesses
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {allWorkspaces.map((ws: any) => (
-          <div
-            key={ws.slug}
-            className="p-3 rounded-xl bg-white/3 border border-white/5 hover:border-white/10 transition-all cursor-pointer"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-base"
-                style={{ background: `${ws.color}20` }}
-              >
-                {ws.emoji}
+        {allWorkspaces.map((ws: any) => {
+          const overdue = overdueCounts[ws.slug] ?? 0;
+          return (
+            <div
+              key={ws.slug}
+              className="p-3 rounded-xl bg-white/3 border border-white/5 hover:border-white/10 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-base"
+                  style={{ background: `${ws.color}20` }}
+                >
+                  {ws.emoji}
+                </div>
+                <p className="text-xs font-semibold text-white/80 truncate">{ws.name}</p>
               </div>
-              <p className="text-xs font-semibold text-white/80 truncate">{ws.name}</p>
+              <div className="flex gap-3 text-[11px] text-white/30">
+                <span>{taskCounts[ws.slug] ?? 0} tasks</span>
+                {overdue > 0 && (
+                  <span className="text-red-400 flex items-center gap-0.5">
+                    <AlertTriangle className="w-2.5 h-2.5" />{overdue} overdue
+                  </span>
+                )}
+                <span>{contactCounts[ws.slug] ?? 0} contacts</span>
+              </div>
             </div>
-            <div className="flex gap-3 text-[11px] text-white/30">
-              <span>{taskCounts[ws.slug] ?? 0} tasks</span>
-              <span>{contactCounts[ws.slug] ?? 0} contacts</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </motion.div>
   );
@@ -437,6 +495,9 @@ export default function Dashboard() {
             <SocialStatsWidget businessTag={businessTag} onNavigate={() => setLocation('/social')} />
           </motion.div>
 
+          {/* Active Pipeline Runs */}
+          <ActivePipelinesWidget onNavigate={() => setLocation('/pipelines')} />
+
           {/* Cross-business overview (General only) */}
           {isGeneral && <CrossBusinessOverview />}
 
@@ -549,10 +610,10 @@ export default function Dashboard() {
           {/* Quick actions */}
           <motion.div variants={item} className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
+              { label: 'New Post', sub: 'Social media', icon: Share2, color: '#f59e0b', href: '/social' },
+              { label: 'Run Pipeline', sub: 'Multi-step AI', icon: GitFork, color: '#6366f1', href: '/pipelines' },
+              { label: 'Add Task', sub: 'Kanban board', icon: CheckSquare, color: '#10b981', href: '/tasks' },
               { label: 'Brain', sub: 'Knowledge base', icon: Brain, color: '#8b5cf6', href: '/brain' },
-              { label: 'Tasks', sub: 'Kanban board', icon: CheckSquare, color: '#10b981', href: '/tasks' },
-              { label: 'Contacts', sub: 'CRM', icon: Users, color: '#3b82f6', href: '/contacts' },
-              { label: 'Pipelines', sub: 'Multi-step flows', icon: GitFork, color: '#6366f1', href: '/pipelines' },
             ].map(q => {
               const Icon = q.icon;
               return (

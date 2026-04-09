@@ -38,6 +38,7 @@ export function useLogin() {
       if (!res.ok) throw new Error(data.error || 'Login failed');
       return data as {
         success: boolean;
+        token: string;
         workspace: string;
         displayName: string;
         businessTag: string;
@@ -51,6 +52,7 @@ export function useLogin() {
         displayName: data.displayName,
         businessTag: data.businessTag as any,
         password,
+        token: data.token,
         color: data.color,
         emoji: data.emoji,
       };

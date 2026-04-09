@@ -8,6 +8,7 @@ export interface Account {
   displayName: string;
   businessTag: BusinessTag;
   password: string;
+  token: string;
   color: string;
   emoji: string;
 }

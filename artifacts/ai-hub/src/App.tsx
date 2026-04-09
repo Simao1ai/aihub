@@ -4,6 +4,36 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAppStore } from "@/store";
+import { setAuthTokenGetter } from "@workspace/api-client-react";
+
+// ── Auth token helpers ──────────────────────────────────────────────────────
+function getStoredToken(): string | null {
+  try {
+    const stored = localStorage.getItem("ai-hub-storage");
+    if (!stored) return null;
+    return JSON.parse(stored)?.state?.account?.token ?? null;
+  } catch { return null; }
+}
+
+// Wire the Orval-generated API client to use the Bearer token
+setAuthTokenGetter(getStoredToken);
+
+// Global fetch interceptor — adds Bearer token to all /api/* calls
+const _originalFetch = window.fetch.bind(window);
+window.fetch = (input: RequestInfo | URL, init: RequestInit = {}) => {
+  const url = typeof input === "string" ? input
+    : input instanceof URL ? input.toString()
+    : (input as Request).url;
+  if (url.startsWith("/api/") && !url.startsWith("/api/auth/login") && !url.startsWith("/api/auth/workspaces")) {
+    const token = getStoredToken();
+    if (token) {
+      const headers = new Headers(init.headers);
+      if (!headers.has("authorization")) headers.set("authorization", `Bearer ${token}`);
+      init = { ...init, headers };
+    }
+  }
+  return _originalFetch(input, init);
+};
 
 // Layout & Pages
 import { AppLayout } from "@/components/layout";

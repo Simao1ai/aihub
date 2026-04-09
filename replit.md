@@ -12,6 +12,15 @@ A full-stack personal AI Agent Hub for Simao Alves to manage 5 businesses from o
 
 Multi-workspace login system. Each workspace has its own password. Default password: `aihub2024`.
 
+## Security & Auth (implemented April 2026)
+
+- **Passwords**: bcrypt-hashed in DB via `bcryptjs` (seed.ts hashes on upsert)
+- **Session tokens**: 128-bit hex random tokens, 7-day TTL, stored in in-memory Map (`lib/session.ts`)
+- **Auth middleware**: All `/api/*` endpoints require `Authorization: Bearer <token>` except `/api/auth/*`, `/api/health`, `/api/generated-images/*`
+- **CORS**: Restricted to `*.replit.dev`, `*.replit.app`, `*.repl.co`, and localhost
+- **Frontend**: Global fetch interceptor in `App.tsx` auto-attaches Bearer token to all `/api/*` calls from localStorage
+- **Login flow**: POST `/api/auth/login` → bcrypt.compare → createSession → return token; frontend stores in Zustand + localStorage
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces

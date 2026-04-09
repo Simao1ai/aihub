@@ -4,7 +4,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import {
   Share2, Sparkles, Send, Check, X, Edit3, Trash2,
   Clock, ChevronDown, RefreshCw, AlertCircle, BarChart2,
-  ThumbsUp, Eye, Repeat2, MessageCircle, TrendingUp, Plus, Bot, Calendar, Copy
+  ThumbsUp, Eye, Repeat2, MessageCircle, TrendingUp, Plus, Bot, Calendar, Copy, ExternalLink
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { cn } from '@/components/ui-elements';
@@ -26,6 +26,8 @@ interface SocialPost {
   errorMessage: string | null;
   imageUrl: string | null;
   imagePrompt: string | null;
+  platformPostId: string | null;
+  publishedUrl: string | null;
   createdAt: string;
 }
 
@@ -282,11 +284,24 @@ function PostCard({
         </div>
       )}
 
-      {/* Posted at */}
+      {/* Posted at + View post link */}
       {post.postedAt && (
-        <div className="px-4 pb-3 text-[11px] text-white/25 flex items-center gap-1.5">
-          <Check className="w-3 h-3 text-emerald-400" />
-          Posted {format(new Date(post.postedAt), 'MMM d, h:mm a')}
+        <div className="px-4 pb-3 text-[11px] text-white/25 flex items-center gap-2.5 flex-wrap">
+          <span className="flex items-center gap-1">
+            <Check className="w-3 h-3 text-emerald-400" />
+            Posted {format(new Date(post.postedAt), 'MMM d, h:mm a')}
+          </span>
+          {post.publishedUrl && (
+            <a
+              href={post.publishedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-primary hover:text-primary/80 font-medium transition-colors"
+            >
+              <ExternalLink className="w-2.5 h-2.5" />
+              View on {PLATFORMS[post.platform]?.label ?? post.platform}
+            </a>
+          )}
         </div>
       )}
 

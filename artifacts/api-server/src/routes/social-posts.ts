@@ -3,12 +3,169 @@ import { db, socialPostsTable, connectionsTable, agentsTable, workspacesTable } 
 import { eq, desc, and } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/image";
+import { sendPostPublishedEmail } from "../lib/email";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const IMAGES_DIR = path.resolve(__dirname, "../../generated-images");
+
+// ── Shared publish function — used by approve (immediate) and post-now ────────
+export async function publishPost(post: {
+  id: number;
+  connectionId: number | null;
+  platform: string;
+  content: string;
+  imageUrl: string | null;
+}) {
+  if (!post.connectionId) throw new Error("No connection selected for this post");
+
+  const [conn] = await db.select().from(connectionsTable).where(eq(connectionsTable.id, post.connectionId));
+  if (!conn) throw new Error("Connection not found");
+  if (!conn.accessToken && !conn.apiKey) throw new Error("Connection has no credentials");
+
+  let success = false;
+  let platformPostId: string | undefined;
+  let publishedUrl: string | undefined;
+  let errorMessage: string | undefined;
+
+  try {
+    if (conn.platform === "linkedin") {
+      const meResp = await fetch("https://api.linkedin.com/v2/me", {
+        headers: { Authorization: `Bearer ${conn.accessToken}` },
+      });
+      const me = await meResp.json() as { id: string };
+
+      const postResp = await fetch("https://api.linkedin.com/v2/ugcPosts", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${conn.accessToken}`,
+          "Content-Type": "application/json",
+          "X-Restli-Protocol-Version": "2.0.0",
+        },
+        body: JSON.stringify({
+          author: `urn:li:person:${me.id}`,
+          lifecycleState: "PUBLISHED",
+          specificContent: {
+            "com.linkedin.ugc.ShareContent": {
+              shareCommentary: { text: post.content },
+              shareMediaCategory: "NONE",
+            },
+          },
+          visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
+        }),
+      });
+      success = postResp.ok;
+      const data = await postResp.json() as any;
+      platformPostId = data.id;
+      if (platformPostId) {
+        const encodedId = encodeURIComponent(platformPostId);
+        publishedUrl = `https://www.linkedin.com/feed/update/${encodedId}`;
+      }
+
+    } else if (conn.platform === "twitter") {
+      const tweetResp = await fetch("https://api.twitter.com/2/tweets", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${conn.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: post.content.slice(0, 280) }),
+      });
+      const data = await tweetResp.json() as any;
+      success = !data.errors;
+      platformPostId = data?.data?.id;
+
+    } else if (conn.platform === "meta") {
+      const userToken = conn.accessToken || conn.apiKey || "";
+      const meta = conn.metadata as any;
+
+      let postToken: string = meta?.pageAccessToken || "";
+      let pageId: string = meta?.pageId || "";
+
+      if (!postToken || !pageId) {
+        if (!userToken) throw new Error("No Meta access token — reconnect via Integrations → Meta");
+        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${userToken}`);
+        const pagesData = await pagesResp.json() as any;
+        if (pagesData.error) {
+          const code = pagesData.error.code;
+          if (code === 190) throw new Error("Meta token expired — go to Connections → Meta and reconnect.");
+          if (code === 10 || code === 200 || code === 230) throw new Error("Token missing pages_manage_posts permission.");
+          throw new Error(`Meta error: ${pagesData.error.message}`);
+        }
+        if (!pagesData.data?.length) throw new Error("No Facebook Pages found on this account.");
+        const page = pagesData.data.find((p: any) => p.id === meta?.pageId) ?? pagesData.data[0];
+        postToken = page.access_token;
+        pageId = page.id;
+        await db.update(connectionsTable)
+          .set({ metadata: { ...(meta ?? {}), pageId: page.id, pageName: page.name, pageAccessToken: page.access_token } })
+          .where(eq(connectionsTable.id, conn.id));
+      }
+
+      if (!pageId) throw new Error("Could not determine Facebook Page ID — please reconnect your Meta account.");
+
+      let postResp: Response;
+      if (post.imageUrl) {
+        const host = process.env.REPLIT_DEV_DOMAIN
+          ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+          : `http://localhost:${process.env.PORT || 8080}`;
+        const fullImageUrl = `${host}${post.imageUrl}`;
+        postResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}/photos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: fullImageUrl, caption: post.content, access_token: postToken }),
+        });
+      } else {
+        postResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: post.content, access_token: postToken }),
+        });
+      }
+      const data = await postResp.json() as any;
+      if (data.error) {
+        const code = data.error.code;
+        if (code === 200 || code === 230) {
+          throw new Error("Posting failed: missing pages_manage_posts permission. Reconnect your Meta account with the correct permissions.");
+        }
+        throw new Error(data.error.message);
+      }
+      success = !!(data.id || data.post_id);
+      platformPostId = data.id ?? data.post_id;
+      if (platformPostId && pageId) {
+        publishedUrl = `https://www.facebook.com/${pageId}/posts/${platformPostId.split('_')[1] ?? platformPostId}`;
+      }
+    }
+  } catch (postErr: any) {
+    errorMessage = postErr.message;
+    logger.error({ postId: post.id, error: errorMessage }, "Social post publish failed");
+  }
+
+  const [updated] = await db.update(socialPostsTable)
+    .set({
+      status: success ? "posted" : "failed",
+      postedAt: success ? new Date() : null,
+      errorMessage: errorMessage ?? null,
+      platformPostId: platformPostId ?? null,
+      publishedUrl: publishedUrl ?? null,
+      updatedAt: new Date(),
+    })
+    .where(eq(socialPostsTable.id, post.id))
+    .returning();
+
+  // Send email confirmation when published
+  if (success) {
+    sendPostPublishedEmail({
+      platform: post.platform,
+      content: post.content,
+      publishedUrl,
+      platformPostId,
+    }).catch(() => {});
+  }
+
+  return { success, post: updated, platformPostId, publishedUrl, errorMessage: errorMessage ?? null };
+}
 
 const router: IRouter = Router();
 
@@ -214,22 +371,35 @@ Write ONLY the post content — no intro, no explanation, no quotes around it. J
 });
 
 // ── POST /api/social-posts/:id/approve ────────────────────────────────────
+// Approve a post. If it has a connectionId and no scheduledAt, publish immediately.
 router.post("/:id/approve", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const [post] = await db.update(socialPostsTable)
-      .set({ status: "approved", updatedAt: new Date() })
-      .where(eq(socialPostsTable.id, id))
-      .returning();
+    const [post] = await db.select().from(socialPostsTable).where(eq(socialPostsTable.id, id));
     if (!post) return res.status(404).json({ error: "Post not found" });
-    res.json(post);
+
+    // If post has a connection and no schedule → publish now
+    if (post.connectionId && !post.scheduledAt) {
+      // Update to approved first
+      await db.update(socialPostsTable).set({ status: "approved", updatedAt: new Date() }).where(eq(socialPostsTable.id, id));
+      // Publish inline
+      const result = await publishPost(post);
+      res.json({ ...result, autoPublished: true });
+    } else {
+      // Just approve (will be published on schedule or manually)
+      const [updated] = await db.update(socialPostsTable)
+        .set({ status: "approved", updatedAt: new Date() })
+        .where(eq(socialPostsTable.id, id))
+        .returning();
+      res.json(updated);
+    }
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // ── POST /api/social-posts/:id/post-now ───────────────────────────────────
-// Publish a post to the connected platform
+// Publish a post to the connected platform immediately
 router.post("/:id/post-now", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -237,135 +407,9 @@ router.post("/:id/post-now", async (req, res) => {
     if (!post) return res.status(404).json({ error: "Post not found" });
     if (!post.connectionId) return res.status(400).json({ error: "No connection selected for this post" });
 
-    const [conn] = await db.select().from(connectionsTable).where(eq(connectionsTable.id, post.connectionId));
-    if (!conn) return res.status(400).json({ error: "Connection not found" });
-    if (!conn.accessToken && !conn.apiKey) return res.status(400).json({ error: "Connection has no credentials" });
-
-    let success = false;
-    let platformPostId: string | undefined;
-    let errorMessage: string | undefined;
-
-    try {
-      if (conn.platform === "linkedin") {
-        const meResp = await fetch("https://api.linkedin.com/v2/me", {
-          headers: { Authorization: `Bearer ${conn.accessToken}` },
-        });
-        const me = await meResp.json() as { id: string };
-
-        const postResp = await fetch("https://api.linkedin.com/v2/ugcPosts", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${conn.accessToken}`,
-            "Content-Type": "application/json",
-            "X-Restli-Protocol-Version": "2.0.0",
-          },
-          body: JSON.stringify({
-            author: `urn:li:person:${me.id}`,
-            lifecycleState: "PUBLISHED",
-            specificContent: {
-              "com.linkedin.ugc.ShareContent": {
-                shareCommentary: { text: post.content },
-                shareMediaCategory: "NONE",
-              },
-            },
-            visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
-          }),
-        });
-        success = postResp.ok;
-        const data = await postResp.json() as any;
-        platformPostId = data.id;
-
-      } else if (conn.platform === "twitter") {
-        const tweetResp = await fetch("https://api.twitter.com/2/tweets", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${conn.accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ text: post.content.slice(0, 280) }),
-        });
-        const data = await tweetResp.json() as any;
-        success = !data.errors;
-        platformPostId = data?.data?.id;
-
-      } else if (conn.platform === "meta") {
-        const userToken = conn.accessToken || conn.apiKey || "";
-        const meta = conn.metadata as any;
-
-        // Prefer the stored Page Access Token (set when user connected the page)
-        let postToken: string = meta?.pageAccessToken || "";
-        let pageId: string = meta?.pageId || "";
-
-        if (!postToken || !pageId) {
-          // Fallback: re-fetch from /me/accounts using the user token
-          if (!userToken) throw new Error("No Meta access token — reconnect via Integrations → Meta");
-          const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${userToken}`);
-          const pagesData = await pagesResp.json() as any;
-          if (pagesData.error) {
-            const code = pagesData.error.code;
-            if (code === 190) throw new Error("Meta token expired — go to Connections → Meta and reconnect with a fresh token.");
-            if (code === 10 || code === 200 || code === 230) throw new Error("Token missing pages_manage_posts permission. In Graph API Explorer add pages_show_list, pages_read_engagement and pages_manage_posts, then reconnect.");
-            throw new Error(`Meta error: ${pagesData.error.message}`);
-          }
-          if (!pagesData.data?.length) throw new Error("No Facebook Pages found on this account. Make sure the token has pages_show_list and pages_manage_posts permissions.");
-          const page = pagesData.data.find((p: any) => p.id === meta?.pageId) ?? pagesData.data[0];
-          postToken = page.access_token;
-          pageId = page.id;
-          // Cache for next time
-          await db.update(connectionsTable)
-            .set({ metadata: { ...(meta ?? {}), pageId: page.id, pageName: page.name, pageAccessToken: page.access_token } })
-            .where(eq(connectionsTable.id, conn.id));
-        }
-
-        if (!pageId) throw new Error("Could not determine Facebook Page ID — please reconnect your Meta account.");
-
-        // If the post has a generated image, use the /photos endpoint (text + image)
-        // otherwise use /feed (text only)
-        let postResp: Response;
-        if (post.imageUrl) {
-          // Construct public image URL using Replit dev domain
-          const host = process.env.REPLIT_DEV_DOMAIN
-            ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-            : `http://localhost:${process.env.PORT || 8080}`;
-          const fullImageUrl = `${host}${post.imageUrl}`;
-          postResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}/photos`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url: fullImageUrl, caption: post.content, access_token: postToken }),
-          });
-        } else {
-          postResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: post.content, access_token: postToken }),
-          });
-        }
-        const data = await postResp.json() as any;
-        if (data.error) {
-          const code = data.error.code;
-          if (code === 200 || code === 230) {
-            throw new Error("Posting failed: the Page Access Token is missing pages_manage_posts permission. Go to Connections → Meta, delete this connection, then reconnect — in Graph API Explorer make sure to add pages_show_list, pages_read_engagement AND pages_manage_posts before generating your token.");
-          }
-          throw new Error(data.error.message);
-        }
-        success = !!(data.id || data.post_id);
-        platformPostId = data.id ?? data.post_id;
-      }
-    } catch (postErr: any) {
-      errorMessage = postErr.message;
-    }
-
-    const [updated] = await db.update(socialPostsTable)
-      .set({
-        status: success ? "posted" : "failed",
-        postedAt: success ? new Date() : null,
-        errorMessage: errorMessage ?? null,
-        updatedAt: new Date(),
-      })
-      .where(eq(socialPostsTable.id, id))
-      .returning();
-
-    res.json({ success, post: updated, platformPostId, errorMessage: errorMessage ?? null });
+    // Delegate to shared publish function (stores platformPostId, publishedUrl, sends email)
+    const result = await publishPost(post);
+    return res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

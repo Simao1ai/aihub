@@ -1,5 +1,6 @@
 import { db, agentsTable, automationsTable, workspacesTable, automationTemplatesTable, pipelinesTable } from "@workspace/db";
 import { sql } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import { logger } from "./logger";
 
 const WORKSPACES = [
@@ -1225,11 +1226,12 @@ export async function seedDatabase() {
   try {
     logger.info("Checking database seed state...");
 
-    // Seed workspaces (upsert by slug — update businessContext/emoji/color)
+    // Seed workspaces (upsert by slug — update businessContext/emoji/color/password)
     for (const ws of WORKSPACES) {
+      const hashedPassword = await bcrypt.hash(ws.password, 10);
       await db
         .insert(workspacesTable)
-        .values(ws)
+        .values({ ...ws, password: hashedPassword })
         .onConflictDoUpdate({
           target: workspacesTable.slug,
           set: {
@@ -1237,10 +1239,11 @@ export async function seedDatabase() {
             emoji: sql`excluded.emoji`,
             color: sql`excluded.color`,
             description: sql`excluded.description`,
+            password: sql`excluded.password`,
           },
         });
     }
-    logger.info("Workspaces seeded");
+    logger.info("Workspaces seeded (passwords hashed with bcrypt)");
 
     // Seed agents — upsert by slug: insert new, ALWAYS update system prompts on existing
     for (const agent of AGENTS) {

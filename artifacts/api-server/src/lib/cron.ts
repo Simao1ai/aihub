@@ -1,8 +1,20 @@
 import cron from "node-cron";
-import { db, automationsTable, automationRunsTable, agentsTable, conversations, messages, socialPostsTable } from "@workspace/db";
+import { parseExpression } from "cron-parser";
+import { db, automationsTable, automationRunsTable, agentsTable, socialPostsTable } from "@workspace/db";
 import { eq, lte, and, isNotNull, isNull } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { logger } from "./logger";
+import { sendAutomationCompletedEmail, sendPostPublishedEmail } from "./email";
+
+// ── Calculate next run time from a cron expression ─────────────────────────
+export function getNextRunAt(cronExpression: string): Date | null {
+  try {
+    const interval = parseExpression(cronExpression, { tz: "America/New_York" });
+    return interval.next().toDate();
+  } catch {
+    return null;
+  }
+}
 
 export async function runAutomationById(automationId: number) {
   const [automation] = await db.select().from(automationsTable).where(eq(automationsTable.id, automationId));
@@ -20,7 +32,12 @@ export async function runAutomationById(automationId: number) {
   try {
     const systemPrompt = [
       agent.systemPrompt,
-      `You are working for Simao, an entrepreneur running Equifind Recovery (Florida tax deed surplus fund recovery SaaS) and a home inspection business with realtor network.`,
+      `You are working for Simao Alves, an entrepreneur running 5 businesses:`,
+      `- LES A Inspections: Home inspection B2B with realtor network in NJ`,
+      `- CarrierDeskHQ: Trucking consulting SaaS platform`,
+      `- SalonSync Hub: Salon management SaaS`,
+      `- Sweepello: Cleaning marketplace SaaS`,
+      `- Equifind Recovery: Tax deed surplus fund recovery (Florida)`,
       `Today's date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}.`,
     ].join("\n\n");
 
@@ -40,26 +57,36 @@ export async function runAutomationById(automationId: number) {
     output = `Error: ${err instanceof Error ? err.message : "Unknown error"}`;
   }
 
+  // Calculate next run time
+  const nextRunAt = automation.scheduleCron ? getNextRunAt(automation.scheduleCron) : null;
+
   // Save run
   const [run] = await db
     .insert(automationRunsTable)
     .values({ automationId, output, status })
     .returning();
 
-  // Update automation
+  // Update automation with lastRanAt, nextRunAt, and new status
   await db.update(automationsTable).set({
     lastRanAt: new Date(),
+    nextRunAt,
     status: status === "failed" ? "idle" : "pending_approval",
   }).where(eq(automationsTable.id, automationId));
 
-  const [agentData] = await db.select().from(agentsTable).where(eq(agentsTable.id, automation.agentId));
+  // Send email notification on completion
+  sendAutomationCompletedEmail({
+    automationName: automation.name,
+    agentName: agent.name,
+    output,
+    businessTag: "general",
+  }).catch(err => logger.error(err, "Failed to send automation email"));
 
   return {
     ...run,
     automationName: automation.name,
-    agentName: agentData?.name,
-    agentIcon: agentData?.icon,
-    agentColor: agentData?.color,
+    agentName: agent.name,
+    agentIcon: agent.icon,
+    agentColor: agent.color,
   };
 }
 
@@ -117,6 +144,12 @@ export function startCronScheduler() {
           .then((result: any) => {
             if (result.success) {
               logger.info({ postId: post.id }, "Scheduled social post published successfully");
+              // Send email confirmation
+              sendPostPublishedEmail({
+                platform: post.platform,
+                content: post.content,
+                platformPostId: result.platformPostId,
+              }).catch(() => {});
             } else {
               logger.warn({ postId: post.id, error: result.errorMessage }, "Scheduled social post publish failed");
             }
@@ -125,6 +158,34 @@ export function startCronScheduler() {
       }
     } catch (err) {
       logger.error(err, "Scheduled posts cron error");
+    }
+  });
+
+  // Weekly digest — every Monday at 8 AM ET
+  cron.schedule("0 8 * * 1", async () => {
+    try {
+      const { sendWeeklyDigestEmail } = await import("./email");
+      const { db: _db, kpisTable, tasksTable, socialPostsTable: spTable, automationRunsTable: arTable } = await import("@workspace/db");
+      const { eq: _eq, gte, and: _and } = await import("drizzle-orm");
+
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+
+      const kpis = await _db.select().from(kpisTable);
+      const doneTasks = await _db.select().from(tasksTable).where(_eq(tasksTable.status, "done"));
+      const publishedPosts = await _db.select().from(spTable).where(
+        _and(_eq(spTable.status, "posted"), gte(spTable.postedAt!, weekAgo))
+      );
+      const runs = await _db.select().from(arTable).where(gte(arTable.ranAt, weekAgo));
+
+      await sendWeeklyDigestEmail({
+        kpis: kpis.map(k => ({ workspace: k.businessTag, name: k.name, value: k.value, unit: k.unit })),
+        tasksCompleted: doneTasks.length,
+        postsPublished: publishedPosts.length,
+        automationsRan: runs.length,
+      });
+    } catch (err) {
+      logger.error(err, "Weekly digest failed");
     }
   });
 

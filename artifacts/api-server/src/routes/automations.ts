@@ -2,6 +2,14 @@ import { Router, type IRouter } from "express";
 import { db, automationsTable, automationRunsTable, agentsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { runAutomationById } from "../lib/cron";
+import { parseExpression } from "cron-parser";
+
+function calcNextRunAt(cron: string | undefined): Date | null {
+  if (!cron) return null;
+  try {
+    return parseExpression(cron, { tz: "America/New_York" }).next().toDate();
+  } catch { return null; }
+}
 
 const router: IRouter = Router();
 
@@ -45,9 +53,10 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { name, agentId, scheduleCron, promptTemplate, isActive } = req.body;
+    const nextRunAt = calcNextRunAt(scheduleCron);
     const [automation] = await db
       .insert(automationsTable)
-      .values({ name, agentId, scheduleCron, promptTemplate, isActive: isActive ?? true, status: "idle" })
+      .values({ name, agentId, scheduleCron, promptTemplate, isActive: isActive ?? true, status: "idle", nextRunAt })
       .returning();
 
     const [agent] = await db.select().from(agentsTable).where(eq(agentsTable.id, agentId));
@@ -58,89 +67,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Get automation
-router.get("/:id", async (req, res) => {
-  try {
-    const id = parseId(req.params.id);
-    if (id === null) return res.status(400).json({ error: "Invalid ID" });
-    const [row] = await db
-      .select({
-        id: automationsTable.id,
-        name: automationsTable.name,
-        agentId: automationsTable.agentId,
-        agentName: agentsTable.name,
-        agentIcon: agentsTable.icon,
-        agentColor: agentsTable.color,
-        scheduleCron: automationsTable.scheduleCron,
-        promptTemplate: automationsTable.promptTemplate,
-        lastRanAt: automationsTable.lastRanAt,
-        nextRunAt: automationsTable.nextRunAt,
-        isActive: automationsTable.isActive,
-        status: automationsTable.status,
-        lastOutput: automationsTable.lastOutput,
-        createdAt: automationsTable.createdAt,
-      })
-      .from(automationsTable)
-      .leftJoin(agentsTable, eq(automationsTable.agentId, agentsTable.id))
-      .where(eq(automationsTable.id, id));
-
-    if (!row) return res.status(404).json({ error: "Automation not found" });
-    res.json(row);
-  } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch automation" });
-  }
-});
-
-// Update automation
-router.patch("/:id", async (req, res) => {
-  try {
-    const id = parseId(req.params.id);
-    if (id === null) return res.status(400).json({ error: "Invalid ID" });
-    const { name, scheduleCron, promptTemplate, isActive } = req.body;
-    const updates: Record<string, unknown> = {};
-    if (name !== undefined) updates.name = name;
-    if (scheduleCron !== undefined) updates.scheduleCron = scheduleCron;
-    if (promptTemplate !== undefined) updates.promptTemplate = promptTemplate;
-    if (isActive !== undefined) updates.isActive = isActive;
-
-    const [updated] = await db.update(automationsTable).set(updates).where(eq(automationsTable.id, id)).returning();
-    if (!updated) return res.status(404).json({ error: "Automation not found" });
-
-    const [agent] = await db.select().from(agentsTable).where(eq(agentsTable.id, updated.agentId));
-    res.json({ ...updated, agentName: agent?.name, agentIcon: agent?.icon, agentColor: agent?.color });
-  } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to update automation" });
-  }
-});
-
-// Delete automation
-router.delete("/:id", async (req, res) => {
-  try {
-    const id = parseId(req.params.id);
-    if (id === null) return res.status(400).json({ error: "Invalid ID" });
-    const [deleted] = await db.delete(automationsTable).where(eq(automationsTable.id, id)).returning();
-    if (!deleted) return res.status(404).json({ error: "Automation not found" });
-    res.status(204).end();
-  } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to delete automation" });
-  }
-});
-
-// Run automation now
-router.post("/:id/run", async (req, res) => {
-  try {
-    const id = parseId(req.params.id);
-    if (id === null) return res.status(400).json({ error: "Invalid ID" });
-    const run = await runAutomationById(id);
-    res.json(run);
-  } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to run automation" });
-  }
-});
+// ── List / approve / discard runs — must be BEFORE /:id to avoid matching "runs" as an ID ──
 
 // List automation runs
 router.get("/runs", async (req, res) => {
@@ -189,7 +116,6 @@ router.post("/runs/:id/approve", async (req, res) => {
       .where(eq(automationRunsTable.id, id))
       .returning();
 
-    // Also update the automation's lastOutput
     await db
       .update(automationsTable)
       .set({ lastOutput: run.output, status: "idle" })
@@ -243,6 +169,93 @@ router.post("/runs/:id/discard", async (req, res) => {
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Failed to discard run" });
+  }
+});
+
+// Get automation
+router.get("/:id", async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ error: "Invalid ID" });
+    const [row] = await db
+      .select({
+        id: automationsTable.id,
+        name: automationsTable.name,
+        agentId: automationsTable.agentId,
+        agentName: agentsTable.name,
+        agentIcon: agentsTable.icon,
+        agentColor: agentsTable.color,
+        scheduleCron: automationsTable.scheduleCron,
+        promptTemplate: automationsTable.promptTemplate,
+        lastRanAt: automationsTable.lastRanAt,
+        nextRunAt: automationsTable.nextRunAt,
+        isActive: automationsTable.isActive,
+        status: automationsTable.status,
+        lastOutput: automationsTable.lastOutput,
+        createdAt: automationsTable.createdAt,
+      })
+      .from(automationsTable)
+      .leftJoin(agentsTable, eq(automationsTable.agentId, agentsTable.id))
+      .where(eq(automationsTable.id, id));
+
+    if (!row) return res.status(404).json({ error: "Automation not found" });
+    res.json(row);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to fetch automation" });
+  }
+});
+
+// Update automation
+router.patch("/:id", async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ error: "Invalid ID" });
+    const { name, scheduleCron, promptTemplate, isActive } = req.body;
+    const updates: Record<string, unknown> = {};
+    if (name !== undefined) updates.name = name;
+    if (scheduleCron !== undefined) {
+      updates.scheduleCron = scheduleCron;
+      updates.nextRunAt = calcNextRunAt(scheduleCron);
+    }
+    if (promptTemplate !== undefined) updates.promptTemplate = promptTemplate;
+    if (isActive !== undefined) updates.isActive = isActive;
+
+    const [updated] = await db.update(automationsTable).set(updates).where(eq(automationsTable.id, id)).returning();
+    if (!updated) return res.status(404).json({ error: "Automation not found" });
+
+    const [agent] = await db.select().from(agentsTable).where(eq(agentsTable.id, updated.agentId));
+    res.json({ ...updated, agentName: agent?.name, agentIcon: agent?.icon, agentColor: agent?.color });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to update automation" });
+  }
+});
+
+// Delete automation
+router.delete("/:id", async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ error: "Invalid ID" });
+    const [deleted] = await db.delete(automationsTable).where(eq(automationsTable.id, id)).returning();
+    if (!deleted) return res.status(404).json({ error: "Automation not found" });
+    res.status(204).end();
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to delete automation" });
+  }
+});
+
+// Run automation now
+router.post("/:id/run", async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ error: "Invalid ID" });
+    const run = await runAutomationById(id);
+    res.json(run);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to run automation" });
   }
 });
 
