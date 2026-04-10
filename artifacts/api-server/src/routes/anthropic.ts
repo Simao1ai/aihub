@@ -198,9 +198,166 @@ NEVER say you cannot post, cannot connect to Facebook, or need OAuth. You queue 
   }
 }
 
+// ── Build tool definitions for a given agent slug ────────────────────────────
+function buildAgentTools(agentSlug: string, excludeSlug?: string): any[] {
+  const otherSlugs = AGENT_ROSTER
+    .filter(a => a.slug !== (excludeSlug ?? agentSlug))
+    .map(a => a.slug);
+
+  const universal = [
+    {
+      name: "create_agent_handoff",
+      description: "Pass work to a specialist colleague agent. This ACTUALLY creates a new conversation for the target agent, pre-loaded with context, so they can immediately pick up where you left off.",
+      input_schema: {
+        type: "object",
+        properties: {
+          target_agent_slug: { type: "string", enum: otherSlugs },
+          context_summary: { type: "string" },
+          task_for_target: { type: "string" },
+        },
+        required: ["target_agent_slug", "context_summary", "task_for_target"],
+      },
+    },
+  ];
+
+  const soshi = agentSlug === "soshi" ? [
+    {
+      name: "save_posts_to_queue",
+      description: "Save drafted social media posts to the Social Queue for Simao's one-click review and publishing. Call this EVERY time you create posts.",
+      input_schema: {
+        type: "object",
+        properties: {
+          posts: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                platform: { type: "string", enum: ["meta", "linkedin", "twitter", "tiktok"] },
+                content:  { type: "string" },
+                topic:    { type: "string" },
+              },
+              required: ["platform", "content"],
+            },
+          },
+        },
+        required: ["posts"],
+      },
+    },
+  ] : [];
+
+  const pixel = agentSlug === "pixel" ? [
+    {
+      name: "generate_image_for_post",
+      description: "Generate a real AI image for a social media post and attach it to that post in the queue. Call this once per post after writing your image prompt.",
+      input_schema: {
+        type: "object",
+        properties: {
+          post_id:      { type: "number", description: "The social post ID (provided in the handoff)" },
+          image_prompt: { type: "string", description: "The detailed AI image prompt you crafted" },
+        },
+        required: ["post_id", "image_prompt"],
+      },
+    },
+  ] : [];
+
+  return [...universal, ...soshi, ...pixel];
+}
+
+// ── Execute a single tool call — used in both the main handler and auto-respond
+async function executeToolCall(
+  toolUse: any,
+  ctx: { convId: number; agentName: string; agentSlug: string; businessTag: string },
+  sseWrite?: (data: object) => void,
+): Promise<{ tool_use_id: string; content: string; is_error?: boolean }> {
+  const { convId, agentName, businessTag } = ctx;
+  const write = sseWrite ?? (() => {});
+
+  if (toolUse.name === "create_agent_handoff") {
+    const input = toolUse.input as { target_agent_slug: string; context_summary: string; task_for_target: string };
+    try {
+      const [targetAgent] = await db.select().from(agentsTable).where(eq(agentsTable.slug, input.target_agent_slug));
+      if (!targetAgent) throw new Error(`Agent "${input.target_agent_slug}" not found`);
+
+      const targetInfo = AGENT_ROSTER.find(a => a.slug === input.target_agent_slug);
+      const seedMessage = [
+        `${agentName} is handing this work to you.`,
+        `\n**What was worked on:**\n${input.context_summary}`,
+        `\n**Your task:**\n${input.task_for_target}`,
+        `\nPlease pick up immediately and deliver your best work.`,
+      ].join("\n");
+
+      const [newConv] = await db.insert(conversations).values({
+        title: `From ${agentName} — ${new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
+        agentId: targetAgent.id,
+        businessTag,
+      }).returning();
+
+      await db.insert(messages).values({ conversationId: newConv.id, role: "user", content: seedMessage });
+
+      write({ agentHandoff: {
+        conversationId: newConv.id, agentId: targetAgent.id,
+        agentSlug: input.target_agent_slug, agentName: targetAgent.name,
+        agentIcon: targetInfo?.icon ?? "🤖",
+      }});
+
+      // Auto-respond in target agent's conversation (fire-and-forget)
+      autoRespondAfterHandoff(targetAgent, newConv.id, businessTag, seedMessage)
+        .catch(e => console.error("Auto-respond error:", e));
+
+      return {
+        tool_use_id: toolUse.id,
+        content: `Handed off to ${targetAgent.name}. New conversation ID: ${newConv.id}. ${targetAgent.name} is generating their response now.`,
+      };
+    } catch (err: any) {
+      return { tool_use_id: toolUse.id, content: err.message ?? "Handoff failed", is_error: true };
+    }
+  }
+
+  if (toolUse.name === "save_posts_to_queue") {
+    const input = toolUse.input as { posts: { platform: string; content: string; topic?: string }[] };
+    const savedPosts: any[] = [];
+    for (const post of input.posts) {
+      const [saved] = await db.insert(socialPostsTable).values({
+        platform: post.platform, content: post.content, topic: post.topic ?? null,
+        businessTag, status: "pending_approval", aiGenerated: true, agentSlug: "soshi",
+      }).returning();
+      savedPosts.push(saved);
+      write({ socialPostSaved: { id: saved.id, platform: saved.platform, topic: saved.topic } });
+    }
+    const postSummary = savedPosts.map(p => `- Post ID ${p.id} (${p.platform}): "${p.content.slice(0, 100)}..."`).join("\n");
+    return {
+      tool_use_id: toolUse.id,
+      content: `Saved ${savedPosts.length} post(s) to the Social Queue.\n\nPOST IDs for PIXEL:\n${postSummary}\n\nNow call create_agent_handoff with target "pixel". Include ALL Post IDs and the full post content in task_for_target so PIXEL can generate one image per post.`,
+    };
+  }
+
+  if (toolUse.name === "generate_image_for_post") {
+    const input = toolUse.input as { post_id: number; image_prompt: string };
+    try {
+      if (!fs.existsSync(IMAGES_DIR)) fs.mkdirSync(IMAGES_DIR, { recursive: true });
+      const buffer = await generateImageBuffer(input.image_prompt, "1024x1024");
+      const filename = `social-${input.post_id}-${Date.now()}.png`;
+      const filepath = path.join(IMAGES_DIR, filename);
+      fs.writeFileSync(filepath, buffer);
+      const imageUrl = `/api/generated-images/${filename}`;
+      await db.update(socialPostsTable)
+        .set({ imageUrl, imagePrompt: input.image_prompt, updatedAt: new Date() })
+        .where(eq(socialPostsTable.id, input.post_id));
+      write({ imageGenerated: { postId: input.post_id, imageUrl } });
+      return { tool_use_id: toolUse.id, content: `Image generated and attached to Post #${input.post_id} at ${imageUrl}.` };
+    } catch (imgErr: any) {
+      await db.update(socialPostsTable)
+        .set({ imagePrompt: input.image_prompt, updatedAt: new Date() })
+        .where(eq(socialPostsTable.id, input.post_id));
+      return { tool_use_id: toolUse.id, content: `Image generation failed: ${imgErr.message}. Prompt saved for manual generation.`, is_error: true };
+    }
+  }
+
+  return { tool_use_id: toolUse.id, content: "Unknown tool", is_error: true };
+}
+
 // ── Auto-respond on behalf of a target agent after handoff ───────────────────
-// Builds the agent's full system prompt and gets an immediate AI response so
-// the conversation is live the moment the user opens it.
+// Runs a full tool-use loop so PIXEL can actually generate images, not just describe them.
 async function autoRespondAfterHandoff(
   targetAgent: { id: number; name: string; slug: string; systemPrompt: string | null },
   newConvId: number,
@@ -208,24 +365,19 @@ async function autoRespondAfterHandoff(
   seedMessage: string,
 ): Promise<void> {
   try {
-    // Workspace context
     let businessContext = "";
     try {
       const [ws] = await db.select().from(workspacesTable).where(eq(workspacesTable.slug, businessTag));
-      if (ws?.businessContext) {
-        businessContext = `━━━ BUSINESS CONTEXT ━━━\n${ws.businessContext}\n━━━━━━━━━━━━━━━━━━━━`;
-      } else if (ws?.name) {
-        businessContext = `━━━ BUSINESS CONTEXT ━━━\nYou are working in the "${ws.name}" workspace for Simao Alves.\n━━━━━━━━━━━━━━━━━━━━`;
-      } else {
-        businessContext = `━━━ BUSINESS CONTEXT ━━━\nYou are working for Simao Alves, a serial entrepreneur with 5 active businesses.\n━━━━━━━━━━━━━━━━━━━━`;
-      }
-    } catch { /* use default */ }
+      businessContext = ws?.businessContext
+        ? `━━━ BUSINESS CONTEXT ━━━\n${ws.businessContext}\n━━━━━━━━━━━━━━━━━━━━`
+        : ws?.name
+          ? `━━━ BUSINESS CONTEXT ━━━\nYou are working in the "${ws.name}" workspace for Simao Alves.\n━━━━━━━━━━━━━━━━━━━━`
+          : `━━━ BUSINESS CONTEXT ━━━\nYou are working for Simao Alves, a serial entrepreneur with 5 active businesses.\n━━━━━━━━━━━━━━━━━━━━`;
+    } catch { /* default */ }
 
     const soshiContext = targetAgent.slug === "soshi" ? await getSoshiConnectionsContext() : "";
     const brainContext = await getBrainContext(seedMessage);
-    const brainBlock = brainContext
-      ? `━━━ BRAIN DOCUMENTS (knowledge base) ━━━\n${brainContext}\n━━━━━━━━━━━━━━━━━━━━`
-      : "";
+    const brainBlock = brainContext ? `━━━ BRAIN DOCUMENTS ━━━\n${brainContext}\n━━━━━━━━━━━━━━━━━━━━` : "";
 
     const systemPrompt = [
       buildHubIdentityBlock(targetAgent.name),
@@ -236,23 +388,51 @@ async function autoRespondAfterHandoff(
       brainBlock,
     ].filter(Boolean).join("\n\n");
 
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 4096,
-      system: systemPrompt,
-      messages: [{ role: "user", content: seedMessage }],
-    });
+    const tools = buildAgentTools(targetAgent.slug);
+    let loopMessages: any[] = [{ role: "user", content: seedMessage }];
+    let finalText = "";
 
-    const textContent = response.content.find((b: any) => b.type === "text");
-    if (textContent && textContent.type === "text" && textContent.text) {
-      await db.insert(messages).values({
-        conversationId: newConvId,
-        role: "assistant",
-        content: textContent.text,
+    for (let round = 0; round < 5; round++) {
+      const resp = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: loopMessages,
+        tools,
+        tool_choice: { type: "auto" },
       });
+
+      if (resp.stop_reason !== "tool_use") {
+        const textBlock = resp.content.find((b: any) => b.type === "text");
+        if (textBlock?.type === "text") finalText = textBlock.text;
+        break;
+      }
+
+      // Collect text generated before tool calls (if any)
+      const partialText = resp.content.filter((b: any) => b.type === "text").map((b: any) => b.text).join("");
+      if (partialText) finalText += partialText;
+
+      const toolUseBlocks = resp.content.filter((b: any) => b.type === "tool_use");
+      const toolResults: any[] = [];
+      for (const toolUse of toolUseBlocks) {
+        const result = await executeToolCall(
+          toolUse,
+          { convId: newConvId, agentName: targetAgent.name, agentSlug: targetAgent.slug, businessTag },
+        );
+        toolResults.push({ type: "tool_result", ...result });
+      }
+
+      loopMessages = [
+        ...loopMessages,
+        { role: "assistant", content: resp.content },
+        { role: "user", content: toolResults },
+      ];
+    }
+
+    if (finalText) {
+      await db.insert(messages).values({ conversationId: newConvId, role: "assistant", content: finalText });
     }
   } catch (err) {
-    // Non-fatal: if auto-response fails, the user can still open and prompt manually
     console.error("autoRespondAfterHandoff error:", err);
   }
 }
@@ -502,267 +682,65 @@ router.post("/conversations/:id/messages", async (req, res) => {
 
     let fullResponse = "";
 
-    // ── Universal tool definitions ────────────────────────────────────────────
-    // ALL 16 agents get create_agent_handoff. SOSHI also gets save_posts_to_queue.
-    const otherAgentSlugs = AGENT_ROSTER
-      .filter(a => a.slug !== agent.slug)
-      .map(a => a.slug);
+    // ── Multi-turn tool loop ───────────────────────────────────────────────────
+    // Runs up to 6 non-streaming rounds of tool calls (so SOSHI can call
+    // save_posts_to_queue in round 1, then create_agent_handoff in round 2, etc.)
+    // then streams the final text to the client.
+    const agentTools = buildAgentTools(agent.slug);
+    const sseWrite = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
-    const universalTools: any[] = [
-      {
-        name: "create_agent_handoff",
-        description: "Pass work to a specialist colleague agent. This ACTUALLY creates a new conversation for the target agent, pre-loaded with context, so they can immediately pick up where you left off. Use this whenever the work reaches the edge of your specialty — don't just mention the colleague, actually hand off to them.",
-        input_schema: {
-          type: "object",
-          properties: {
-            target_agent_slug: {
-              type: "string",
-              enum: otherAgentSlugs,
-              description: "Which agent to hand off to (slug: compass, outreach, inkwell, scout, ops, desk, cassie, soshi, finn, seomi, dexie, emma, milli, hiro, lex, nova, pixel)",
-            },
-            context_summary: {
-              type: "string",
-              description: "What was worked on in this conversation — what the target agent needs to know to continue seamlessly",
-            },
-            task_for_target: {
-              type: "string",
-              description: "The specific task or deliverable you are asking the target agent to produce",
-            },
-          },
-          required: ["target_agent_slug", "context_summary", "task_for_target"],
-        },
-      },
-    ];
+    let loopMessages: any[] = [...chatMessages];
+    let finalBlocks: any[] = [];
 
-    // PIXEL-only: generate a real image for a queued social post
-    const pixelOnlyTools: any[] = agent.slug === "pixel" ? [
-      {
-        name: "generate_image_for_post",
-        description: "Generate a real AI image for a social media post that SOSHI already saved to the queue. This ACTUALLY creates an image using OpenAI and attaches it directly to the queued post so Simao can see it in the Social Queue alongside the post text. Call this once per post after writing your image prompt.",
-        input_schema: {
-          type: "object",
-          properties: {
-            post_id: {
-              type: "number",
-              description: "The ID of the social post saved by SOSHI (provided in the handoff message)",
-            },
-            image_prompt: {
-              type: "string",
-              description: "The detailed AI image prompt you have crafted — this is what gets sent to the image generator",
-            },
-          },
-          required: ["post_id", "image_prompt"],
-        },
-      },
-    ] : [];
+    for (let round = 0; round < 6; round++) {
+      const loopResp = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 8192,
+        system: systemPrompt,
+        messages: loopMessages,
+        tools: agentTools,
+        tool_choice: { type: "auto" },
+      });
 
-    // SOSHI-only: save social posts directly to the queue
-    const soshiOnlyTools: any[] = agent.slug === "soshi" ? [
-      {
-        name: "save_posts_to_queue",
-        description: "Save drafted social media posts to the Social Queue for Simao's one-click review and publishing. Call this EVERY time you create posts that Simao wants scheduled or published.",
-        input_schema: {
-          type: "object",
-          properties: {
-            posts: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  platform: { type: "string", enum: ["meta", "linkedin", "twitter", "tiktok"] },
-                  content:  { type: "string", description: "Complete post text with hashtags" },
-                  topic:    { type: "string", description: "Short topic label" },
-                },
-                required: ["platform", "content"],
-              },
-            },
-          },
-          required: ["posts"],
-        },
-      },
-    ] : [];
-
-    const agentTools = [...universalTools, ...soshiOnlyTools, ...pixelOnlyTools];
-
-    // ── Phase 1: call Claude with tools (non-streaming) ───────────────────────
-    const phase1 = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8192,
-      system: systemPrompt,
-      messages: chatMessages,
-      tools: agentTools,
-      tool_choice: { type: "auto" },
-    });
-
-    if (phase1.stop_reason === "tool_use") {
-      // ── Execute tool calls ────────────────────────────────────────────────
-      const toolUseBlocks = phase1.content.filter((b: any) => b.type === "tool_use");
-      const toolResults: any[] = [];
-
-      for (const toolUse of toolUseBlocks) {
-        if (toolUse.type !== "tool_use") continue;
-
-        // ── Tool: create_agent_handoff (available to ALL agents) ────────────
-        if (toolUse.name === "create_agent_handoff") {
-          const input = toolUse.input as {
-            target_agent_slug: string;
-            context_summary: string;
-            task_for_target: string;
-          };
-          try {
-            const [targetAgent] = await db.select().from(agentsTable).where(eq(agentsTable.slug, input.target_agent_slug));
-            if (targetAgent) {
-              const targetInfo = AGENT_ROSTER.find(a => a.slug === input.target_agent_slug);
-              const seedMessage = [
-                `${agent.name} is handing this work to you. Here is the context:`,
-                `\n**What was worked on:**\n${input.context_summary}`,
-                `\n**Your task:**\n${input.task_for_target}`,
-                `\nPlease pick up immediately and deliver your best work.`,
-              ].join("\n");
-
-              const [newConv] = await db.insert(conversations).values({
-                title: `From ${agent.name} — ${new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
-                agentId: targetAgent.id,
-                businessTag: conv.businessTag,
-              }).returning();
-
-              await db.insert(messages).values({
-                conversationId: newConv.id,
-                role: "user",
-                content: seedMessage,
-              });
-
-              // Notify frontend with full details for the toast
-              res.write(`data: ${JSON.stringify({
-                agentHandoff: {
-                  conversationId: newConv.id,
-                  agentId: targetAgent.id,
-                  agentSlug: input.target_agent_slug,
-                  agentName: targetAgent.name,
-                  agentIcon: targetInfo?.icon ?? "🤖",
-                }
-              })}\n\n`);
-
-              // Fire-and-forget: get the target agent's immediate response
-              autoRespondAfterHandoff(targetAgent, newConv.id, conv.businessTag, seedMessage)
-                .catch(e => console.error("Auto-respond error:", e));
-
-              toolResults.push({
-                type: "tool_result",
-                tool_use_id: toolUse.id,
-                content: `Successfully handed off to ${targetAgent.name}. A new conversation (ID: ${newConv.id}) has been created and ${targetAgent.name} is generating their response now. Simao will see a notification to open it.`,
-              });
-            }
-          } catch {
-            toolResults.push({
-              type: "tool_result",
-              tool_use_id: toolUse.id,
-              content: "Could not create the handoff conversation — please describe the next steps for the colleague in your response.",
-              is_error: true,
-            });
-          }
-        }
-
-        // ── Tool: save_posts_to_queue (SOSHI only) ─────────────────────────
-        if (toolUse.name === "save_posts_to_queue") {
-          const input = toolUse.input as { posts: { platform: string; content: string; topic?: string }[] };
-          const savedPosts: any[] = [];
-          for (const post of input.posts) {
-            const [saved] = await db.insert(socialPostsTable).values({
-              platform: post.platform,
-              content: post.content,
-              topic: post.topic ?? null,
-              businessTag: conv.businessTag,
-              status: "pending_approval",
-              aiGenerated: true,
-              agentSlug: "soshi",
-            }).returning();
-            savedPosts.push(saved);
-            res.write(`data: ${JSON.stringify({ socialPostSaved: { id: saved.id, platform: saved.platform, topic: saved.topic } })}\n\n`);
-          }
-          // Include post IDs so SOSHI can pass them to PIXEL in the handoff message
-          const postSummary = savedPosts.map(p => `- Post ID ${p.id} (${p.platform}): "${p.content.slice(0, 80)}..."`).join("\n");
-          toolResults.push({
-            type: "tool_result",
-            tool_use_id: toolUse.id,
-            content: `Successfully saved ${savedPosts.length} post(s) to the Social Queue.\n\nPOST IDs (pass these to PIXEL in your handoff):\n${postSummary}\n\nNow call create_agent_handoff with target "pixel" and include the Post IDs and full post content so PIXEL can generate images for each.`,
-          });
-        }
-
-        // ── Tool: generate_image_for_post (PIXEL only) ─────────────────────
-        if (toolUse.name === "generate_image_for_post") {
-          const input = toolUse.input as { post_id: number; image_prompt: string };
-          try {
-            // Ensure images directory exists
-            if (!fs.existsSync(IMAGES_DIR)) fs.mkdirSync(IMAGES_DIR, { recursive: true });
-
-            // Generate the image
-            const buffer = await generateImageBuffer(input.image_prompt, "1024x1024");
-
-            const filename = `social-${input.post_id}-${Date.now()}.png`;
-            const filepath = path.join(IMAGES_DIR, filename);
-            fs.writeFileSync(filepath, buffer);
-
-            const imageUrl = `/api/generated-images/${filename}`;
-
-            // Attach image to the social post
-            await db.update(socialPostsTable)
-              .set({ imageUrl, imagePrompt: input.image_prompt, updatedAt: new Date() })
-              .where(eq(socialPostsTable.id, input.post_id));
-
-            // Notify frontend of the image attachment
-            res.write(`data: ${JSON.stringify({ imageGenerated: { postId: input.post_id, imageUrl } })}\n\n`);
-
-            toolResults.push({
-              type: "tool_result",
-              tool_use_id: toolUse.id,
-              content: `Image generated and attached to Post #${input.post_id}. Simao will see the image alongside the post text in the Social Queue. Image saved at: ${imageUrl}`,
-            });
-          } catch (imgErr: any) {
-            toolResults.push({
-              type: "tool_result",
-              tool_use_id: toolUse.id,
-              content: `Image generation failed: ${imgErr.message}. The image prompt has been noted — Simao can manually trigger generation from the Social Queue.`,
-              is_error: true,
-            });
-            // Still save the prompt even if generation failed
-            await db.update(socialPostsTable)
-              .set({ imagePrompt: input.image_prompt, updatedAt: new Date() })
-              .where(eq(socialPostsTable.id, input.post_id));
-          }
-        }
+      if (loopResp.stop_reason !== "tool_use") {
+        finalBlocks = loopResp.content;
+        break;
       }
 
-      // ── Phase 2: stream final response after tool results ─────────────────
-      const phase2Messages: any[] = [
-        ...chatMessages,
-        { role: "assistant", content: phase1.content },
+      const toolUseBlocks = loopResp.content.filter((b: any) => b.type === "tool_use");
+      const toolResults: any[] = [];
+      for (const toolUse of toolUseBlocks) {
+        if (toolUse.type !== "tool_use") continue;
+        const result = await executeToolCall(
+          toolUse,
+          { convId: id, agentName: agent.name, agentSlug: agent.slug, businessTag: conv.businessTag },
+          sseWrite,
+        );
+        toolResults.push({ type: "tool_result", ...result });
+      }
+
+      loopMessages = [
+        ...loopMessages,
+        { role: "assistant", content: loopResp.content },
         { role: "user", content: toolResults },
       ];
 
-      const stream2 = anthropic.messages.stream({
-        model: "claude-sonnet-4-6",
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: phase2Messages,
-        tools: agentTools,
-      });
-
-      for await (const event of stream2) {
-        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-          fullResponse += event.delta.text;
-          res.write(`data: ${JSON.stringify({ content: event.delta.text })}\n\n`);
-        }
+      // Safety: if we hit the last round and still in tool_use, get a final response
+      if (round === 5) {
+        const finalResp = await anthropic.messages.create({
+          model: "claude-sonnet-4-6", max_tokens: 2048, system: systemPrompt, messages: loopMessages,
+        });
+        finalBlocks = finalResp.content;
       }
-    } else {
-      // ── No tool use: stream the text from phase1 in chunks ────────────────
-      for (const block of phase1.content) {
-        if (block.type === "text") {
-          fullResponse += block.text;
-          const chunks = block.text.match(/.{1,120}/g) ?? [block.text];
-          for (const chunk of chunks) {
-            res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
-          }
+    }
+
+    // ── Stream final text to client ────────────────────────────────────────────
+    for (const block of finalBlocks) {
+      if (block.type === "text") {
+        fullResponse += block.text;
+        const chunks = block.text.match(/.{1,120}/g) ?? [block.text];
+        for (const chunk of chunks) {
+          res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
         }
       }
     }
