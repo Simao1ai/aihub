@@ -19,12 +19,15 @@ function getStoredToken(): string | null {
 setAuthTokenGetter(getStoredToken);
 
 // Global fetch interceptor — adds Bearer token to all /api/* calls
+// and handles 401 (expired session) by logging out and redirecting to login
 const _originalFetch = window.fetch.bind(window);
-window.fetch = (input: RequestInfo | URL, init: RequestInit = {}) => {
+window.fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
   const url = typeof input === "string" ? input
     : input instanceof URL ? input.toString()
     : (input as Request).url;
-  if (url.startsWith("/api/") && !url.startsWith("/api/auth/login") && !url.startsWith("/api/auth/workspaces")) {
+  const isApi = url.startsWith("/api/");
+  const isPublic = url.startsWith("/api/auth/login") || url.startsWith("/api/auth/workspaces");
+  if (isApi && !isPublic) {
     const token = getStoredToken();
     if (token) {
       const headers = new Headers(init.headers);
@@ -32,7 +35,13 @@ window.fetch = (input: RequestInfo | URL, init: RequestInit = {}) => {
       init = { ...init, headers };
     }
   }
-  return _originalFetch(input, init);
+  const response = await _originalFetch(input, init);
+  // On 401, session has expired — clear stored auth and redirect to login
+  if (response.status === 401 && isApi && !isPublic) {
+    try { localStorage.removeItem("ai-hub-storage"); } catch {}
+    window.location.href = "/login";
+  }
+  return response;
 };
 
 // Layout & Pages

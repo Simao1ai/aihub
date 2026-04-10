@@ -807,12 +807,26 @@ export default function Social() {
   const handleApprove = async (post: SocialPost) => {
     try {
       const res = await fetch(`/api/social-posts/${post.id}/approve`, { method: 'POST' });
-      if (!res.ok) throw new Error();
-      const updated: SocialPost = await res.json();
-      handlePostCreated(updated);
-      showGlobalToast('Post approved!');
+      const result = await res.json();
+      if (!res.ok) {
+        showGlobalToast(result?.error ?? 'Failed to approve', 'error');
+        return;
+      }
+      // Auto-published: check whether the publish itself succeeded
+      if (result.autoPublished) {
+        if (result.post) handlePostCreated(result.post);
+        if (result.success) {
+          showGlobalToast(`Approved & published to ${PLATFORMS[post.platform]?.label ?? post.platform}! 🎉`);
+        } else {
+          showGlobalToast(result.errorMessage ?? 'Approved but publishing failed — check connection credentials', 'error');
+        }
+      } else {
+        // Just approved (scheduled or no connection), no immediate publish
+        handlePostCreated(result);
+        showGlobalToast('Post approved!');
+      }
     } catch {
-      showGlobalToast('Failed to approve', 'error');
+      showGlobalToast('Failed to approve — check your connection', 'error');
     }
   };
 
