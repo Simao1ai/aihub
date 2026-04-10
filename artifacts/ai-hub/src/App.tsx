@@ -36,10 +36,12 @@ window.fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
     }
   }
   const response = await _originalFetch(input, init);
-  // On 401, session has expired — clear stored auth and redirect to login
+  // On 401, session has expired — clear stored auth, redirect to login, and throw
+  // so that component-level catch blocks don't try to parse the error body as data
   if (response.status === 401 && isApi && !isPublic) {
     try { localStorage.removeItem("ai-hub-storage"); } catch {}
     window.location.href = "/login";
+    throw new Error("Session expired");
   }
   return response;
 };

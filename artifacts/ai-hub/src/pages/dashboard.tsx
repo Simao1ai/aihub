@@ -37,7 +37,9 @@ function KpiSection({ businessTag }: { businessTag: string }) {
   const load = useCallback(async () => {
     try {
       const res = await fetch(`/api/kpis?businessTag=${businessTag}`);
-      setKpis(await res.json());
+      if (!res.ok) { setKpis([]); return; }
+      const data = await res.json();
+      setKpis(Array.isArray(data) ? data : []);
     } catch { setKpis([]); }
   }, [businessTag]);
 
