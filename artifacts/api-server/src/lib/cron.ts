@@ -5,6 +5,7 @@ import { eq, lte, and, isNotNull, isNull } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { logger } from "./logger";
 import { sendAutomationCompletedEmail, sendPostPublishedEmail } from "./email";
+import { startLesaFbSchedule } from "./lesa-fb/agent";
 
 // ── Calculate next run time from a cron expression ─────────────────────────
 export function getNextRunAt(cronExpression: string): Date | null {
@@ -188,6 +189,9 @@ export function startCronScheduler() {
       logger.error(err, "Weekly digest failed");
     }
   });
+
+  // Start LESA FB autonomous posting schedule (Mon/Wed/Fri 9:15am ET, soft gate)
+  startLesaFbSchedule();
 
   logger.info("Automation cron scheduler started");
 }

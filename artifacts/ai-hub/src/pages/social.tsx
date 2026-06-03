@@ -4,7 +4,8 @@ import { format, formatDistanceToNow } from 'date-fns';
 import {
   Share2, Sparkles, Send, Check, X, Edit3, Trash2,
   Clock, ChevronDown, RefreshCw, AlertCircle, BarChart2,
-  ThumbsUp, Eye, Repeat2, MessageCircle, TrendingUp, Plus, Bot, Calendar, Copy, ExternalLink
+  ThumbsUp, Eye, Repeat2, MessageCircle, TrendingUp, Plus, Bot, Calendar, Copy, ExternalLink,
+  Zap, Power, PlayCircle, Eye as EyeIcon
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { cn } from '@/components/ui-elements';
@@ -884,6 +885,68 @@ export default function Social() {
     }
   };
 
+  // ── LESA FB Agent state ──────────────────────────────────────────────────
+  const [lesaFbStatus, setLesaFbStatus] = useState<{
+    enabled: boolean;
+    postCount: number;
+    lastError: string | null;
+    recent: { at: string; theme: string; postId: string; text: string }[];
+    schedule: string;
+  } | null>(null);
+  const [lesaFbPreview, setLesaFbPreview] = useState<{ theme: string; text: string; safety: { ok: boolean; reasons: string[] } } | null>(null);
+  const [lesaFbLoading, setLesaFbLoading] = useState<'preview' | 'run' | 'toggle' | null>(null);
+  const [showLesaPreview, setShowLesaPreview] = useState(false);
+
+  const loadLesaFbStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/agents/lesa-fb/status');
+      if (res.ok) setLesaFbStatus(await res.json());
+    } catch {}
+  }, []);
+
+  useEffect(() => { loadLesaFbStatus(); }, [loadLesaFbStatus]);
+
+  const handleLesaToggle = async () => {
+    if (!lesaFbStatus) return;
+    setLesaFbLoading('toggle');
+    try {
+      const res = await fetch('/api/agents/lesa-fb/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: !lesaFbStatus.enabled }),
+      });
+      if (res.ok) { const data = await res.json(); setLesaFbStatus(s => s ? { ...s, enabled: data.enabled } : s); }
+    } finally { setLesaFbLoading(null); }
+  };
+
+  const handleLesaPreview = async () => {
+    setLesaFbLoading('preview');
+    setLesaFbPreview(null);
+    setShowLesaPreview(true);
+    try {
+      const res = await fetch('/api/agents/lesa-fb/preview', { method: 'POST' });
+      if (res.ok) setLesaFbPreview(await res.json());
+    } finally { setLesaFbLoading(null); }
+  };
+
+  const handleLesaRunNow = async () => {
+    setLesaFbLoading('run');
+    try {
+      const res = await fetch('/api/agents/lesa-fb/run-now', { method: 'POST' });
+      const result = await res.json();
+      if (result.status === 'queued') {
+        showGlobalToast('✅ LESA post queued for approval! Check the Approval Queue.');
+        await Promise.all([loadPosts(), loadLesaFbStatus()]);
+      } else if (result.status === 'disabled') {
+        showGlobalToast('Agent is disabled — toggle it on first', 'error');
+      } else {
+        showGlobalToast(result.detail ?? 'Run complete', result.status === 'error' ? 'error' : 'success');
+      }
+    } catch {
+      showGlobalToast('Failed to run agent', 'error');
+    } finally { setLesaFbLoading(null); }
+  };
+
   const queuePosts = posts.filter(p => p.status === 'pending_approval' || p.status === 'approved');
   const historyPosts = posts.filter(p => p.status === 'posted' || p.status === 'failed');
   const socialConnections = connections.filter(c => ['linkedin', 'twitter', 'meta'].includes(c.platform));
@@ -1002,6 +1065,136 @@ export default function Social() {
                       <li>🏷️ Keep Twitter posts under 240 chars for best reach</li>
                     </ul>
                   </div>
+
+                  {/* LESA FB Agent card */}
+                  <div className="bg-[#111520] border border-white/5 rounded-2xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-[#1877f2]/15 flex items-center justify-center text-xs">f</div>
+                        <h3 className="text-xs font-semibold text-white">LESA Auto-Poster</h3>
+                      </div>
+                      {lesaFbStatus && (
+                        <button
+                          onClick={handleLesaToggle}
+                          disabled={lesaFbLoading === 'toggle'}
+                          className={cn(
+                            "relative w-9 h-5 rounded-full transition-all",
+                            lesaFbStatus.enabled ? 'bg-emerald-500' : 'bg-white/10'
+                          )}
+                        >
+                          <span className={cn(
+                            "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all",
+                            lesaFbStatus.enabled ? 'left-[18px]' : 'left-0.5'
+                          )} />
+                        </button>
+                      )}
+                    </div>
+
+                    {!lesaFbStatus ? (
+                      <p className="text-[11px] text-white/25">Loading...</p>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn("w-1.5 h-1.5 rounded-full", lesaFbStatus.enabled ? 'bg-emerald-400' : 'bg-white/20')} />
+                          <span className="text-[11px] text-white/40">
+                            {lesaFbStatus.enabled ? 'Mon/Wed/Fri · 9:15am ET' : 'Paused'}
+                          </span>
+                          <span className="ml-auto text-[11px] text-white/25">{lesaFbStatus.postCount} queued</span>
+                        </div>
+
+                        {lesaFbStatus.lastError && (
+                          <div className="text-[10px] text-red-400/80 bg-red-500/5 rounded-lg px-2 py-1.5 leading-relaxed">
+                            ⚠ {lesaFbStatus.lastError.slice(0, 80)}
+                          </div>
+                        )}
+
+                        {lesaFbStatus.recent.length > 0 && (
+                          <div className="text-[10px] text-white/25 leading-relaxed">
+                            Last: {lesaFbStatus.recent[0].theme.replace(/_/g, ' ')} · {formatDistanceToNow(new Date(lesaFbStatus.recent[0].at), { addSuffix: true })}
+                          </div>
+                        )}
+
+                        <div className="flex gap-1.5 pt-0.5">
+                          <button
+                            onClick={handleLesaPreview}
+                            disabled={!!lesaFbLoading}
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/8 text-white/50 hover:text-white text-[11px] transition-all disabled:opacity-40"
+                          >
+                            <EyeIcon className="w-3 h-3" />
+                            {lesaFbLoading === 'preview' ? '...' : 'Preview'}
+                          </button>
+                          <button
+                            onClick={handleLesaRunNow}
+                            disabled={!!lesaFbLoading}
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-[#1877f2]/15 border border-[#1877f2]/20 text-[#1877f2] hover:bg-[#1877f2]/25 text-[11px] font-medium transition-all disabled:opacity-40"
+                          >
+                            <Zap className="w-3 h-3" />
+                            {lesaFbLoading === 'run' ? 'Running...' : 'Run Now'}
+                          </button>
+                        </div>
+
+                        <p className="text-[10px] text-white/20 leading-relaxed">
+                          Posts land in Approval Queue for your review before publishing to LESA's Facebook page.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* LESA preview modal */}
+                  <AnimatePresence>
+                    {showLesaPreview && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLesaPreview(false)}>
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          className="w-full max-w-md bg-[#131622] border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-lg bg-[#1877f2]/15 flex items-center justify-center text-xs">f</div>
+                              <div>
+                                <h2 className="text-sm font-bold text-white">LESA Post Preview</h2>
+                                {lesaFbPreview && <p className="text-[10px] text-white/35 capitalize">{lesaFbPreview.theme.replace(/_/g, ' ')}</p>}
+                              </div>
+                            </div>
+                            <button onClick={() => setShowLesaPreview(false)} className="text-white/40 hover:text-white"><X className="w-4 h-4" /></button>
+                          </div>
+                          <div className="p-5 space-y-4">
+                            {lesaFbLoading === 'preview' && !lesaFbPreview ? (
+                              <div className="flex items-center justify-center py-8 gap-2 text-white/30 text-sm">
+                                <RefreshCw className="w-4 h-4 animate-spin" /> Generating preview...
+                              </div>
+                            ) : lesaFbPreview ? (
+                              <>
+                                <div className="bg-white/3 border border-white/5 rounded-xl p-4 text-sm text-white/80 leading-relaxed whitespace-pre-wrap">
+                                  {lesaFbPreview.text}
+                                </div>
+                                <div className="flex items-center justify-between text-[11px] text-white/30">
+                                  <span>{lesaFbPreview.text.length} chars</span>
+                                  <span className={lesaFbPreview.safety.ok ? 'text-emerald-400' : 'text-red-400'}>
+                                    {lesaFbPreview.safety.ok ? '✓ Brand safety pass' : `⚠ ${lesaFbPreview.safety.reasons[0]}`}
+                                  </span>
+                                </div>
+                                <div className="flex gap-2 pt-1">
+                                  <button onClick={() => setShowLesaPreview(false)} className="flex-1 py-2.5 rounded-xl border border-white/8 text-white/40 hover:text-white text-sm transition-all">
+                                    Close
+                                  </button>
+                                  <button
+                                    onClick={() => { setShowLesaPreview(false); handleLesaRunNow(); }}
+                                    className="flex-1 py-2.5 rounded-xl bg-[#1877f2] text-white text-sm font-semibold hover:bg-[#1877f2]/90 transition-all"
+                                  >
+                                    Queue this post
+                                  </button>
+                                </div>
+                              </>
+                            ) : null}
+                          </div>
+                        </motion.div>
+                      </div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             </motion.div>

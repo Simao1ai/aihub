@@ -14,6 +14,7 @@ import kpisRouter from "./kpis";
 import powerUpsRouter from "./power-ups";
 import socialPostsRouter from "./social-posts";
 import adsRouter from "./ads";
+import lesaFbRouter from "./lesa-fb";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use("/kpis", kpisRouter);
 router.use("/power-ups", powerUpsRouter);
 router.use("/social-posts", socialPostsRouter);
 router.use("/ads", adsRouter);
+router.use("/agents/lesa-fb", lesaFbRouter);
 
 export default router;
