@@ -30,6 +30,7 @@ timeoutMs = 20000
 
 [userenv.shared]
 APP_PASSWORD = "aihub2024"
+FB_PAGE_ID = "100063792300982"
 
 [nix]
 channel = "stable-25_05"
