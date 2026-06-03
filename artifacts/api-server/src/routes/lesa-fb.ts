@@ -8,7 +8,7 @@ import { runCycle, startLesaFbSchedule, stopLesaFbSchedule } from "../lib/lesa-f
 import { loadState, saveState } from "../lib/lesa-fb/state";
 import { generatePost, nextTheme } from "../lib/lesa-fb/contentEngine";
 import { checkBrandSafety } from "../lib/lesa-fb/brandSafety";
-import { tokenHealth } from "../lib/lesa-fb/tokenManager";
+import { tokenHealth, getValidPageToken } from "../lib/lesa-fb/tokenManager";
 
 const router = Router();
 
@@ -75,12 +75,22 @@ router.post("/schedule/stop", (_req, res) => {
   res.json({ ok: true });
 });
 
-// ── Token health (for future fully-autonomous mode) ──────────────────────────
+// ── Token health ─────────────────────────────────────────────────────────────
 router.get("/token-health", async (_req, res) => {
   try {
     res.json(await tokenHealth());
   } catch (err) {
     res.status(500).json({ error: String(err) });
+  }
+});
+
+// ── Force token bootstrap / refresh ──────────────────────────────────────────
+router.post("/token-refresh", async (_req, res) => {
+  try {
+    await getValidPageToken();
+    res.json({ ok: true, health: await tokenHealth() });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err) });
   }
 });
 
