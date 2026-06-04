@@ -511,7 +511,7 @@ router.get("/oauth/:platform/initiate", (req, res) => {
       client_id: clientId,
       redirect_uri: redirectUri,
       state,
-      scope: "pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_engagement",
+      scope: "pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_engagement,business_management",
       response_type: "code",
     });
     authUrl = `https://www.facebook.com/v21.0/dialog/oauth?${params}`;
@@ -656,20 +656,68 @@ router.get("/oauth/:platform/callback", async (req, res) => {
       const exchangeData = await exchangeResp.json() as Record<string, unknown>;
       const longLivedToken = exchangeData.access_token as string || shortLivedToken;
 
-      // Step 3: get all Pages — each page token from long-lived user token is PERMANENT (never expires)
-      const pagesResp = await fetch(
+      interface FbPage { id: string; name: string; access_token: string; category?: string }
+      const pageMap = new Map<string, FbPage>();
+
+      // ── Method 1: /me/accounts (personal + classic pages) ─────────────────
+      const meAccountsResp = await fetch(
         `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,category&limit=200&access_token=${longLivedToken}`
       );
-      const pagesData = await pagesResp.json() as Record<string, unknown>;
-      if ((pagesData.error as Record<string, unknown>)?.message) {
-        logger.error(pagesData.error, "Meta OAuth: me/accounts failed");
-        return res.redirect(`/connections?oauth_error=pages_failed&platform=meta`);
+      const meAccountsData = await meAccountsResp.json() as Record<string, unknown>;
+      const mePages = (meAccountsData.data as FbPage[]) || [];
+      logger.info({ count: mePages.length }, "Meta OAuth: /me/accounts result");
+      for (const p of mePages) if (p.id && p.access_token) pageMap.set(p.id, p);
+
+      // ── Method 2: /me/businesses → owned_pages + client_pages ─────────────
+      // Needed for New Pages Experience / Business Portfolio-owned pages
+      if (pageMap.size === 0) {
+        const bizResp = await fetch(
+          `https://graph.facebook.com/v21.0/me/businesses?fields=id,name&limit=50&access_token=${longLivedToken}`
+        );
+        const bizData = await bizResp.json() as Record<string, unknown>;
+        const businesses = (bizData.data as { id: string; name: string }[]) || [];
+        logger.info({ bizCount: businesses.length, err: (bizData.error as any)?.message }, "Meta OAuth: /me/businesses result");
+
+        for (const biz of businesses) {
+          for (const edge of ["owned_pages", "client_pages"] as const) {
+            const edgeResp = await fetch(
+              `https://graph.facebook.com/v21.0/${biz.id}/${edge}?fields=id,name,access_token,category&limit=200&access_token=${longLivedToken}`
+            );
+            const edgeData = await edgeResp.json() as Record<string, unknown>;
+            const edgePages = (edgeData.data as FbPage[]) || [];
+            logger.info({ bizId: biz.id, edge, count: edgePages.length, err: (edgeData.error as any)?.message }, `Meta OAuth: business ${edge} result`);
+            for (const p of edgePages) if (p.id && p.access_token) pageMap.set(p.id, p);
+          }
+        }
       }
 
-      interface FbPage { id: string; name: string; access_token: string; category?: string }
-      const pages = (pagesData.data as FbPage[]) || [];
+      // ── Method 3: direct page lookup by known page ID ─────────────────────
+      // Last resort — if we know the page ID (stored from a previous connection attempt)
+      if (pageMap.size === 0) {
+        const existing = await db.select().from(connectionsTable)
+          .where(and(eq(connectionsTable.platform, "meta"), eq(connectionsTable.workspaceSlug, workspaceSlug)));
+        for (const conn of existing) {
+          const knownPageId = (conn.metadata as Record<string, unknown>)?.pageId as string | undefined;
+          if (knownPageId) {
+            const directResp = await fetch(
+              `https://graph.facebook.com/v21.0/${knownPageId}?fields=id,name,access_token&access_token=${longLivedToken}`
+            );
+            const directData = await directResp.json() as Record<string, unknown>;
+            logger.info({ pageId: knownPageId, err: (directData.error as any)?.message }, "Meta OAuth: direct page lookup result");
+            if (directData.id && directData.access_token) {
+              pageMap.set(directData.id as string, {
+                id: directData.id as string,
+                name: directData.name as string || knownPageId,
+                access_token: directData.access_token as string,
+              });
+            }
+          }
+        }
+      }
+
+      const pages = Array.from(pageMap.values());
       if (!pages.length) {
-        logger.warn({ ws: workspaceSlug }, "Meta OAuth: no pages found for user");
+        logger.warn({ ws: workspaceSlug }, "Meta OAuth: no pages found via any method");
         return res.redirect(`/connections?oauth_error=no_pages&platform=meta`);
       }
 
