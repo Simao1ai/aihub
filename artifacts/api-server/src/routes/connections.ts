@@ -35,7 +35,8 @@ const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
   linkedin: "LinkedIn",
   google: "Google / Gmail",
   twitter: "Twitter / X",
-  meta: "Meta (Instagram & Facebook)",
+  meta: "Meta / Facebook",
+  instagram: "Instagram",
   gohighlevel: "GoHighLevel CRM",
   email: "Email Account",
   smtp: "SMTP Email",
@@ -348,9 +349,24 @@ router.post("/:id/test", async (req, res) => {
         headers: { Authorization: `Bearer ${conn.accessToken}` },
       });
       if (resp.ok) {
-        res.json({ success: true, message: "Twitter/X connection verified" });
+        const data = await resp.json() as { data: { username: string; name: string } };
+        res.json({ success: true, message: `Twitter/X verified — @${data.data?.username || "user"}` });
       } else {
         res.json({ success: false, message: "Twitter/X token expired. Please reconnect." });
+      }
+    } else if (conn.platform === "instagram" && conn.apiKey) {
+      const m = conn.metadata as Record<string, unknown> | null ?? {};
+      const igUserId = m.igUserId as string | undefined;
+      if (!igUserId) return res.json({ success: false, message: "No Instagram User ID stored — reconnect via Meta OAuth" });
+      const resp = await fetch(
+        `https://graph.facebook.com/v21.0/${igUserId}?fields=id,username,name,followers_count&access_token=${conn.apiKey}`
+      );
+      if (resp.ok) {
+        const data = await resp.json() as { username: string; followers_count: number };
+        res.json({ success: true, message: `Instagram verified — @${data.username} (${data.followers_count?.toLocaleString() ?? "?"} followers)` });
+      } else {
+        const err = await resp.json() as { error?: { message: string } };
+        res.json({ success: false, message: `Instagram error: ${err.error?.message || "Token expired — reconnect via Meta OAuth"}` });
       }
     } else if (conn.platform === "smtp" && conn.apiKey) {
       const m = conn.metadata as Record<string, string> | null ?? {};
@@ -425,6 +441,11 @@ router.get("/status", (req, res) => {
     twitter: {
       configured: !!(process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET),
       envVars: ["TWITTER_CLIENT_ID", "TWITTER_CLIENT_SECRET"],
+    },
+    instagram: {
+      configured: !!(process.env.META_APP_ID && process.env.META_APP_SECRET),
+      envVars: ["META_APP_ID", "META_APP_SECRET"],
+      note: "Instagram uses the same Meta Facebook App credentials",
     },
     tiktok: { configured: false, envVars: [] },
     gohighlevel: { configured: true, envVars: [] },
@@ -511,7 +532,16 @@ router.get("/oauth/:platform/initiate", (req, res) => {
       client_id: clientId,
       redirect_uri: redirectUri,
       state,
-      scope: "pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_engagement,business_management",
+      scope: [
+        "pages_show_list",
+        "pages_read_engagement",
+        "pages_manage_posts",
+        "pages_manage_engagement",
+        "business_management",
+        "instagram_basic",
+        "instagram_content_publish",
+        "instagram_manage_comments",
+      ].join(","),
       response_type: "code",
     });
     authUrl = `https://www.facebook.com/v21.0/dialog/oauth?${params}`;
@@ -740,6 +770,49 @@ router.get("/oauth/:platform/callback", async (req, res) => {
       }
 
       logger.info({ ws: workspaceSlug, pageCount: pages.length }, "Meta OAuth: pages connected");
+
+      // ── Fetch linked Instagram Business Accounts ───────────────────────────
+      // Each Facebook Page may have a linked Instagram Business/Creator account.
+      // Fetch them and store as platform="instagram" connections.
+      await db.delete(connectionsTable)
+        .where(and(eq(connectionsTable.platform, "instagram"), eq(connectionsTable.workspaceSlug, workspaceSlug)));
+
+      let igCount = 0;
+      for (const page of pages) {
+        try {
+          const igResp = await fetch(
+            `https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account{id,username,name,profile_picture_url,followers_count}&access_token=${page.access_token}`
+          );
+          const igData = await igResp.json() as Record<string, unknown>;
+          const igAccount = igData.instagram_business_account as Record<string, unknown> | undefined;
+          if (igAccount?.id) {
+            await db.insert(connectionsTable).values({
+              workspaceSlug,
+              platform: "instagram",
+              displayName: "Instagram",
+              authType: "api_key",
+              apiKey: page.access_token,
+              accountLabel: (igAccount.username as string) ? `@${igAccount.username}` : (igAccount.name as string) || "Instagram Account",
+              scopes: ["instagram_basic", "instagram_content_publish"],
+              isConnected: true,
+              metadata: {
+                igUserId: igAccount.id,
+                username: igAccount.username,
+                name: igAccount.name,
+                followersCount: igAccount.followers_count,
+                linkedPageId: page.id,
+                linkedPageName: page.name,
+              },
+            });
+            igCount++;
+            logger.info({ igUserId: igAccount.id, username: igAccount.username, linkedPage: page.id }, "Instagram account linked");
+          }
+        } catch (e) {
+          logger.warn({ pageId: page.id, err: (e as Error).message }, "Failed to fetch Instagram account for page");
+        }
+      }
+
+      logger.info({ ws: workspaceSlug, igCount }, "Instagram accounts linked");
       return res.redirect(`/connections?oauth_success=true&platform=meta`);
     }
 
@@ -835,22 +908,62 @@ router.post("/:id/actions/post", async (req, res) => {
         res.json({ success: false, message: "Failed to post tweet" });
       }
     } else if (conn.platform === "meta") {
-      // Post to Facebook page feed
-      const pagesResp = await fetch(`https://graph.facebook.com/me/accounts?access_token=${conn.accessToken}`);
-      const pages = await pagesResp.json() as { data: Array<{ id: string; access_token: string }> };
-      if (!pages.data?.length) return res.json({ success: false, message: "No Facebook pages found" });
-      
-      const page = pages.data[0];
-      const postResp = await fetch(`https://graph.facebook.com/${page.id}/feed`, {
+      // Post to Facebook page feed using stored page access token
+      const meta = conn.metadata as Record<string, unknown> | null ?? {};
+      const pageToken = (meta.pageAccessToken as string) || conn.apiKey || "";
+      const pageId = meta.pageId as string | undefined;
+      if (!pageId || !pageToken) return res.json({ success: false, message: "No Facebook Page token stored — reconnect via Meta OAuth" });
+      const postResp = await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: content, access_token: page.access_token }),
+        body: JSON.stringify({ message: content, access_token: pageToken }),
       });
       if (postResp.ok) {
         const data = await postResp.json() as { id: string };
-        res.json({ success: true, message: "Posted to Facebook", postId: data.id });
+        res.json({ success: true, message: `Posted to Facebook page "${meta.pageName || pageId}"`, postId: data.id });
       } else {
-        res.json({ success: false, message: "Failed to post to Facebook" });
+        const err = await postResp.json() as { error?: { message: string } };
+        res.json({ success: false, message: `Facebook error: ${err.error?.message || "Failed to post"}` });
+      }
+    } else if (conn.platform === "instagram") {
+      // Instagram Graph API: create container then publish
+      const meta = conn.metadata as Record<string, unknown> | null ?? {};
+      const igUserId = meta.igUserId as string | undefined;
+      const pageToken = conn.apiKey || "";
+      if (!igUserId || !pageToken) return res.json({ success: false, message: "No Instagram account stored — reconnect via Meta OAuth" });
+
+      const { imageUrl } = req.body as { imageUrl?: string };
+      if (!imageUrl) {
+        return res.json({
+          success: false,
+          message: "Instagram requires an image URL. Provide imageUrl in the request body. Text-only posts are not supported by the Instagram Graph API.",
+        });
+      }
+
+      // Step 1: create media container
+      const containerResp = await fetch(`https://graph.facebook.com/v21.0/${igUserId}/media`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_url: imageUrl, caption: content, access_token: pageToken }),
+      });
+      if (!containerResp.ok) {
+        const err = await containerResp.json() as { error?: { message: string } };
+        return res.json({ success: false, message: `Instagram container error: ${err.error?.message || "Failed to create media container"}` });
+      }
+      const container = await containerResp.json() as { id: string };
+
+      // Step 2: publish
+      const publishResp = await fetch(`https://graph.facebook.com/v21.0/${igUserId}/media_publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ creation_id: container.id, access_token: pageToken }),
+      });
+      if (publishResp.ok) {
+        const pub = await publishResp.json() as { id: string };
+        res.json({ success: true, message: `Posted to Instagram @${meta.username || igUserId}`, postId: pub.id });
+      } else {
+        const err = await publishResp.json() as { error?: { message: string } };
+        res.json({ success: false, message: `Instagram publish error: ${err.error?.message || "Failed to publish"}` });
       }
     } else {
       res.json({ success: false, message: `Posting not supported for ${conn.platform}` });

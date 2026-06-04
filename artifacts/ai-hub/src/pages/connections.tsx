@@ -68,6 +68,31 @@ const PLATFORMS = [
     },
   },
   {
+    key: 'instagram',
+    name: 'Instagram',
+    subLabel: 'Photo & Video Posts',
+    emoji: '📸',
+    color: '#E1306C',
+    bg: '#E1306C15',
+    authType: 'oauth' as const,
+    envVars: ['META_APP_ID', 'META_APP_SECRET'],
+    capabilities: ['Post photos & carousels', 'Schedule reels', 'Caption with AI'],
+    difficulty: 'Easy',
+    timeEstimate: '~1 min',
+    quickGuide: {
+      title: 'Connect Instagram via Meta OAuth',
+      steps: [
+        { text: 'Your Instagram must be a Professional account (Business or Creator) linked to a Facebook Page' },
+        { text: 'Click "Connect with OAuth" — this uses the same Meta/Facebook app already configured' },
+        { text: 'In the Facebook dialog, approve the instagram_basic + instagram_content_publish permissions' },
+        { text: 'SynthDesk will automatically detect and store your linked Instagram account' },
+      ],
+      redirectPath: '/api/connections/oauth/meta/callback',
+      tokenGuide: 'Instagram Graph API requires a Professional (Business/Creator) account linked to a Facebook Page. Personal accounts cannot post via API.',
+      tokenLink: 'https://www.facebook.com/help/502981923235522',
+    },
+  },
+  {
     key: 'linkedin',
     name: 'LinkedIn',
     subLabel: 'Posts & Company Pages',
@@ -1341,8 +1366,11 @@ export default function Connections() {
   }, [loadConnections]);
 
   const handleOAuth = async (platformKey: string) => {
+    // Instagram uses the same Meta OAuth flow — both FB pages and linked IG accounts
+    // get stored in a single OAuth round-trip.
+    const oauthPlatform = platformKey === 'instagram' ? 'meta' : platformKey;
     try {
-      const res = await fetch(`/api/connections/oauth/${platformKey}/initiate`, { headers: wsHeaders });
+      const res = await fetch(`/api/connections/oauth/${oauthPlatform}/initiate`, { headers: wsHeaders });
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
