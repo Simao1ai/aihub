@@ -1,0 +1,56 @@
+Add a "Connect Facebook" OAuth integration to SynthDesk so a user can link their 
+Facebook Page(s) and we can post to them. Use my existing stack: React/Vite frontend, 
+Express/TypeScript backend, PostgreSQL with Drizzle ORM.
+
+CONTEXT:
+- Meta App ID: 2522023554899084 (already created, permissions pages_show_list, 
+  pages_read_engagement, pages_manage_posts, pages_manage_engagement are at Standard 
+  access / Ready to use; app is in Development mode)
+- Redirect URI to use: https://<my-repl-domain>/auth/facebook/callback 
+  (I will add this exact URI to Facebook Login settings myself)
+- Store FB_APP_ID and FB_APP_SECRET as Replit Secrets (do NOT hardcode them)
+- Use Graph API version v21.0
+
+IMPLEMENT:
+
+1. Drizzle schema: a new `facebook_pages` table with columns:
+   - id (primary key)
+   - workspace_id (FK to my existing workspace/tenant — ask me which table if unsure)
+   - page_id (text)
+   - page_name (text)
+   - access_token (text)  // long-lived Page token, does not expire
+   - created_at, updated_at timestamps
+   Generate the migration.
+
+2. Backend OAuth routes (Express):
+   - GET /auth/facebook
+     Generate a random `state`, store it in the session for CSRF protection, then 
+     redirect to https://www.facebook.com/v21.0/dialog/oauth with client_id, 
+     redirect_uri, scope (the four pages_* permissions), state, response_type=code.
+   - GET /auth/facebook/callback
+     Verify state matches session. Exchange `code` for a short-lived user token via 
+     GET https://graph.facebook.com/v21.0/oauth/access_token. Then exchange that for a 
+     long-lived user token (grant_type=fb_exchange_token). Then call 
+     GET https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token to 
+     get the Pages — each Page's access_token from this call does NOT expire. Upsert 
+     each Page into facebook_pages tied to the current workspace. Redirect to 
+     /connections?fb=success on success, /connections?fb=error on failure. Wrap in 
+     try/catch and log errors.
+
+3. A helper function postToFacebookPage(pageId, message) that looks up the stored 
+   Page token and does POST https://graph.facebook.com/v21.0/{pageId}/feed with the 
+   message and access_token. Return the post ID or throw on error.
+
+4. Frontend: on the existing /connections page, add a "Connect Facebook" button that 
+   links to /auth/facebook. After connection, fetch and display the connected Pages 
+   (page_name) from a new GET /api/facebook/pages endpoint that returns the rows for 
+   the current workspace.
+
+REQUIREMENTS:
+- Use my existing session middleware if present; if not, tell me and propose the 
+  minimal setup.
+- Never log or expose the App Secret or access tokens in client-facing responses.
+- Match my existing code style and folder structure — look at how my other routes 
+  and Drizzle tables are organized and follow that pattern.
+- Tell me exactly which Replit Secrets I need to add (FB_APP_ID, FB_APP_SECRET) and 
+  the exact Redirect URI to paste into Facebook's "Valid OAuth Redirect URIs" field.

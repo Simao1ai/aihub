@@ -491,9 +491,10 @@ router.get("/oauth/:platform/initiate", (req, res) => {
       client_id: clientId,
       redirect_uri: redirectUri,
       state,
-      scope: "email,public_profile,pages_manage_posts,pages_read_engagement,pages_show_list",
+      scope: "pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_engagement",
+      response_type: "code",
     });
-    authUrl = `https://www.facebook.com/v19.0/dialog/oauth?${params}`;
+    authUrl = `https://www.facebook.com/v21.0/dialog/oauth?${params}`;
   } else {
     return res.status(400).json({ error: "Unknown OAuth platform" });
   }
@@ -507,11 +508,11 @@ router.get("/oauth/:platform/callback", async (req, res) => {
   const { code, error, state } = req.query;
 
   if (error) {
-    return res.redirect(`/?oauth_error=${encodeURIComponent(error as string)}&platform=${platform}`);
+    return res.redirect(`/connections?oauth_error=${encodeURIComponent(error as string)}&platform=${platform}`);
   }
 
   if (!code) {
-    return res.redirect(`/?oauth_error=no_code&platform=${platform}`);
+    return res.redirect(`/connections?oauth_error=no_code&platform=${platform}`);
   }
 
   const appBaseUrl = process.env.APP_BASE_URL;
@@ -609,16 +610,65 @@ router.get("/oauth/:platform/callback", async (req, res) => {
         accountLabel = `@${userData.data?.username || ""}`;
       }
     } else if (platform === "meta") {
-      const tokenResp = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${process.env.META_APP_ID}&redirect_uri=${redirectUri}&client_secret=${process.env.META_APP_SECRET}&code=${code}`);
-      const tokenData = await tokenResp.json() as Record<string, unknown>;
-      accessToken = tokenData.access_token as string || "";
+      const appId = process.env.META_APP_ID || "";
+      const appSecret = process.env.META_APP_SECRET || "";
 
-      // Get account info
-      const userResp = await fetch(`https://graph.facebook.com/me?access_token=${accessToken}&fields=name,email`);
-      if (userResp.ok) {
-        const userData = await userResp.json() as Record<string, unknown>;
-        accountLabel = userData.name as string || userData.email as string || "";
+      // Step 1: exchange code → short-lived user token
+      const tokenResp = await fetch(
+        `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`
+      );
+      const tokenData = await tokenResp.json() as Record<string, unknown>;
+      const shortLivedToken = tokenData.access_token as string || "";
+      if (!shortLivedToken) {
+        const fbErr = (tokenData.error as Record<string, unknown>)?.message || JSON.stringify(tokenData);
+        logger.error({ fbErr }, "Meta OAuth: failed to get short-lived token");
+        return res.redirect(`/connections?oauth_error=token_failed&platform=meta`);
       }
+
+      // Step 2: exchange short-lived → long-lived user token (~60 days)
+      const exchangeResp = await fetch(
+        `https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${encodeURIComponent(shortLivedToken)}`
+      );
+      const exchangeData = await exchangeResp.json() as Record<string, unknown>;
+      const longLivedToken = exchangeData.access_token as string || shortLivedToken;
+
+      // Step 3: get all Pages — each page token from long-lived user token is PERMANENT (never expires)
+      const pagesResp = await fetch(
+        `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,category&limit=200&access_token=${longLivedToken}`
+      );
+      const pagesData = await pagesResp.json() as Record<string, unknown>;
+      if ((pagesData.error as Record<string, unknown>)?.message) {
+        logger.error(pagesData.error, "Meta OAuth: me/accounts failed");
+        return res.redirect(`/connections?oauth_error=pages_failed&platform=meta`);
+      }
+
+      interface FbPage { id: string; name: string; access_token: string; category?: string }
+      const pages = (pagesData.data as FbPage[]) || [];
+      if (!pages.length) {
+        logger.warn({ ws: workspaceSlug }, "Meta OAuth: no pages found for user");
+        return res.redirect(`/connections?oauth_error=no_pages&platform=meta`);
+      }
+
+      // Step 4: delete stale Meta connections for this workspace, then insert fresh ones per page
+      await db.delete(connectionsTable)
+        .where(and(eq(connectionsTable.platform, "meta"), eq(connectionsTable.workspaceSlug, workspaceSlug)));
+
+      for (const page of pages) {
+        await db.insert(connectionsTable).values({
+          workspaceSlug,
+          platform: "meta",
+          displayName: "Meta",
+          authType: "api_key",
+          apiKey: longLivedToken,
+          accountLabel: page.name,
+          scopes: ["pages_show_list", "pages_read_engagement", "pages_manage_posts", "pages_manage_engagement"],
+          isConnected: true,
+          metadata: { pageId: page.id, pageName: page.name, pageAccessToken: page.access_token },
+        });
+      }
+
+      logger.info({ ws: workspaceSlug, pageCount: pages.length }, "Meta OAuth: pages connected");
+      return res.redirect(`/connections?oauth_success=true&platform=meta`);
     }
 
     // Upsert connection — scoped to the workspace extracted from state
