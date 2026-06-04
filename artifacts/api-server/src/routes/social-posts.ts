@@ -4,6 +4,7 @@ import { eq, desc, and } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/image";
 import { sendPostPublishedEmail } from "../lib/email";
+import { logger } from "../lib/logger";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
