@@ -181,6 +181,73 @@ router.post("/meta/pages", async (req, res) => {
   }
 });
 
+// ── POST /api/connections/meta/seed ──────────────────────────────────────────
+// Internal: use FB_USER_TOKEN + META_APP_* env vars to create a Meta connection
+// for a specific page ID — no token needed from the client.
+router.post("/meta/seed", async (req, res) => {
+  try {
+    const { pageId, pageName, workspace = "les_a_inspections" } = req.body as any;
+    if (!pageId) return res.status(400).json({ error: "pageId required" });
+
+    const fbToken = process.env.FB_USER_TOKEN;
+    const appId = process.env.META_APP_ID;
+    const appSecret = process.env.META_APP_SECRET;
+
+    if (!fbToken) return res.status(400).json({ error: "FB_USER_TOKEN env var not set" });
+
+    // Exchange for long-lived token (60 days → permanent page tokens)
+    let longLivedToken = fbToken;
+    if (appId && appSecret) {
+      const exResp = await fetch(
+        `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${encodeURIComponent(fbToken)}`
+      );
+      const exData = await exResp.json() as any;
+      if (exData.access_token) {
+        longLivedToken = exData.access_token;
+        logger.info("meta/seed: token exchanged for long-lived");
+      } else {
+        logger.warn({ err: exData.error?.message }, "meta/seed: token exchange failed, using original");
+      }
+    }
+
+    // Fetch the specific page's access_token directly
+    const pageResp = await fetch(
+      `https://graph.facebook.com/v19.0/${pageId}?fields=id,name,access_token&access_token=${longLivedToken}`
+    );
+    const pageData = await pageResp.json() as any;
+
+    if (pageData.error) {
+      return res.status(400).json({ error: `Facebook: ${pageData.error.message}` });
+    }
+
+    const pageAccessToken: string = pageData.access_token ?? "";
+    const resolvedName: string = pageName || pageData.name || "Facebook Page";
+
+    // Delete any existing Meta connection for this workspace first
+    await db.delete(connectionsTable)
+      .where(and(eq(connectionsTable.workspaceSlug, workspace), eq(connectionsTable.platform, "meta")));
+
+    const [conn] = await db.insert(connectionsTable).values({
+      workspaceSlug: workspace,
+      platform: "meta",
+      displayName: "Meta",
+      accountLabel: resolvedName,
+      authType: "api_key",
+      apiKey: longLivedToken,
+      scopes: [],
+      metadata: { pageId, pageName: resolvedName, pageAccessToken },
+      isConnected: true,
+    }).returning();
+
+    logger.info({ ws: workspace, pageId, hasPageToken: !!pageAccessToken }, "meta/seed: connection created");
+    const { accessToken: _a, refreshToken: _r, apiKey: _k, ...safe } = conn;
+    res.status(201).json({ ...safe, hasPageToken: !!pageAccessToken, pageName: resolvedName });
+  } catch (err: any) {
+    logger.error(err, "meta/seed failed");
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Create API key connection — scoped to the calling workspace
 router.post("/", async (req, res) => {
   try {
