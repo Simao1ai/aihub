@@ -1235,6 +1235,7 @@ export async function seedDatabase() {
         .onConflictDoUpdate({
           target: workspacesTable.slug,
           set: {
+            name: sql`excluded.name`,
             businessContext: sql`excluded.business_context`,
             emoji: sql`excluded.emoji`,
             color: sql`excluded.color`,
