@@ -1,0 +1,2 @@
+- [Meta connection token flow](meta-connection-token.md) — page tokens must be obtained via server-side exchange; browser-direct calls get short-lived tokens
+- [post-now debugging](post-now-debugging.md) — logger import missing in social-posts.ts masked all real FB errors; always check ReferenceError in prod logs first

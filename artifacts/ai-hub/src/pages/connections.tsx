@@ -437,54 +437,30 @@ function SetupDrawer({
     setPages([]);
     setSelectedPage(null);
     try {
-      const t = token.trim();
-      const fields = 'id,name,access_token,category,fan_count,picture{url}';
-
-      // 1. Try /me/accounts (works for direct page admins)
-      const res = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=${fields}&limit=200&access_token=${t}`);
+      // Route through our server — it exchanges the short-lived token for a
+      // long-lived one (using META_APP_ID + META_APP_SECRET) so the stored
+      // page access token is permanent and never expires.
+      const res = await fetch('/api/connections/meta/pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userToken: token.trim() }),
+      });
       const data = await res.json() as any;
 
-      if (data.error) {
-        const code = data.error.code;
-        if (code === 190) {
-          setPageError('Token is invalid or expired — please generate a new one from Graph API Explorer.');
-        } else if (code === 10 || code === 200 || code === 230) {
-          setPageError('Your token is missing the "pages_show_list" permission. In Graph API Explorer, click "+ Add a Permission" and add pages_show_list before generating the token.');
-        } else {
-          setPageError(`Facebook error: ${data.error.message}`);
-        }
+      if (!res.ok) {
+        setPageError(data.error || 'Failed to load pages — check your token and try again');
         return;
       }
 
-      let pages: any[] = data.data || [];
-
-      // 2. If /me/accounts is empty, try the Business Portfolio fallback
-      if (!pages.length) {
-        const bizRes = await fetch(`https://graph.facebook.com/v19.0/me/businesses?fields=owned_pages{${fields}}&limit=50&access_token=${t}`);
-        const bizData = await bizRes.json() as any;
-        if (!bizData.error && bizData.data?.length) {
-          for (const biz of bizData.data) {
-            const bizPages: any[] = biz.owned_pages?.data || [];
-            pages = [...pages, ...bizPages];
-          }
-        }
+      // Update the token field with the long-lived version (60 days)
+      if (data.longLivedToken && data.longLivedToken !== token.trim()) {
+        setToken(data.longLivedToken);
       }
 
-      if (!pages.length) {
-        setPageError(
-          'No Facebook Pages found. Two common fixes:\n' +
-          '1. In Graph API Explorer, click "+ Add a Permission" → add pages_show_list and pages_read_engagement, then re-generate your token.\n' +
-          '2. Make sure your Facebook account is an Admin of at least one Page.'
-        );
-      } else {
-        // Dedupe by id
-        const seen = new Set<string>();
-        const unique = pages.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
-        setPages(unique);
-        setSelectedPage(unique[0]);
-      }
+      setPages(data.pages || []);
+      if (data.pages?.length) setSelectedPage(data.pages[0]);
     } catch {
-      setPageError('Failed to reach Facebook — check your connection and try again');
+      setPageError('Failed to reach server — please try again');
     } finally {
       setFetchingPages(false);
     }

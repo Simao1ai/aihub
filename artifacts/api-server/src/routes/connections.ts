@@ -98,6 +98,89 @@ router.get("/", async (req, res) => {
   }
 });
 
+// ── POST /api/connections/meta/pages ─────────────────────────────────────────
+// Exchange a short-lived user token for a long-lived one (60 days → permanent
+// page tokens), then return the list of managed Facebook Pages.
+router.post("/meta/pages", async (req, res) => {
+  try {
+    const { userToken } = req.body;
+    if (!userToken) return res.status(400).json({ error: "userToken required" });
+
+    const appId = process.env.META_APP_ID;
+    const appSecret = process.env.META_APP_SECRET;
+
+    // Step 1 — exchange for long-lived token so page tokens are permanent
+    let longLivedToken = userToken;
+    if (appId && appSecret) {
+      const exchangeResp = await fetch(
+        `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${encodeURIComponent(userToken)}`
+      );
+      const exchangeData = await exchangeResp.json() as any;
+      if (exchangeData.access_token) {
+        longLivedToken = exchangeData.access_token;
+        logger.info("Meta: short-lived token exchanged for long-lived token");
+      } else {
+        logger.warn({ err: exchangeData.error?.message }, "Meta: token exchange failed, using original");
+      }
+    }
+
+    // Step 2 — fetch pages managed by this user
+    const fields = "id,name,access_token,category,fan_count";
+    const pagesResp = await fetch(
+      `https://graph.facebook.com/v19.0/me/accounts?fields=${fields}&limit=200&access_token=${longLivedToken}`
+    );
+    const pagesData = await pagesResp.json() as any;
+
+    if (pagesData.error) {
+      const code = pagesData.error.code;
+      if (code === 190) return res.status(400).json({ error: "Token is invalid or expired — please generate a new one from Graph API Explorer." });
+      if (code === 10 || code === 200 || code === 230) return res.status(400).json({ error: 'Token is missing "pages_show_list" permission. Add it in Graph API Explorer before generating the token.' });
+      return res.status(400).json({ error: `Facebook error: ${pagesData.error.message}` });
+    }
+
+    let pages: any[] = pagesData.data || [];
+
+    // Business portfolio fallback
+    if (!pages.length) {
+      try {
+        const bizResp = await fetch(
+          `https://graph.facebook.com/v19.0/me/businesses?fields=owned_pages{${fields}}&limit=50&access_token=${longLivedToken}`
+        );
+        const bizData = await bizResp.json() as any;
+        if (!bizData.error && bizData.data?.length) {
+          for (const biz of bizData.data) {
+            pages = [...pages, ...(biz.owned_pages?.data || [])];
+          }
+        }
+      } catch {}
+    }
+
+    if (!pages.length) {
+      return res.status(400).json({
+        error: "No Facebook Pages found.\n1. Add pages_show_list permission in Graph API Explorer before generating the token.\n2. Make sure your Facebook account is an Admin of at least one Page.",
+      });
+    }
+
+    // Dedupe by page id
+    const seen = new Set<string>();
+    const unique = pages.filter((p: any) => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
+
+    res.json({
+      longLivedToken,
+      pages: unique.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        access_token: p.access_token,
+        category: p.category,
+        fan_count: p.fan_count,
+      })),
+    });
+  } catch (err: any) {
+    logger.error(err, "Meta pages fetch failed");
+    res.status(500).json({ error: "Failed to reach Facebook — check your token and try again" });
+  }
+});
+
 // Create API key connection — scoped to the calling workspace
 router.post("/", async (req, res) => {
   try {
