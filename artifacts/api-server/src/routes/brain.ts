@@ -105,6 +105,24 @@ router.post("/documents/upload", upload.single("file"), async (req, res) => {
   }
 });
 
+router.patch("/documents/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { title, content, category } = req.body as Record<string, string>;
+    const updates: Record<string, string> = {};
+    if (title !== undefined) updates.title = title;
+    if (content !== undefined) updates.content = content;
+    if (category !== undefined) updates.category = category;
+    if (Object.keys(updates).length === 0) return res.status(400).json({ error: "Nothing to update" });
+    const [updated] = await db.update(brainDocumentsTable).set(updates).where(eq(brainDocumentsTable.id, id)).returning();
+    if (!updated) return res.status(404).json({ error: "Document not found" });
+    res.json(updated);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Failed to update document" });
+  }
+});
+
 router.delete("/documents/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);

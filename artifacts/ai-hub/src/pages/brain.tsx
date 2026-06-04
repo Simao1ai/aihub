@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Link as LinkIcon, FileUp, Trash2, Search, BrainCircuit, Tag, ExternalLink, Plus } from 'lucide-react';
+import { FileText, Link as LinkIcon, FileUp, Trash2, Search, BrainCircuit, ExternalLink, Plus, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -12,6 +12,7 @@ import {
 } from '@workspace/api-client-react';
 import { useAppStore } from '@/store';
 import { cn } from '@/components/ui-elements';
+import type { BrainDocument } from '@workspace/api-client-react';
 
 const CATEGORIES = [
   { key: 'general', label: 'General', color: '#6b7280', bg: '#6b728018' },
@@ -197,6 +198,109 @@ function UploadModal({
   );
 }
 
+function EditModal({ doc, businessTag, onClose }: { doc: BrainDocument; businessTag: string; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [title, setTitle] = useState(doc.title);
+  const [content, setContent] = useState(doc.content);
+  const [category, setCategory] = useState((doc as any).category ?? 'general');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const wsHeaders = useAppStore(s => s.wsHeaders);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/brain/documents/${doc.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...wsHeaders },
+        body: JSON.stringify({ title: title.trim(), content, category }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      queryClient.invalidateQueries({ queryKey: getListBrainDocumentsQueryKey({ businessTag }) });
+      onClose();
+    } catch {
+      setError('Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="w-full max-w-lg bg-[#131622] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+      >
+        <div className="px-6 py-5 border-b border-white/5">
+          <h2 className="text-base font-display font-bold text-white">Edit Document</h2>
+          <p className="text-xs text-white/35 mt-0.5 truncate">{doc.title}</p>
+        </div>
+        <form onSubmit={handleSave} className="p-6 space-y-4">
+          <div>
+            <label className="text-xs text-white/40 mb-1.5 block">Title *</label>
+            <input
+              autoFocus
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-white/40 mb-1.5 block">Category</label>
+            <div className="flex flex-wrap gap-1.5">
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setCategory(cat.key)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border",
+                    category === cat.key ? 'border-transparent' : 'border-white/8 text-white/35 hover:text-white/60'
+                  )}
+                  style={category === cat.key ? { background: cat.bg, color: cat.color, borderColor: `${cat.color}40` } : {}}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-white/40 mb-1.5 block">Content</label>
+            <textarea
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              rows={8}
+              className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 resize-none font-mono text-xs"
+            />
+          </div>
+
+          {error && <p className="text-xs text-red-400">{error}</p>}
+
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/8 text-white/50 hover:text-white text-sm transition-all">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!title.trim() || saving}
+              className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all"
+            >
+              {saving ? 'Saving...' : 'Save changes'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function Brain() {
   const { businessTag } = useAppStore();
   const queryClient = useQueryClient();
@@ -204,6 +308,7 @@ export default function Brain() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [editDoc, setEditDoc] = useState<BrainDocument | null>(null);
 
   const { data: documents = [], isLoading } = useListBrainDocuments({ businessTag });
   const deleteMutation = useDeleteBrainDocument();
@@ -358,6 +463,13 @@ export default function Brain() {
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       )}
+                      <button
+                        onClick={() => setEditDoc(doc as BrainDocument)}
+                        className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/25 hover:text-white transition-all"
+                        title="Edit document"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
                       {deleteConfirm === doc.id ? (
                         <div className="flex gap-1">
                           <button
@@ -377,6 +489,7 @@ export default function Brain() {
                         <button
                           onClick={() => setDeleteConfirm(doc.id)}
                           className="w-8 h-8 rounded-lg bg-white/5 hover:bg-red-500/10 flex items-center justify-center text-white/25 hover:text-red-400 transition-all"
+                          title="Delete document"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -393,6 +506,9 @@ export default function Brain() {
       <AnimatePresence>
         {isModalOpen && (
           <UploadModal businessTag={businessTag} onClose={() => setIsModalOpen(false)} />
+        )}
+        {editDoc && (
+          <EditModal doc={editDoc} businessTag={businessTag} onClose={() => setEditDoc(null)} />
         )}
       </AnimatePresence>
     </div>
