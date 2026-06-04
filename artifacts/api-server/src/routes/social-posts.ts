@@ -19,11 +19,42 @@ export async function publishPost(post: {
   content: string;
   imageUrl: string | null;
 }) {
-  if (!post.connectionId) throw new Error("No connection selected for this post");
+  let conn: typeof connectionsTable.$inferSelect | undefined;
 
-  const [conn] = await db.select().from(connectionsTable).where(eq(connectionsTable.id, post.connectionId));
-  if (!conn) throw new Error("Connection not found");
-  if (!conn.accessToken && !conn.apiKey) throw new Error("Connection has no credentials");
+  if (post.connectionId) {
+    const [found] = await db.select().from(connectionsTable).where(eq(connectionsTable.id, post.connectionId));
+    conn = found;
+  }
+
+  // If no connection found, try to auto-find one matching the platform
+  if (!conn) {
+    const all = await db.select().from(connectionsTable).where(eq(connectionsTable.platform, post.platform));
+    conn = all[0];
+  }
+
+  // For meta posts, allow env-var fallback even without a DB connection
+  if (!conn && post.platform === "meta" && process.env.FB_USER_TOKEN) {
+    conn = {
+      id: 0,
+      platform: "meta",
+      displayName: "Meta (env fallback)",
+      accountLabel: null,
+      authType: "oauth",
+      accessToken: null,
+      refreshToken: null,
+      apiKey: process.env.FB_USER_TOKEN,
+      scopes: [],
+      metadata: null,
+      isConnected: true,
+      expiresAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      workspaceSlug: "general",
+    };
+  }
+
+  if (!conn) throw new Error("No connection found for this post. Add a Meta connection in Integrations.");
+  if (!conn.accessToken && !conn.apiKey && !process.env.FB_USER_TOKEN) throw new Error("Connection has no credentials");
 
   let success = false;
   let platformPostId: string | undefined;
@@ -78,11 +109,11 @@ export async function publishPost(post: {
       platformPostId = data?.data?.id;
 
     } else if (conn.platform === "meta") {
-      const userToken = conn.accessToken || conn.apiKey || "";
+      const userToken = conn.accessToken || conn.apiKey || process.env.FB_USER_TOKEN || "";
       const meta = conn.metadata as any;
 
       let postToken: string = meta?.pageAccessToken || "";
-      let pageId: string = meta?.pageId || "";
+      let pageId: string = meta?.pageId || process.env.FB_PAGE_ID || "";
 
       if (!postToken || !pageId) {
         if (!userToken) throw new Error("No Meta access token — reconnect via Integrations → Meta");
@@ -405,9 +436,8 @@ router.post("/:id/post-now", async (req, res) => {
     const id = parseInt(req.params.id);
     const [post] = await db.select().from(socialPostsTable).where(eq(socialPostsTable.id, id));
     if (!post) return res.status(404).json({ error: "Post not found" });
-    if (!post.connectionId) return res.status(400).json({ error: "No connection selected for this post" });
 
-    // Delegate to shared publish function (stores platformPostId, publishedUrl, sends email)
+    // Delegate to shared publish function — auto-finds connection and falls back to env vars
     const result = await publishPost(post);
     return res.json(result);
   } catch (err: any) {

@@ -15,7 +15,8 @@ import cron, { ScheduledTask } from "node-cron";
 import { generatePost, nextTheme } from "./contentEngine";
 import { checkBrandSafety } from "./brandSafety";
 import { loadState, saveState, AgentState } from "./state";
-import { db, socialPostsTable } from "@workspace/db";
+import { db, socialPostsTable, connectionsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { logger } from "../logger";
 
 export interface CycleOutcome {
@@ -63,6 +64,15 @@ export async function runCycle(): Promise<CycleOutcome> {
 
     // Passed safety — save to Social Queue for Simao to review & approve
     try {
+      // Find the Meta connection to auto-link (try les_a_inspections first, fall back to general)
+      const metaConns = await db
+        .select()
+        .from(connectionsTable)
+        .where(eq(connectionsTable.platform, "meta"));
+      const metaConn = metaConns.find(c => c.workspaceSlug === "les_a_inspections")
+        ?? metaConns.find(c => c.workspaceSlug === "general")
+        ?? metaConns[0];
+
       const [saved] = await db.insert(socialPostsTable).values({
         platform: "meta",
         content: draftText,
@@ -71,6 +81,7 @@ export async function runCycle(): Promise<CycleOutcome> {
         status: "pending_approval",
         aiGenerated: true,
         agentSlug: "lesa-fb",
+        connectionId: metaConn?.id ?? null,
       }).returning();
 
       state.postCount += 1;
