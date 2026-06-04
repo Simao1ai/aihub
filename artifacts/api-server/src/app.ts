@@ -17,6 +17,7 @@ const ALLOWED_ORIGINS: (string | RegExp)[] = [
   /\.replit\.dev$/,
   /\.replit\.app$/,
   /\.repl\.co$/,
+  /synthdesk\.ai$/,
 ];
 if (process.env.REPLIT_DEV_DOMAIN) {
   ALLOWED_ORIGINS.push(`https://${process.env.REPLIT_DEV_DOMAIN}`);
