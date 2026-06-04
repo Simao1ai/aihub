@@ -208,7 +208,7 @@ const PLATFORMS = [
     difficulty: 'Easy',
     timeEstimate: '~5 min',
     fields: [
-      { key: 'fromName', label: 'From Name', placeholder: 'Simao Alves — LES A Inspections', required: true, type: 'text' as const },
+      { key: 'fromName', label: 'From Name', placeholder: 'Simao Alves — LESA Inspections', required: true, type: 'text' as const },
       { key: 'fromAddress', label: 'From Email', placeholder: 'hello@lesainspections.com', required: true, type: 'email' as const },
       { key: 'host', label: 'SMTP Host', placeholder: 'mail.yourdomain.com', required: true, type: 'text' as const, hint: 'Common: smtp.gmail.com · smtp.office365.com · mail.zoho.com' },
       { key: 'port', label: 'SMTP Port', placeholder: '587', required: true, type: 'number' as const, hint: '587 (TLS, recommended) · 465 (SSL) · 25 (unencrypted)' },

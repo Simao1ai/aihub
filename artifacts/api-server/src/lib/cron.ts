@@ -34,7 +34,7 @@ export async function runAutomationById(automationId: number) {
     const systemPrompt = [
       agent.systemPrompt,
       `You are working for Simao Alves, an entrepreneur running 5 businesses:`,
-      `- LES A Inspections: Home inspection B2B with realtor network in NJ`,
+      `- LESA Inspections: Home inspection B2B with realtor network in NJ`,
       `- CarrierDeskHQ: Trucking consulting SaaS platform`,
       `- SalonSync Hub: Salon management SaaS`,
       `- Sweepello: Cleaning marketplace SaaS`,

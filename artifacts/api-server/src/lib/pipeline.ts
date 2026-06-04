@@ -9,7 +9,7 @@ export const pipelineEmitter = new EventEmitter();
 pipelineEmitter.setMaxListeners(200);
 
 const SIMAO_CONTEXT = `You are part of Simao Alves' Personal AI Business Hub — a private system powering 5 businesses:
-• LES A Inspections — Home inspection B2B (realtors refer buyers, per-inspection revenue)
+• LESA Inspections — Home inspection B2B (realtors refer buyers, per-inspection revenue)
 • CarrierDeskHQ — Trucking consulting & dispatch SaaS for owner-operators
 • SalonSync Hub — Salon management SaaS (appointments, staff, payments)
 • Sweepello — Cleaning marketplace SaaS (homeowners ↔ vetted cleaners)

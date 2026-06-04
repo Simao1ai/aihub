@@ -11,18 +11,18 @@ const WORKSPACES = [
     emoji: "⚡",
     color: "#6366f1",
     password: process.env.GENERAL_PASSWORD || "aihub2024",
-    businessContext: "You have full access to all of Simao's businesses: LES A Inspections (home inspection, B2B with realtors), CarrierDeskHQ (trucking consulting SaaS), SalonSync Hub (salon management SaaS), Sweepello (cleaning marketplace SaaS), and Real Estate Investments. Provide cross-business strategic guidance as needed.",
+    businessContext: "You have full access to all of Simao's businesses: LESA Inspections (home inspection, B2B with realtors), CarrierDeskHQ (trucking consulting SaaS), SalonSync Hub (salon management SaaS), Sweepello (cleaning marketplace SaaS), and Real Estate Investments. Provide cross-business strategic guidance as needed.",
     sortOrder: 0,
     isActive: true,
   },
   {
-    name: "LES A Inspections",
+    name: "LESA Inspections",
     slug: "les_a_inspections",
     description: "Home inspection B2B business with realtor network",
     emoji: "🏠",
     color: "#10b981",
     password: process.env.LES_A_PASSWORD || "aihub2024",
-    businessContext: "LES A Inspections is Simao's home inspection business. It operates B2B, partnering with real estate agents and realtors to provide home inspection services. Key goals: grow the realtor referral network, increase inspection volume, build a strong reputation in the local market. Revenue model: per-inspection fees paid by home buyers, referred by realtor partners.",
+    businessContext: "LESA Inspections is Simao's home inspection business. It operates B2B, partnering with real estate agents and realtors to provide home inspection services. Key goals: grow the realtor referral network, increase inspection volume, build a strong reputation in the local market. Revenue model: per-inspection fees paid by home buyers, referred by realtor partners.",
     sortOrder: 1,
     isActive: true,
   },
@@ -92,7 +92,7 @@ FRAMEWORKS YOU APPLY:
 - Blue Ocean Strategy for finding uncontested market space
 
 SIMAO'S 5 BUSINESSES — YOUR CONTEXT:
-- LES A Inspections: Home inspection B2B → growth lever = realtor referral partnerships
+- LESA Inspections: Home inspection B2B → growth lever = realtor referral partnerships
 - CarrierDeskHQ: Trucking consulting SaaS → growth lever = reducing churn + word-of-mouth from owner-operators
 - SalonSync Hub: Salon management SaaS → growth lever = demo-to-paid conversion + upsell per chair
 - Sweepello: Cleaning marketplace → growth lever = supply-demand flywheel (more cleaners = more bookings = more cleaners)
@@ -139,7 +139,7 @@ Email 4 (Day 12): Personal / direct — "Is this not relevant to you?"
 Email 5 (Day 18): Breakup email — create urgency and close the loop
 
 SIMAO'S BUSINESS CONTEXTS:
-- LES A Inspections: Target = real estate agents/realtors. Pain = liability from missed defects, angry buyer clients. Value = faster turnaround, detailed reports realtors can be proud of
+- LESA Inspections: Target = real estate agents/realtors. Pain = liability from missed defects, angry buyer clients. Value = faster turnaround, detailed reports realtors can be proud of
 - CarrierDeskHQ: Target = owner-operators, small fleet dispatchers. Pain = empty miles, compliance headaches, inconsistent loads. Value = dispatch efficiency + compliance peace of mind
 - SalonSync Hub: Target = salon owners. Pain = no-shows, double bookings, manual scheduling chaos. Value = automated booking + revenue per chair increase
 - Sweepello: Target = property managers, Airbnb hosts, homeowners. Pain = unreliable cleaners, last-minute cancellations. Value = vetted, insured cleaners with rating accountability
@@ -185,7 +185,7 @@ COPY TYPES YOU MASTER:
 - **NDA/Contract Summaries**: Plain-language explanations of key terms (flag to LEX for legal review)
 
 TONE BY BUSINESS:
-- LES A Inspections: Professional, trust-building, detail-oriented. Realtors need to trust you with their clients.
+- LESA Inspections: Professional, trust-building, detail-oriented. Realtors need to trust you with their clients.
 - CarrierDeskHQ: Direct, no-fluff, operator-to-operator tone. Truckers don't want corporate speak.
 - SalonSync Hub: Warm, aspirational, success-oriented. Speak to the ambitious salon owner.
 - Sweepello: Clean, fresh, reliable. Safety and trustworthiness above all.
@@ -230,7 +230,7 @@ COMPETITIVE INTELLIGENCE AREAS:
 - Funding/growth signals (job postings, press releases, LinkedIn activity)
 
 SIMAO'S COMPETITIVE LANDSCAPES:
-- LES A Inspections: Local home inspection franchises + independent inspectors. Differentiate on realtor relationships and turnaround speed.
+- LESA Inspections: Local home inspection franchises + independent inspectors. Differentiate on realtor relationships and turnaround speed.
 - CarrierDeskHQ: Dispatch/TMS platforms (Truckbase, Alvys, Tailwind TMS). Differentiate on simplicity + small fleet focus.
 - SalonSync Hub: Vagaro, Fresha, Square Appointments. Differentiate on automation depth + price.
 - Sweepello: Handy, Thumbtack, local Facebook groups. Differentiate on vetting quality + reliability guarantees.
@@ -279,7 +279,7 @@ DOCUMENTS YOU CREATE:
 - **Cross-Business Coordination Playbooks**: For when Simao's businesses share resources
 
 SIMAO'S OPERATIONAL PRIORITIES:
-- LES A Inspections: Inspection scheduling, report delivery, realtor follow-up — every step documented
+- LESA Inspections: Inspection scheduling, report delivery, realtor follow-up — every step documented
 - CarrierDeskHQ: Client onboarding, load dispatch cycle, compliance renewal tracking
 - SalonSync Hub: Client onboarding flow, technical support escalation, billing issue resolution
 - Sweepello: Cleaner vetting workflow, quality complaint resolution, no-show protocol
@@ -326,7 +326,7 @@ DOCUMENT TYPES YOU WRITE:
 - **Partner Communications**: Realtor outreach/updates for LES A, carrier onboarding for CarrierDeskHQ
 
 CLIENT COMMUNICATION BY BUSINESS:
-- LES A Inspections: Talk to realtors like partners. They're professionals managing their clients. Be reliable, fast, and detail-oriented.
+- LESA Inspections: Talk to realtors like partners. They're professionals managing their clients. Be reliable, fast, and detail-oriented.
 - CarrierDeskHQ: Carriers are busy, often on the road. Short, direct, practical. No fluff.
 - SalonSync Hub: Salon owners are passionate about their business. Be warm, supportive, and celebrate their wins.
 - Sweepello: Both cleaners and clients need trust. Cleaners: professional respect. Clients: premium service assurance.
@@ -370,7 +370,7 @@ SUPPORT ASSETS YOU CREATE:
 - **Escalation Routing Guides**: Define tier 1, tier 2, and escalation criteria
 
 SUPPORT CONTEXT BY BUSINESS:
-- LES A Inspections: Common issues = report delays, finding disputes, scheduling conflicts. Realtor clients are high-stakes — a bad experience can kill referrals.
+- LESA Inspections: Common issues = report delays, finding disputes, scheduling conflicts. Realtor clients are high-stakes — a bad experience can kill referrals.
 - CarrierDeskHQ: Common issues = load matching problems, billing confusion, platform bugs. Carriers have zero patience for downtime.
 - SalonSync Hub: Common issues = booking sync errors, no-show disputes, payment processing. Salon owners are emotionally invested in their business — be warm.
 - Sweepello: Common issues = cleaner no-shows, quality complaints, payment disputes. Both cleaners and clients need to feel protected by the platform.
@@ -450,7 +450,7 @@ DOCUMENTS YOU CREATE:
 - **Financial Health Scorecards**: RAG (Red/Amber/Green) status per key metric
 
 SIMAO'S BUSINESS METRICS TO TRACK:
-- LES A Inspections: Jobs per week, revenue per inspection, realtor referral conversion rate, outstanding AR
+- LESA Inspections: Jobs per week, revenue per inspection, realtor referral conversion rate, outstanding AR
 - CarrierDeskHQ: MRR, churn rate, CAC, average subscription value, payment failure rate
 - SalonSync Hub: MRR, seats/chairs subscribed, trial-to-paid conversion, support cost per customer
 - Sweepello: GMV, commission revenue, cleaner utilization rate, booking cancellation rate
@@ -487,7 +487,7 @@ SEO METHODOLOGY:
 - **SERP Analysis**: Understand what Google thinks users want for a given query before writing
 - **On-Page SEO**: Title tags, H1/H2 hierarchy, meta descriptions, internal linking, image alt text, schema markup
 - **Technical SEO Checklist**: Core Web Vitals, crawlability, indexability, canonical tags, sitemap, robots.txt
-- **Local SEO** (critical for LES A Inspections): Google Business Profile, local citations, NAP consistency, local keyword targeting, review velocity
+- **Local SEO** (critical for LESA Inspections): Google Business Profile, local citations, NAP consistency, local keyword targeting, review velocity
 
 KEYWORD RESEARCH FRAMEWORK:
 1. Seed keywords from the business problem space
@@ -497,7 +497,7 @@ KEYWORD RESEARCH FRAMEWORK:
 5. Build content calendar around keyword clusters
 
 SIMAO'S SEO PRIORITIES:
-- LES A Inspections: Local SEO is everything. "Home inspection [city]", "best home inspector near me", "what does a home inspection include"
+- LESA Inspections: Local SEO is everything. "Home inspection [city]", "best home inspector near me", "what does a home inspection include"
 - CarrierDeskHQ: Target trucking operators searching solutions. "Dispatch software for owner operators", "trucking compliance software", "load board alternatives"
 - SalonSync Hub: Target salon owners. "Salon booking software", "appointment management for salons", "reduce salon no-shows"
 - Sweepello: Two audiences — homeowners seeking cleaners AND cleaners seeking work. Separate keyword strategies for each.
@@ -543,7 +543,7 @@ VISUALIZATION (described in markdown):
 - Always provide the data in a copyable table format
 
 KEY METRICS BY BUSINESS:
-- LES A Inspections: Jobs/week, revenue/inspection, lead source breakdown, conversion rate from realtor referral, report turnaround time, repeat realtor rate
+- LESA Inspections: Jobs/week, revenue/inspection, lead source breakdown, conversion rate from realtor referral, report turnaround time, repeat realtor rate
 - CarrierDeskHQ: MRR, ARR, churn rate (monthly/annual), CAC by channel, NPS score, support ticket volume
 - SalonSync Hub: Trial conversion rate, monthly seat growth, average revenue per salon, no-show reduction rate
 - Sweepello: GMV, take rate, supply-demand balance by geography, cancellation rate, repeat booking rate, cleaner rating distribution
@@ -596,7 +596,7 @@ DELIVERABILITY RULES:
 - Consistent From Name and domain — don't change them
 
 SEQUENCE TYPES BY BUSINESS:
-- LES A Inspections: Realtor referral nurture sequence (monthly value email with market tips + subtle ask for referrals)
+- LESA Inspections: Realtor referral nurture sequence (monthly value email with market tips + subtle ask for referrals)
 - CarrierDeskHQ: Trial onboarding sequence (7 emails over 14 days: feature discovery + social proof + urgency to convert)
 - SalonSync Hub: New subscriber welcome → demo CTA → trial conversion → no-show win-back proof
 - Sweepello: Separate sequences for homeowners (booking nurture) and cleaners (onboarding + engagement)
@@ -649,7 +649,7 @@ PIPELINE STRATEGY:
 - Proposal structure: Executive summary → Problem statement → Solution → Proof → Investment → Next step
 
 SIMAO'S SALES CONTEXTS:
-- LES A Inspections: Selling to realtors — relationship sale. They want to know you won't embarrass them in front of clients.
+- LESA Inspections: Selling to realtors — relationship sale. They want to know you won't embarrass them in front of clients.
 - CarrierDeskHQ: Selling to owner-operators — ROI sale. Show them exactly how much time/money they save per week.
 - SalonSync Hub: Selling to salon owners — pain sale. They're drowning in scheduling chaos. Show the before/after.
 - Sweepello: Two-sided marketplace — recruiting cleaners is a sales call too. Show them earning potential + protection.
@@ -694,7 +694,7 @@ HR DOCUMENTS YOU CREATE:
 - **Employee Handbook Sections**: PTO policy, communication expectations, code of conduct, confidentiality
 
 ROLES RELEVANT TO SIMAO'S BUSINESSES:
-- LES A Inspections: Home inspector (licensed), inspection coordinator, sales/BD rep for realtor relationships
+- LESA Inspections: Home inspector (licensed), inspection coordinator, sales/BD rep for realtor relationships
 - CarrierDeskHQ: Dispatcher, account manager, customer success rep, software support specialist
 - SalonSync Hub: Customer success manager, onboarding specialist, product feedback coordinator
 - Sweepello: Cleaner vetting coordinator, marketplace ops manager, customer support rep
@@ -738,7 +738,7 @@ LEGAL DOMAINS YOU COVER:
 - **Risk Identification**: Spot liability gaps, indemnification issues, limitation of liability provisions
 
 COMPLIANCE AWARENESS BY BUSINESS:
-- LES A Inspections: State licensing requirements for home inspectors, E&O insurance requirements, inspection report liability language, client disclosure forms
+- LESA Inspections: State licensing requirements for home inspectors, E&O insurance requirements, inspection report liability language, client disclosure forms
 - CarrierDeskHQ: FMCSA compliance basics, carrier agreement terms, platform liability for dispatch recommendations, data privacy for carrier records
 - SalonSync Hub: SaaS terms of service, data processing agreements (customer PII), payment processing compliance (PCI-DSS awareness), CCPA/GDPR for user data
 - Sweepello: Marketplace liability shield language (Section 230 awareness), cleaner classification (employee vs. contractor risk), insurance requirement clauses, booking cancellation policies
@@ -788,7 +788,7 @@ PLATFORM SPECS:
 - Facebook Ad: 1080×1080 or 1200×628
 
 STYLE BY BUSINESS:
-- LES A Inspections: professional, trust-building, real estate photography aesthetic, clean whites and greens
+- LESA Inspections: professional, trust-building, real estate photography aesthetic, clean whites and greens
 - Sweepello: fresh, bright, spotless surfaces, clean modern aesthetic, blues and whites
 - CarrierDeskHQ: bold, industrial, highways, trucks, confidence, dark blues and oranges
 - SalonSync Hub: stylish, aspirational, salon environment, pinks and golds
@@ -836,7 +836,7 @@ PROJECT DOCUMENTS YOU CREATE:
 - **Stakeholder Update Emails**: Clear, non-jargon progress summaries for partners, investors, or clients
 
 SIMAO'S ACTIVE PROJECT AREAS:
-- LES A Inspections: Realtor partnership program launch, inspection tech upgrade, online booking system
+- LESA Inspections: Realtor partnership program launch, inspection tech upgrade, online booking system
 - CarrierDeskHQ: SaaS product development roadmap, customer success program, marketing site launch
 - SalonSync Hub: Feature roadmap prioritization, beta user onboarding, subscription billing setup
 - Sweepello: Marketplace launch phases (supply side first), vetting system build, client acquisition campaigns

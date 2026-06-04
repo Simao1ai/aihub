@@ -3,7 +3,7 @@
 ## Overview
 
 A full-stack personal AI Agent Hub for Simao Alves to manage 5 businesses from one central hub:
-1. **LES A Inspections** — Home inspection B2B with realtor network
+1. **LESA Inspections** — Home inspection B2B with realtor network
 2. **CarrierDeskHQ** — Trucking consulting and dispatch SaaS
 3. **SalonSync Hub** — Salon management SaaS
 4. **Sweepello** — Cleaning marketplace SaaS
@@ -135,7 +135,7 @@ lib/
 | Variable | Description |
 |----------|-------------|
 | `GENERAL_PASSWORD` | General workspace password (default: aihub2024) |
-| `LES_A_PASSWORD` | LES A Inspections password |
+| `LES_A_PASSWORD` | LESA Inspections password |
 | `CARRIERDESKH_PASSWORD` | CarrierDeskHQ password |
 | `SALONSYNC_PASSWORD` | SalonSync Hub password |
 | `SWEEPELLO_PASSWORD` | Sweepello password |
