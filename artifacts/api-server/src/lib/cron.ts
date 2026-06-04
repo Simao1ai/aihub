@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { parseExpression } from "cron-parser";
-import { db, automationsTable, automationRunsTable, agentsTable, socialPostsTable } from "@workspace/db";
+import { db, automationsTable, automationRunsTable, agentsTable, socialPostsTable, workspacesTable } from "@workspace/db";
 import { eq, lte, and, isNotNull, isNull } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { logger } from "./logger";
@@ -159,6 +159,59 @@ export function startCronScheduler() {
       }
     } catch (err) {
       logger.error(err, "Scheduled posts cron error");
+    }
+  });
+
+  // ── Hourly external KPI polling ──────────────────────────────────────────────
+  // For any workspace that has externalKpiUrl set, fetch JSON data and upsert KPIs.
+  // Expected payload: { kpis: [{ name, value, unit?, period? }] }  OR a bare array.
+  cron.schedule("0 * * * *", async () => {
+    try {
+      const workspaces = await db.select().from(workspacesTable as any);
+      const { kpisTable } = await import("@workspace/db");
+      const { sql: sqlOp } = await import("drizzle-orm");
+
+      for (const ws of workspaces) {
+        const url = (ws as any).externalKpiUrl as string | null;
+        if (!url) continue;
+        try {
+          const resp = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+          if (!resp.ok) { logger.warn({ ws: ws.slug, status: resp.status }, "KPI feed returned non-200"); continue; }
+          const raw = await resp.json() as any;
+          const rows: any[] = Array.isArray(raw) ? raw : (Array.isArray(raw?.kpis) ? raw.kpis : []);
+          if (!rows.length) continue;
+
+          const period = new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" });
+          for (const row of rows) {
+            if (!row.name || row.value === undefined) continue;
+            // Upsert by name + businessTag
+            await db
+              .insert(kpisTable)
+              .values({
+                name: String(row.name),
+                value: parseFloat(row.value) || 0,
+                unit: row.unit ?? "",
+                period: row.period ?? period,
+                businessTag: ws.slug,
+              })
+              .onConflictDoNothing();
+            // Update existing if same name+businessTag exists — use raw SQL for upsert
+            await db.execute(sqlOp`
+              UPDATE kpis
+              SET value = ${parseFloat(row.value) || 0},
+                  unit = ${row.unit ?? ""},
+                  period = ${row.period ?? period},
+                  updated_at = NOW()
+              WHERE name = ${String(row.name)} AND business_tag = ${ws.slug}
+            `);
+          }
+          logger.info({ ws: ws.slug, count: rows.length }, "KPI feed polled OK");
+        } catch (wsErr) {
+          logger.warn({ ws: ws.slug, err: (wsErr as Error).message }, "KPI feed poll failed");
+        }
+      }
+    } catch (err) {
+      logger.error(err, "Hourly KPI polling cron error");
     }
   });
 

@@ -13,6 +13,8 @@ export const workspacesTable = pgTable("workspaces", {
   businessContext: text("business_context").notNull().default(""),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+  // Optional URL that returns JSON KPI data — polled hourly to auto-fill metrics
+  externalKpiUrl: text("external_kpi_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

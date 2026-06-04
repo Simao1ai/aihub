@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import {
   Bot, Brain, Zap, Link2, ShieldAlert, CheckSquare, Users,
   ArrowRight, Clock, Sparkles, GitFork, TrendingUp,
-  Plus, Pencil, Trash2, Check, X, Share2, Calendar, Send, AlertTriangle, ExternalLink
+  Plus, Pencil, Trash2, Check, X, Share2, Calendar, Send, AlertTriangle, ExternalLink, Settings2, RefreshCw
 } from 'lucide-react';
 import {
   useListAgents,
@@ -69,12 +69,39 @@ const KPI_TEMPLATES: Record<string, Array<{ name: string; unit: string }>> = {
   ],
 };
 
-function KpiSection({ businessTag }: { businessTag: string }) {
+function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
+  businessTag: string;
+  workspaceId?: number;
+  initialKpiUrl?: string | null;
+  token?: string;
+}) {
   const [kpis, setKpis] = useState<Kpi[]>([]);
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; kpi?: Kpi } | null>(null);
   const [form, setForm] = useState({ name: '', value: '', unit: '', period: '' });
   const [saving, setSaving] = useState(false);
   const templates = KPI_TEMPLATES[businessTag] ?? KPI_TEMPLATES.general;
+
+  // KPI feed URL settings
+  const [showUrlPanel, setShowUrlPanel] = useState(false);
+  const [urlDraft, setUrlDraft] = useState(initialKpiUrl ?? '');
+  const [savingUrl, setSavingUrl] = useState(false);
+  const [kpiUrl, setKpiUrl] = useState(initialKpiUrl ?? '');
+
+  const saveKpiUrl = async () => {
+    if (!workspaceId || !token) return;
+    setSavingUrl(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ externalKpiUrl: urlDraft.trim() || null }),
+      });
+      if (res.ok) {
+        setKpiUrl(urlDraft.trim());
+        setShowUrlPanel(false);
+      }
+    } finally { setSavingUrl(false); }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -132,14 +159,71 @@ function KpiSection({ businessTag }: { businessTag: string }) {
         <h3 className="font-display font-semibold text-white flex items-center gap-2 text-sm">
           <TrendingUp className="w-4 h-4 text-primary" /> KPIs
           {kpis[0]?.period && <span className="text-xs text-white/25 font-normal">· {kpis[0].period}</span>}
+          {kpiUrl && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 font-normal">auto-synced</span>
+          )}
         </h3>
-        <button
-          onClick={openCreate}
-          className="text-xs text-white/30 hover:text-primary flex items-center gap-1 transition-colors"
-        >
-          <Plus className="w-3 h-3" /> Add
-        </button>
+        <div className="flex items-center gap-2">
+          {workspaceId && (
+            <button
+              onClick={() => setShowUrlPanel(v => !v)}
+              className={`text-xs flex items-center gap-1 transition-colors ${showUrlPanel ? 'text-primary' : 'text-white/20 hover:text-white/50'}`}
+              title="Configure KPI feed URL"
+            >
+              <Settings2 className="w-3 h-3" />
+            </button>
+          )}
+          <button
+            onClick={openCreate}
+            className="text-xs text-white/30 hover:text-primary flex items-center gap-1 transition-colors"
+          >
+            <Plus className="w-3 h-3" /> Add
+          </button>
+        </div>
       </div>
+
+      {/* KPI Feed URL panel */}
+      <AnimatePresence>
+        {showUrlPanel && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-3 overflow-hidden"
+          >
+            <div className="p-3 rounded-xl border border-white/8 bg-white/3 space-y-2">
+              <p className="text-[11px] text-white/40">
+                Point to a JSON endpoint that returns KPI data — it'll be polled every hour.
+                Format: <code className="text-white/60 bg-white/5 px-1 rounded">{'{"kpis":[{"name":"Revenue","value":5000,"unit":"$"}]}'}</code>
+              </p>
+              <div className="flex gap-2">
+                <input
+                  value={urlDraft}
+                  onChange={e => setUrlDraft(e.target.value)}
+                  placeholder="https://your-app.com/api/kpis"
+                  className="flex-1 bg-white/4 border border-white/8 rounded-lg px-3 py-2 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all"
+                />
+                <button
+                  onClick={saveKpiUrl}
+                  disabled={savingUrl}
+                  className="px-3 py-2 rounded-lg bg-primary/90 hover:bg-primary text-white text-xs font-semibold disabled:opacity-50 flex items-center gap-1 transition-all"
+                >
+                  {savingUrl ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  Save
+                </button>
+                {kpiUrl && (
+                  <button
+                    onClick={() => { setUrlDraft(''); saveKpiUrl(); }}
+                    className="px-3 py-2 rounded-lg bg-white/5 hover:bg-red-500/10 text-white/40 hover:text-red-400 text-xs transition-all"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {kpis.length === 0 ? (
         <button
@@ -464,10 +548,19 @@ export default function Dashboard() {
 
   const [taskCount, setTaskCount] = useState(0);
   const [contactCount, setContactCount] = useState(0);
+  const [wsId, setWsId] = useState<number | undefined>(undefined);
+  const [wsKpiUrl, setWsKpiUrl] = useState<string | null>(null);
+
+  const { account } = useAppStore();
 
   useEffect(() => {
     fetch(`/api/tasks?businessTag=${businessTag}`).then(r => r.json()).then(d => setTaskCount(Array.isArray(d) ? d.filter((t: any) => t.status !== 'done').length : 0)).catch(() => {});
     fetch(`/api/contacts?businessTag=${businessTag}`).then(r => r.json()).then(d => setContactCount(Array.isArray(d) ? d.length : 0)).catch(() => {});
+    // Fetch workspace for KPI feed URL + ID
+    fetch('/api/workspaces').then(r => r.json()).then((workspaces: any[]) => {
+      const ws = workspaces.find((w: any) => w.slug === businessTag);
+      if (ws) { setWsId(ws.id); setWsKpiUrl(ws.externalKpiUrl ?? null); }
+    }).catch(() => {});
   }, [businessTag]);
 
   const approveMutation = useApproveAutomationRun();
@@ -488,7 +581,6 @@ export default function Dashboard() {
     });
   };
 
-  const { account } = useAppStore();
   const hour = new Date().getHours();
   const timeGreet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const greeting = account?.displayName ? `${timeGreet}, ${account.displayName}` : timeGreet;
@@ -552,7 +644,12 @@ export default function Dashboard() {
 
           {/* KPI Section */}
           <motion.div variants={item} className="rounded-2xl border border-white/5 bg-[#111520] p-6">
-            <KpiSection businessTag={businessTag} />
+            <KpiSection
+              businessTag={businessTag}
+              workspaceId={wsId}
+              initialKpiUrl={wsKpiUrl}
+              token={account?.token}
+            />
           </motion.div>
 
           {/* Social Media Stats */}

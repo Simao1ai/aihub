@@ -361,6 +361,11 @@ function SetupDrawer({
   const [selectedPage, setSelectedPage] = useState<{ id: string; name: string } | null>(null);
   const [fetchingPages, setFetchingPages] = useState(false);
   const [pageError, setPageError] = useState('');
+  // Meta manual entry (for Business-Manager-only pages not in me/accounts)
+  const [manualMode, setManualMode] = useState(false);
+  const [manualPageId, setManualPageId] = useState('');
+  const [manualPageToken, setManualPageToken] = useState('');
+  const [manualPageName, setManualPageName] = useState('');
 
   // Multi-field platforms (smtp, twilio, etc.)
   const platformFields = (platform as any).fields as PlatformField[] | undefined;
@@ -504,11 +509,18 @@ function SetupDrawer({
       await onTokenSubmit(apiKey, label.trim() || defaultLabel, metadata);
     } else {
       if (!token.trim()) { setSaving(false); return; }
-      const metadata = platform.key === 'meta' && selectedPage
-        ? { pageId: selectedPage.id, pageName: selectedPage.name, pageAccessToken: (selectedPage as any).access_token }
-        : undefined;
-      const lbl = label.trim() || (selectedPage ? selectedPage.name : platform.name);
-      await onTokenSubmit(token.trim(), lbl, metadata);
+      let metadata: Record<string, unknown> | undefined;
+      let lbl = label.trim();
+      if (platform.key === 'meta' && manualMode && manualPageId.trim() && manualPageToken.trim()) {
+        // Manual page token entry (Business Manager pages not in me/accounts)
+        const name = manualPageName.trim() || 'Facebook Page';
+        metadata = { pageId: manualPageId.trim(), pageName: name, pageAccessToken: manualPageToken.trim() };
+        lbl = lbl || name;
+      } else if (platform.key === 'meta' && selectedPage) {
+        metadata = { pageId: selectedPage.id, pageName: selectedPage.name, pageAccessToken: (selectedPage as any).access_token };
+        lbl = lbl || selectedPage.name;
+      }
+      await onTokenSubmit(token.trim(), lbl || platform.name, metadata);
     }
     setSaving(false);
   };
@@ -988,12 +1000,66 @@ function SetupDrawer({
                       {fetchingPages ? 'Loading your pages…' : 'Load My Facebook Pages'}
                     </button>
                     {pageError && (
-                      <div className="mt-2 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                      <div className="mt-2 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 space-y-1">
                         {pageError.split('\n').map((line, i) => (
                           <p key={i} className="text-[11px] text-red-400 leading-relaxed">{line}</p>
                         ))}
+                        {!manualMode && (
+                          <button
+                            onClick={() => setManualMode(true)}
+                            className="mt-1 text-[11px] text-[#1877F2] underline underline-offset-2 hover:text-[#1877F2]/80 transition-colors"
+                          >
+                            Connect using a Page Token instead →
+                          </button>
+                        )}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Meta: manual page token entry (Business Manager pages) */}
+                {platform.key === 'meta' && manualMode && (
+                  <div className="p-3 rounded-xl border border-[#1877F2]/20 bg-[#1877F2]/5 space-y-3">
+                    <div>
+                      <p className="text-xs font-semibold text-[#1877F2] mb-1">Enter Page Token directly</p>
+                      <p className="text-[11px] text-white/40 leading-relaxed">
+                        In Graph API Explorer → change "User Token" dropdown to <strong className="text-white/60">Page Token</strong> → select <em>LESA A Inspections</em> → Generate Access Token → copy it here.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-white/40 mb-1 block">Page Name <span className="text-white/20">(optional)</span></label>
+                      <input
+                        value={manualPageName}
+                        onChange={e => setManualPageName(e.target.value)}
+                        placeholder="e.g. LESA A Inspections"
+                        className="w-full bg-white/4 border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#1877F2]/40 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-white/40 mb-1 block">Page ID <span className="text-red-400">*</span></label>
+                      <input
+                        value={manualPageId}
+                        onChange={e => setManualPageId(e.target.value)}
+                        placeholder="e.g. 123456789012345"
+                        className="w-full bg-white/4 border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#1877F2]/40 transition-all font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-white/40 mb-1 block">Page Access Token <span className="text-red-400">*</span></label>
+                      <input
+                        value={manualPageToken}
+                        onChange={e => setManualPageToken(e.target.value)}
+                        placeholder="Paste Page Token from Graph Explorer…"
+                        className="w-full bg-white/4 border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#1877F2]/40 transition-all font-mono text-xs"
+                      />
+                      <p className="text-[10px] text-white/25 mt-1">Page tokens are permanent — they never expire</p>
+                    </div>
+                    <button
+                      onClick={() => { setManualMode(false); setManualPageId(''); setManualPageToken(''); setManualPageName(''); }}
+                      className="text-[11px] text-white/30 hover:text-white/50 underline underline-offset-2 transition-colors"
+                    >
+                      Back to auto-fetch
+                    </button>
                   </div>
                 )}
 
@@ -1044,11 +1110,19 @@ function SetupDrawer({
 
                 <button
                   onClick={handleSave}
-                  disabled={saving || !token.trim() || (platform.key === 'meta' && pages.length > 0 && !selectedPage)}
+                  disabled={
+                    saving ||
+                    !token.trim() ||
+                    (platform.key === 'meta' && pages.length > 0 && !selectedPage) ||
+                    (platform.key === 'meta' && manualMode && (!manualPageId.trim() || !manualPageToken.trim()))
+                  }
                   className="w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-35 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2"
                 >
                   {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
-                  {saving ? 'Saving…' : selectedPage ? `Connect as ${selectedPage.name}` : 'Save & Connect'}
+                  {saving ? 'Saving…'
+                    : manualMode && manualPageName.trim() ? `Connect as ${manualPageName.trim()}`
+                    : selectedPage ? `Connect as ${selectedPage.name}`
+                    : 'Save & Connect'}
                 </button>
               </div>
             </>

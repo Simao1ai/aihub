@@ -84,7 +84,7 @@ router.put("/:id", requireAuth, async (req, res) => {
   const id = parseId(req.params.id);
   if (!id) return res.status(400).json({ error: "Invalid id" });
 
-  const { name, description, emoji, color, password, sortOrder, isActive } = req.body as any;
+  const { name, description, emoji, color, password, sortOrder, isActive, externalKpiUrl } = req.body as any;
   const updates: Record<string, any> = {};
   if (name !== undefined) updates.name = name;
   if (description !== undefined) updates.description = description;
@@ -93,6 +93,7 @@ router.put("/:id", requireAuth, async (req, res) => {
   if (password !== undefined && password.length >= 4) updates.password = password;
   if (sortOrder !== undefined) updates.sortOrder = sortOrder;
   if (isActive !== undefined) updates.isActive = isActive;
+  if (externalKpiUrl !== undefined) updates.externalKpiUrl = externalKpiUrl || null;
 
   try {
     const [updated] = await db
