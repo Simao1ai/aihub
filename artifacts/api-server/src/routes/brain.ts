@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, brainDocumentsTable } from "@workspace/db";
-import { eq, ilike } from "drizzle-orm";
+import { eq, ilike, or, inArray } from "drizzle-orm";
 import multer from "multer";
 import { logger } from "../lib/logger";
 
@@ -117,17 +117,68 @@ router.delete("/documents/:id", async (req, res) => {
   }
 });
 
-export async function getBrainContext(query: string): Promise<string> {
+export async function getBrainContext(query: string, businessTag = "general"): Promise<string> {
   try {
-    const chunks = await db
-      .select()
-      .from(brainDocumentsTable)
-      .where(ilike(brainDocumentsTable.content, `%${query.slice(0, 100)}%`))
-      .limit(3);
+    // Extract meaningful keywords (3+ chars, skip stopwords)
+    const STOPWORDS = new Set(["the","and","for","are","was","you","your","that","this","with","have","from","they","will","what","when","how","can","need","want","about","just","also"]);
+    const keywords = [...new Set(
+      query.toLowerCase()
+        .replace(/[^\w\s]/g, " ")
+        .split(/\s+/)
+        .filter(w => w.length >= 3 && !STOPWORDS.has(w))
+    )].slice(0, 8);
+
+    // Workspace tags to search: current workspace + general docs always included
+    const tags = businessTag === "general" ? ["general"] : [businessTag, "general"];
+
+    let chunks: typeof brainDocumentsTable.$inferSelect[] = [];
+
+    if (keywords.length > 0) {
+      // Match any keyword in title OR content, scoped to the workspace
+      const keywordConditions = keywords.flatMap(kw => [
+        ilike(brainDocumentsTable.content, `%${kw}%`),
+        ilike(brainDocumentsTable.title, `%${kw}%`),
+      ]);
+      chunks = await db
+        .select()
+        .from(brainDocumentsTable)
+        .where(or(
+          ...keywordConditions,
+        ))
+        .limit(20);
+
+      // Prefer docs tagged for this workspace, then general, then others
+      chunks = chunks.filter(c => tags.includes(c.businessTag));
+
+      // Score by how many keywords match (title matches weighted 2x)
+      const scored = chunks.map(c => {
+        const text = (c.title + " " + c.content).toLowerCase();
+        const titleText = c.title.toLowerCase();
+        const score = keywords.reduce((s, kw) => {
+          if (titleText.includes(kw)) return s + 2;
+          if (text.includes(kw)) return s + 1;
+          return s;
+        }, 0);
+        return { chunk: c, score };
+      });
+      scored.sort((a, b) => b.score - a.score);
+      chunks = scored.slice(0, 4).map(s => s.chunk);
+    }
+
+    // Fallback: if no keyword hits, return most recent docs for this workspace
+    if (chunks.length === 0) {
+      chunks = await db
+        .select()
+        .from(brainDocumentsTable)
+        .where(inArray(brainDocumentsTable.businessTag, tags))
+        .limit(3);
+    }
 
     if (chunks.length === 0) return "";
 
-    const contextText = chunks.map((c) => c.content).join("\n\n---\n\n");
+    const contextText = chunks
+      .map(c => `[${c.title}]\n${c.content}`)
+      .join("\n\n---\n\n");
     return `RELEVANT CONTEXT FROM YOUR KNOWLEDGE BASE:\n${contextText}`;
   } catch {
     return "";

@@ -376,7 +376,7 @@ async function autoRespondAfterHandoff(
     } catch { /* default */ }
 
     const soshiContext = targetAgent.slug === "soshi" ? await getSoshiConnectionsContext() : "";
-    const brainContext = await getBrainContext(seedMessage);
+    const brainContext = await getBrainContext(seedMessage, businessTag);
     const brainBlock = brainContext ? `━━━ BRAIN DOCUMENTS ━━━\n${brainContext}\n━━━━━━━━━━━━━━━━━━━━` : "";
 
     const systemPrompt = [
@@ -627,7 +627,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
       .limit(20);
 
     // Get brain context
-    const brainContext = await getBrainContext(content);
+    const brainContext = await getBrainContext(content, conv.businessTag);
 
     // Get workspace business context
     let businessContext = "";
