@@ -60,7 +60,9 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // ── Auth middleware — applied to all /api/* except /api/auth/* & /api/health ──
-const PUBLIC_PREFIXES = ["/api/auth/", "/api/health"];
+// OAuth callbacks are browser redirects from third-party providers — no Bearer header
+// is possible on these requests. Workspace identity is recovered from the signed state param.
+const PUBLIC_PREFIXES = ["/api/auth/", "/api/health", "/api/connections/oauth/"];
 const PUBLIC_EXACT = ["/api/auth/workspaces", "/api/auth/login", "/api/auth/verify"];
 
 app.use("/api", (req: Request, res: Response, next: NextFunction) => {

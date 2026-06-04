@@ -11,6 +11,26 @@ function getWorkspace(req: any): string {
 
 const router: IRouter = Router();
 
+// ── OAuth state store — CSRF protection ───────────────────────────────────────
+// Maps random state token → { workspace, expiry }. Consumed once on callback.
+interface OAuthStateEntry { workspace: string; expiry: number }
+const oauthStateStore = new Map<string, OAuthStateEntry>();
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function createOAuthState(workspace: string): string {
+  const token = `${workspace}|${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+  oauthStateStore.set(token, { workspace, expiry: Date.now() + OAUTH_STATE_TTL_MS });
+  return token;
+}
+
+function consumeOAuthState(token: string): string | null {
+  const entry = oauthStateStore.get(token);
+  if (!entry) return null;
+  oauthStateStore.delete(token);
+  if (Date.now() > entry.expiry) return null;
+  return entry.workspace;
+}
+
 const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
   linkedin: "LinkedIn",
   google: "Google / Gmail",
@@ -449,8 +469,8 @@ router.get("/oauth/:platform/initiate", (req, res) => {
 
   let authUrl = "";
   const ws = getWorkspace(req);
-  // Encode workspace into state so the callback can associate the connection correctly
-  let state = `${ws}|${Math.random().toString(36).substring(2)}`;
+  // Store workspace server-side keyed by a random state token — recovered in callback (CSRF-safe)
+  const state = createOAuthState(ws);
 
   if (platform === "linkedin") {
     const clientId = process.env.LINKEDIN_CLIENT_ID || "";
@@ -526,9 +546,13 @@ router.get("/oauth/:platform/callback", async (req, res) => {
   const redirectUri = `${baseUrl}/api/connections/oauth/${platform}/callback`;
 
   try {
-    // Extract workspace encoded in state as "workspace|randomString"
+    // Verify state and recover workspace — rejects replayed/forged state tokens
     const stateStr = (state as string) || "";
-    const workspaceSlug = stateStr.includes("|") ? stateStr.split("|")[0] : "general";
+    const workspaceSlug = consumeOAuthState(stateStr);
+    if (!workspaceSlug) {
+      logger.warn({ platform, state: stateStr }, "OAuth callback: invalid or expired state token");
+      return res.redirect(`/connections?oauth_error=invalid_state&platform=${platform}`);
+    }
 
     let accessToken = "";
     let refreshToken = "";
