@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { format } from 'date-fns';
+import { useState, useEffect } from 'react';
+import { format, formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Play, Check, X, Clock, Settings2, ShieldAlert, Plus } from 'lucide-react';
+import { Zap, Play, Check, X, Clock, Settings2, ShieldAlert, Plus, History, ChevronRight, AlertCircle, CheckCircle2, Hourglass } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { 
   useListAutomations,
@@ -17,6 +17,93 @@ import {
 } from '@workspace/api-client-react';
 import { Button, Card, Badge, Switch, Modal, Input, cn } from '@/components/ui-elements';
 import { cronToHuman } from '@/lib/cron-utils';
+
+// ── Run History Modal ────────────────────────────────────────────────────────
+
+function RunHistoryModal({ automation, onClose }: { automation: any; onClose: () => void }) {
+  const [runs, setRuns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<any>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/automations/runs?automationId=${automation.id}`)
+      .then(r => r.json())
+      .then(d => { setRuns(Array.isArray(d) ? d : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [automation.id]);
+
+  const statusIcon = (status: string) => {
+    if (status === 'success') return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />;
+    if (status === 'failed') return <AlertCircle className="w-3.5 h-3.5 text-red-400" />;
+    return <Hourglass className="w-3.5 h-3.5 text-amber-400" />;
+  };
+
+  const statusColor = (status: string) => {
+    if (status === 'success') return 'text-emerald-400 bg-emerald-400/10';
+    if (status === 'failed') return 'text-red-400 bg-red-400/10';
+    return 'text-amber-400 bg-amber-400/10';
+  };
+
+  return (
+    <Modal isOpen onClose={onClose} title={`Run History — ${automation.name}`}>
+      {loading ? (
+        <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">Loading history…</div>
+      ) : runs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground text-sm gap-2">
+          <History className="w-8 h-8 opacity-30" />
+          <p>No runs yet. Hit "Run Now" to start.</p>
+        </div>
+      ) : selected ? (
+        <div className="space-y-4">
+          <button
+            onClick={() => setSelected(null)}
+            className="text-xs text-primary flex items-center gap-1 hover:underline"
+          >
+            ← Back to history
+          </button>
+          <div className="flex items-center gap-3">
+            <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1", statusColor(selected.status))}>
+              {statusIcon(selected.status)} {selected.status}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {selected.ranAt ? format(new Date(selected.ranAt), 'MMM d, yyyy h:mm a') : '—'}
+            </span>
+          </div>
+          <div className="bg-[#0d0f15] border border-border/50 rounded-xl p-4 whitespace-pre-wrap text-sm text-white/90 max-h-[55vh] overflow-y-auto font-mono text-xs leading-relaxed">
+            {selected.output || 'No output.'}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+          {runs.map((run) => (
+            <button
+              key={run.id}
+              onClick={() => setSelected(run)}
+              className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/3 border border-white/5 hover:border-white/10 hover:bg-white/5 transition-all text-left group"
+            >
+              <span className={cn("p-1.5 rounded-lg", statusColor(run.status))}>
+                {statusIcon(run.status)}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-white/90 capitalize">{run.status}</p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {run.ranAt ? formatDistanceToNow(new Date(run.ranAt), { addSuffix: true }) : '—'}
+                </p>
+              </div>
+              <p className="text-[10px] text-white/30 truncate max-w-[160px] shrink-0">
+                {run.output ? run.output.slice(0, 60) + (run.output.length > 60 ? '…' : '') : '—'}
+              </p>
+              <ChevronRight className="w-3.5 h-3.5 text-white/20 group-hover:text-white/40 shrink-0" />
+            </button>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function Automations() {
   const queryClient = useQueryClient();
@@ -35,8 +122,8 @@ export default function Automations() {
 
   const [viewOutputRun, setViewOutputRun] = useState<any>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [historyAutomation, setHistoryAutomation] = useState<any>(null);
 
-  // Create form state
   const [newName, setNewName] = useState('');
   const [newAgentId, setNewAgentId] = useState<number | ''>('');
   const [newCron, setNewCron] = useState('');
@@ -177,19 +264,46 @@ export default function Automations() {
             </div>
             
             <h4 className="text-lg font-bold text-white mb-1">{auto.name}</h4>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 font-medium">
+
+            {/* Schedule */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-0.5 font-medium">
               <Clock className="w-3.5 h-3.5 shrink-0" />
               {cronToHuman(auto.scheduleCron)}
             </div>
             {auto.scheduleCron && (
-              <p className="text-[10px] text-muted-foreground/50 font-mono mb-5 pl-5">{auto.scheduleCron}</p>
+              <p className="text-[10px] text-muted-foreground/50 font-mono mb-1 pl-5">{auto.scheduleCron}</p>
             )}
-            {!auto.scheduleCron && <div className="mb-5" />}
+
+            {/* Next run */}
+            {(auto as any).nextRunAt && (
+              <p className="text-[10px] text-primary/60 mb-1 pl-5 flex items-center gap-1">
+                <ChevronRight className="w-3 h-3" />
+                Next: {format(new Date((auto as any).nextRunAt), 'MMM d, h:mm a')}
+              </p>
+            )}
+
+            {/* Last ran */}
+            {(auto as any).lastRanAt && (
+              <p className="text-[10px] text-muted-foreground/40 mb-3 pl-5">
+                Last ran {formatDistanceToNow(new Date((auto as any).lastRanAt), { addSuffix: true })}
+              </p>
+            )}
+
+            {!auto.scheduleCron && !((auto as any).nextRunAt) && !((auto as any).lastRanAt) && <div className="mb-5" />}
             
             <div className="mt-auto pt-4 border-t border-border/50 flex items-center justify-between">
-              <Badge variant={auto.status === 'running' ? 'warning' : 'default'} className="uppercase">
-                {auto.status}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant={auto.status === 'running' ? 'warning' : 'default'} className="uppercase">
+                  {auto.status}
+                </Badge>
+                <button
+                  onClick={() => setHistoryAutomation(auto)}
+                  className="text-[10px] text-muted-foreground hover:text-white flex items-center gap-1 transition-colors"
+                  title="View run history"
+                >
+                  <History className="w-3 h-3" /> History
+                </button>
+              </div>
               
               <Button 
                 variant="secondary" 
@@ -234,6 +348,14 @@ export default function Automations() {
           </div>
         )}
       </Modal>
+
+      {/* Run History Modal */}
+      {historyAutomation && (
+        <RunHistoryModal
+          automation={historyAutomation}
+          onClose={() => setHistoryAutomation(null)}
+        />
+      )}
 
       {/* Create Automation Modal */}
       <Modal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} title="New Automation">

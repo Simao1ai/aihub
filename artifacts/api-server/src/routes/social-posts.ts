@@ -173,17 +173,23 @@ export async function publishPost(post: {
     logger.error({ postId: post.id, error: errorMessage }, "Social post publish failed");
   }
 
-  const [updated] = await db.update(socialPostsTable)
-    .set({
-      status: success ? "posted" : "failed",
-      postedAt: success ? new Date() : null,
-      errorMessage: errorMessage ?? null,
-      platformPostId: platformPostId ?? null,
-      publishedUrl: publishedUrl ?? null,
-      updatedAt: new Date(),
-    })
-    .where(eq(socialPostsTable.id, post.id))
-    .returning();
+  let updated: any;
+  try {
+    [updated] = await db.update(socialPostsTable)
+      .set({
+        status: success ? "posted" : "failed",
+        postedAt: success ? new Date() : null,
+        errorMessage: errorMessage ?? null,
+        platformPostId: platformPostId ?? null,
+        publishedUrl: publishedUrl ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(socialPostsTable.id, post.id))
+      .returning();
+  } catch (dbErr: any) {
+    logger.error({ postId: post.id, error: dbErr.message }, "[publishPost] DB update failed");
+    errorMessage = errorMessage ?? `DB update failed: ${dbErr.message}`;
+  }
 
   // Send email confirmation when published
   if (success) {
@@ -441,7 +447,9 @@ router.post("/:id/post-now", async (req, res) => {
     const result = await publishPost(post);
     return res.json(result);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    // Always return the real error message so the UI can display it
+    logger.error({ err: err.message }, "[post-now] unexpected error");
+    return res.json({ success: false, errorMessage: err.message });
   }
 });
 
