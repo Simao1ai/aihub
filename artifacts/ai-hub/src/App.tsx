@@ -40,7 +40,8 @@ window.fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
   // so that component-level catch blocks don't try to parse the error body as data
   if (response.status === 401 && isApi && !isPublic) {
     try { localStorage.removeItem("ai-hub-storage"); } catch {}
-    window.location.href = "/login";
+    const base = (import.meta.env.BASE_URL ?? '').replace(/\/$/, '');
+    window.location.href = `${base}/login`;
     throw new Error("Session expired");
   }
   return response;

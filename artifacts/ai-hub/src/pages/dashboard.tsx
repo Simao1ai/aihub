@@ -28,11 +28,53 @@ const item = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transiti
 
 interface Kpi { id: number; name: string; value: number; unit: string; period: string; businessTag: string; }
 
+const KPI_TEMPLATES: Record<string, Array<{ name: string; unit: string }>> = {
+  les_a_inspections: [
+    { name: 'Monthly Revenue', unit: '$' }, { name: 'Inspections Completed', unit: '#' },
+    { name: 'Realtor Referrals', unit: '#' }, { name: 'Avg. Job Value', unit: '$' },
+    { name: 'Review Rating', unit: '#' }, { name: 'Repeat Clients', unit: '%' },
+  ],
+  home_inspection: [
+    { name: 'Monthly Revenue', unit: '$' }, { name: 'Inspections Completed', unit: '#' },
+    { name: 'Realtor Referrals', unit: '#' }, { name: 'Avg. Job Value', unit: '$' },
+  ],
+  carrierdeskh_q: [
+    { name: 'MRR', unit: '$' }, { name: 'Active Clients', unit: '#' },
+    { name: 'Loads Dispatched', unit: '#' }, { name: 'Churn Rate', unit: '%' },
+    { name: 'Revenue per Load', unit: '$' }, { name: 'New Sign-ups', unit: '#' },
+  ],
+  equifind: [
+    { name: 'Claims Filed', unit: '#' }, { name: 'Funds Recovered', unit: '$' },
+    { name: 'Active Cases', unit: '#' }, { name: 'Avg. Recovery', unit: '$' },
+    { name: 'Win Rate', unit: '%' }, { name: 'Leads Pipeline', unit: '#' },
+  ],
+  salonsync_hub: [
+    { name: 'MRR', unit: '$' }, { name: 'Active Salons', unit: '#' },
+    { name: 'Bookings Processed', unit: '#' }, { name: 'Churn Rate', unit: '%' },
+    { name: 'Avg. Revenue/Salon', unit: '$' }, { name: 'Support Tickets', unit: '#' },
+  ],
+  sweepello: [
+    { name: 'MRR', unit: '$' }, { name: 'Active Cleaners', unit: '#' },
+    { name: 'Jobs Completed', unit: '#' }, { name: 'Customer Rating', unit: '#' },
+    { name: 'New Clients', unit: '#' }, { name: 'Repeat Rate', unit: '%' },
+  ],
+  real_estate: [
+    { name: 'Portfolio Value', unit: '$' }, { name: 'Properties', unit: '#' },
+    { name: 'Monthly Rent', unit: '$' }, { name: 'Occupancy Rate', unit: '%' },
+    { name: 'Net Cash Flow', unit: '$' }, { name: 'Deals in Pipeline', unit: '#' },
+  ],
+  general: [
+    { name: 'Total Revenue', unit: '$' }, { name: 'Active Projects', unit: '#' },
+    { name: 'Team Size', unit: '#' }, { name: 'Growth Rate', unit: '%' },
+  ],
+};
+
 function KpiSection({ businessTag }: { businessTag: string }) {
   const [kpis, setKpis] = useState<Kpi[]>([]);
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; kpi?: Kpi } | null>(null);
   const [form, setForm] = useState({ name: '', value: '', unit: '', period: '' });
   const [saving, setSaving] = useState(false);
+  const templates = KPI_TEMPLATES[businessTag] ?? KPI_TEMPLATES.general;
 
   const load = useCallback(async () => {
     try {
@@ -146,6 +188,27 @@ function KpiSection({ businessTag }: { businessTag: string }) {
                 {modal.mode === 'create' ? 'Add KPI' : 'Edit KPI'}
               </h2>
               <div className="space-y-3">
+                {modal.mode === 'create' && templates.length > 0 && (
+                  <div>
+                    <label className="text-xs text-white/40 mb-2 block">Quick-fill</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {templates.map(t => (
+                        <button
+                          key={t.name}
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, name: t.name, unit: t.unit }))}
+                          className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                            form.name === t.name
+                              ? 'bg-primary/20 border-primary/40 text-primary'
+                              : 'bg-white/4 border-white/8 text-white/45 hover:text-white/80 hover:border-white/20'
+                          }`}
+                        >
+                          {t.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label className="text-xs text-white/40 mb-1.5 block">Metric name *</label>
                   <input
