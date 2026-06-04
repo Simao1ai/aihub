@@ -89,8 +89,8 @@ export default function Login() {
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-white text-lg">A</div>
-          <span className="font-display font-bold text-white text-lg">AI Hub</span>
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-white text-lg">S</div>
+          <span className="font-display font-bold text-white text-lg">SynthDesk.ai</span>
         </div>
 
         {/* Tagline */}
@@ -116,8 +116,8 @@ export default function Login() {
 
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-10 lg:hidden">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-white text-lg">A</div>
-            <span className="font-display font-bold text-white text-lg">AI Hub</span>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-white text-lg">S</div>
+            <span className="font-display font-bold text-white text-lg">SynthDesk.ai</span>
           </div>
 
           <AnimatePresence mode="wait">
