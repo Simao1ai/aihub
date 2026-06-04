@@ -1203,16 +1203,33 @@ export default function Social() {
           {tab === 'queue' && (
             <motion.div key="queue" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {queuePosts.length === 0 ? (
-                <div className="text-center py-20 text-white/20">
+                <div className="text-center py-16 text-white/20">
                   <Clock className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">No posts waiting for approval</p>
-                  <button onClick={() => setTab('compose')} className="mt-3 text-primary text-sm hover:underline">
-                    Create a post
-                  </button>
+                  <p className="text-sm mb-1">No posts waiting for approval</p>
+                  <p className="text-xs text-white/15 mb-5">LESA FB auto-generates posts Mon / Wed / Fri at 9:15 AM ET</p>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      onClick={handleLesaRunNow}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/15 hover:bg-primary/25 text-primary text-sm font-medium transition-all"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Generate Now with LESA
+                    </button>
+                    <button onClick={() => setTab('compose')} className="text-white/30 text-sm hover:text-white/60 transition-colors">
+                      Write manually
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-xs text-white/30">{queuePosts.length} post{queuePosts.length !== 1 ? 's' : ''} waiting for review</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-white/30">{queuePosts.length} post{queuePosts.length !== 1 ? 's' : ''} waiting for review</p>
+                    <button
+                      onClick={handleLesaRunNow}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium transition-all"
+                    >
+                      <Sparkles className="w-3 h-3" /> Generate another
+                    </button>
+                  </div>
                   <div className="space-y-3">
                     <AnimatePresence mode="popLayout">
                       {queuePosts.map(post => (
