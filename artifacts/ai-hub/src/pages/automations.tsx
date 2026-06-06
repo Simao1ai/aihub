@@ -70,7 +70,7 @@ function RunHistoryModal({ automation, onClose }: { automation: any; onClose: ()
               {selected.ranAt ? format(new Date(selected.ranAt), 'MMM d, yyyy h:mm a') : '—'}
             </span>
           </div>
-          <div className="bg-[#0d0f15] border border-border/50 rounded-xl p-4 whitespace-pre-wrap text-sm text-white/90 max-h-[55vh] overflow-y-auto font-mono text-xs leading-relaxed">
+          <div className="bg-[#f8fafc] border border-border/50 rounded-xl p-4 whitespace-pre-wrap text-sm text-gray-800 max-h-[55vh] overflow-y-auto font-mono text-xs leading-relaxed">
             {selected.output || 'No output.'}
           </div>
         </div>
@@ -80,21 +80,21 @@ function RunHistoryModal({ automation, onClose }: { automation: any; onClose: ()
             <button
               key={run.id}
               onClick={() => setSelected(run)}
-              className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/3 border border-white/5 hover:border-white/10 hover:bg-white/5 transition-all text-left group"
+              className="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all text-left group"
             >
               <span className={cn("p-1.5 rounded-lg", statusColor(run.status))}>
                 {statusIcon(run.status)}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-white/90 capitalize">{run.status}</p>
+                <p className="text-xs font-semibold text-gray-800 capitalize">{run.status}</p>
                 <p className="text-[10px] text-muted-foreground truncate">
                   {run.ranAt ? formatDistanceToNow(new Date(run.ranAt), { addSuffix: true }) : '—'}
                 </p>
               </div>
-              <p className="text-[10px] text-white/30 truncate max-w-[160px] shrink-0">
+              <p className="text-[10px] text-gray-400 truncate max-w-[160px] shrink-0">
                 {run.output ? run.output.slice(0, 60) + (run.output.length > 60 ? '…' : '') : '—'}
               </p>
-              <ChevronRight className="w-3.5 h-3.5 text-white/20 group-hover:text-white/40 shrink-0" />
+              <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-400 shrink-0" />
             </button>
           ))}
         </div>
@@ -184,7 +184,7 @@ export default function Automations() {
     <div className="h-full overflow-y-auto p-6 max-w-7xl mx-auto">
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-display font-bold text-white flex items-center gap-3">
+          <h2 className="text-3xl font-display font-bold text-gray-900 flex items-center gap-3">
             <Zap className="text-accent w-8 h-8" />
             Automations
           </h2>
@@ -212,7 +212,7 @@ export default function Automations() {
               
               <div className="space-y-3">
                 {pendingRuns.map(run => (
-                  <Card key={run.id} className="p-4 bg-[#1a1512] border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <Card key={run.id} className="p-4 bg-[#fdf8f6] border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <div 
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-inner shrink-0"
@@ -221,7 +221,7 @@ export default function Automations() {
                         {run.agentIcon}
                       </div>
                       <div>
-                        <h4 className="font-semibold text-white/90">{run.automationName}</h4>
+                        <h4 className="font-semibold text-gray-800">{run.automationName}</h4>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           Drafted by {run.agentName} · {format(new Date(run.ranAt), 'MMM d, h:mm a')}
                         </p>
@@ -246,7 +246,7 @@ export default function Automations() {
       </AnimatePresence>
 
       {/* Active Automations Grid */}
-      <h3 className="text-lg font-display font-semibold text-white mb-4 flex items-center gap-2">
+      <h3 className="text-lg font-display font-semibold text-gray-900 mb-4 flex items-center gap-2">
         <Settings2 className="w-5 h-5 text-muted-foreground" /> Workflows
       </h3>
       
@@ -263,7 +263,7 @@ export default function Automations() {
               <Switch checked={auto.isActive} onChange={() => handleToggle(auto.id, auto.isActive)} />
             </div>
             
-            <h4 className="text-lg font-bold text-white mb-1">{auto.name}</h4>
+            <h4 className="text-lg font-bold text-gray-900 mb-1">{auto.name}</h4>
 
             {/* Schedule */}
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-0.5 font-medium">
@@ -298,7 +298,7 @@ export default function Automations() {
                 </Badge>
                 <button
                   onClick={() => setHistoryAutomation(auto)}
-                  className="text-[10px] text-muted-foreground hover:text-white flex items-center gap-1 transition-colors"
+                  className="text-[10px] text-muted-foreground hover:text-gray-900 flex items-center gap-1 transition-colors"
                   title="View run history"
                 >
                   <History className="w-3 h-3" /> History
@@ -320,7 +320,7 @@ export default function Automations() {
         {/* Add New Card */}
         <button
           onClick={() => setCreateModalOpen(true)}
-          className="rounded-2xl border-2 border-dashed border-border hover:border-primary/40 bg-transparent hover:bg-primary/5 transition-all p-6 flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-white group min-h-[200px]"
+          className="rounded-2xl border-2 border-dashed border-border hover:border-primary/40 bg-transparent hover:bg-primary/5 transition-all p-6 flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-gray-900 group min-h-[200px]"
         >
           <div className="w-12 h-12 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
             <Plus className="w-6 h-6 text-primary" />
@@ -333,7 +333,7 @@ export default function Automations() {
       <Modal isOpen={!!viewOutputRun} onClose={() => setViewOutputRun(null)} title="Review Draft">
         {viewOutputRun && (
           <div className="space-y-6">
-            <div className="bg-[#0d0f15] border border-border/50 rounded-xl p-4 whitespace-pre-wrap text-sm text-white/90 max-h-[50vh] overflow-y-auto font-mono">
+            <div className="bg-[#f8fafc] border border-border/50 rounded-xl p-4 whitespace-pre-wrap text-sm text-gray-800 max-h-[50vh] overflow-y-auto font-mono">
               {viewOutputRun.output || 'No output generated.'}
             </div>
             
@@ -361,7 +361,7 @@ export default function Automations() {
       <Modal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} title="New Automation">
         <form onSubmit={handleCreateSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-1.5">Automation Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Automation Name</label>
             <Input
               required
               value={newName}
@@ -371,12 +371,12 @@ export default function Automations() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-1.5">Assign Agent</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Assign Agent</label>
             <select
               required
               value={newAgentId}
               onChange={e => setNewAgentId(Number(e.target.value))}
-              className="w-full bg-card/50 border border-border rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none"
+              className="w-full bg-card/50 border border-border rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none"
             >
               <option value="">Select an agent...</option>
               {agents.map(agent => (
@@ -388,7 +388,7 @@ export default function Automations() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-1.5">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Schedule <span className="text-muted-foreground font-normal">(optional — leave blank for on-demand)</span>
             </label>
             <Input
@@ -403,13 +403,13 @@ export default function Automations() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-1.5">Prompt Template</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Prompt Template</label>
             <textarea
               required
               value={newPrompt}
               onChange={e => setNewPrompt(e.target.value)}
               rows={4}
-              className="w-full bg-black/20 border border-border rounded-xl p-3 text-sm text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50 resize-none focus:outline-none"
+              className="w-full bg-black/20 border border-border rounded-xl p-3 text-sm text-gray-900 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 resize-none focus:outline-none"
               placeholder="What should the agent do? Be specific about format and goals."
             />
           </div>

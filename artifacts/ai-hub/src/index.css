@@ -26,37 +26,37 @@
 }
 
 :root {
-  /* Deep dark professional aesthetic */
-  --background: 230 23% 5%;       /* #0a0b10 */
-  --sidebar: 228 21% 8%;          /* #10121a */
-  --card: 227 20% 10%;            /* #151720 */
-  --foreground: 240 5% 96%;       /* #f8fafc */
-  
-  --card-foreground: 240 5% 96%;
-  
-  --border: 228 18% 16%;          /* #212533 */
-  --input: 228 18% 16%;
-  --ring: 239 84% 67%;            /* #6366f1 (Indigo) */
-  
-  --primary: 239 84% 67%;         /* #6366f1 */
+  /* Clean white professional aesthetic — Notion/Linear style */
+  --background: 0 0% 100%;           /* #ffffff */
+  --sidebar: 210 20% 98%;            /* #f8fafc */
+  --card: 0 0% 100%;                 /* #ffffff */
+  --foreground: 222 47% 11%;         /* #111827 */
+
+  --card-foreground: 222 47% 11%;
+
+  --border: 214 32% 91%;             /* #e2e8f0 */
+  --input: 214 32% 91%;
+  --ring: 239 84% 67%;               /* #6366f1 (Indigo) */
+
+  --primary: 239 84% 67%;            /* #6366f1 */
   --primary-foreground: 0 0% 100%;
-  
-  --secondary: 228 18% 16%;       /* #212533 */
-  --secondary-foreground: 240 5% 96%;
-  
-  --accent: 280 84% 67%;          /* #a855f7 (Purple) */
+
+  --secondary: 210 20% 96%;          /* #f1f5f9 */
+  --secondary-foreground: 222 47% 11%;
+
+  --accent: 280 84% 67%;             /* #a855f7 (Purple) */
   --accent-foreground: 0 0% 100%;
-  
-  --destructive: 0 84% 60%;       /* #ef4444 */
+
+  --destructive: 0 84% 60%;          /* #ef4444 */
   --destructive-foreground: 0 0% 100%;
-  
-  --muted: 228 18% 14%;           /* #1e212b */
-  --muted-foreground: 215 16% 65%; /* #94a3b8 */
+
+  --muted: 210 20% 96%;              /* #f1f5f9 */
+  --muted-foreground: 215 16% 47%;   /* #64748b */
 }
 
 @layer base {
   body {
-    @apply bg-background text-foreground antialiased font-sans selection:bg-primary/30 selection:text-primary-foreground;
+    @apply bg-background text-foreground antialiased font-sans selection:bg-primary/20 selection:text-primary;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -73,44 +73,44 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full hover:bg-muted-foreground/50 transition-colors;
+    @apply bg-gray-200 rounded-full hover:bg-gray-300 transition-colors;
   }
 }
 
-/* Utilities for rich depth */
+/* Utilities */
 @layer utilities {
   .glass-panel {
-    @apply bg-card/60 backdrop-blur-xl border border-border/50 shadow-2xl shadow-black/50;
+    @apply bg-white border border-gray-200 shadow-sm;
   }
-  
+
   .glass-header {
-    @apply bg-background/80 backdrop-blur-md border-b border-border/50 sticky top-0 z-10;
+    @apply bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-10;
   }
 
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
   }
-  
+
   .prose-custom p {
-    @apply leading-relaxed mb-4 text-white/90;
+    @apply leading-relaxed mb-4 text-gray-700;
   }
   .prose-custom ul {
-    @apply list-disc list-inside mb-4 pl-4 space-y-1 text-white/90;
+    @apply list-disc list-inside mb-4 pl-4 space-y-1 text-gray-700;
   }
   .prose-custom ol {
-    @apply list-decimal list-inside mb-4 pl-4 space-y-1 text-white/90;
+    @apply list-decimal list-inside mb-4 pl-4 space-y-1 text-gray-700;
   }
   .prose-custom h3 {
-    @apply text-lg font-bold mt-6 mb-3 text-white;
+    @apply text-lg font-bold mt-6 mb-3 text-gray-900;
   }
   .prose-custom code {
-    @apply bg-black/40 px-1.5 py-0.5 rounded text-primary text-sm font-mono border border-white/10;
+    @apply bg-gray-100 px-1.5 py-0.5 rounded text-primary text-sm font-mono border border-gray-200;
   }
   .prose-custom pre {
-    @apply bg-[#0d0f15] p-4 rounded-xl border border-border/50 overflow-x-auto mb-4 font-mono text-sm;
+    @apply bg-gray-50 p-4 rounded-xl border border-gray-200 overflow-x-auto mb-4 font-mono text-sm;
   }
   .prose-custom pre code {
-    @apply bg-transparent p-0 border-none text-white/90;
+    @apply bg-transparent p-0 border-none text-gray-800;
   }
 
   .scrollbar-none {

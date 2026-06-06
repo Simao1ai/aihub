@@ -50,43 +50,43 @@ function ContactModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-md bg-[#131622] border border-white/10 rounded-2xl shadow-2xl p-6"
+        className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-2xl p-6"
       >
-        <h2 className="text-base font-display font-bold text-white mb-5">
+        <h2 className="text-base font-display font-bold text-gray-900 mb-5">
           {initial?.id ? 'Edit contact' : 'New contact'}
         </h2>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="text-xs text-white/40 font-medium mb-1.5 block">Full name *</label>
+              <label className="text-xs text-gray-400 font-medium mb-1.5 block">Full name *</label>
               <input
                 autoFocus
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="Jane Smith"
-                className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20"
               />
             </div>
             <div>
-              <label className="text-xs text-white/40 font-medium mb-1.5 block">Company</label>
+              <label className="text-xs text-gray-400 font-medium mb-1.5 block">Company</label>
               <input
                 value={form.company}
                 onChange={e => setForm(f => ({ ...f, company: e.target.value }))}
                 placeholder="Acme Realty"
-                className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20"
               />
             </div>
             <div>
-              <label className="text-xs text-white/40 font-medium mb-1.5 block">Status</label>
+              <label className="text-xs text-gray-400 font-medium mb-1.5 block">Status</label>
               <select
                 value={form.status}
                 onChange={e => setForm(f => ({ ...f, status: e.target.value as ContactStatus }))}
-                className="w-full bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/20"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-white/20"
               >
                 {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                   <option key={k} value={k}>{v.label}</option>
@@ -94,46 +94,46 @@ function ContactModal({
               </select>
             </div>
             <div>
-              <label className="text-xs text-white/40 font-medium mb-1.5 block">Email</label>
+              <label className="text-xs text-gray-400 font-medium mb-1.5 block">Email</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 placeholder="jane@example.com"
-                className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20"
               />
             </div>
             <div>
-              <label className="text-xs text-white/40 font-medium mb-1.5 block">Phone</label>
+              <label className="text-xs text-gray-400 font-medium mb-1.5 block">Phone</label>
               <input
                 type="tel"
                 value={form.phone}
                 onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                 placeholder="(555) 000-0000"
-                className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20"
               />
             </div>
           </div>
           <div>
-            <label className="text-xs text-white/40 font-medium mb-1.5 block">Notes</label>
+            <label className="text-xs text-gray-400 font-medium mb-1.5 block">Notes</label>
             <textarea
               value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               placeholder="Anything worth remembering..."
               rows={3}
-              className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 resize-none"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20 resize-none"
             />
           </div>
           <div className="flex gap-2 pt-2">
             <button
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-white/8 text-white/50 hover:text-white text-sm font-medium transition-all"
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-900 text-sm font-medium transition-all"
             >
               Cancel
             </button>
             <button
               onClick={() => { if (!form.name.trim()) return; onSave({ ...form, businessTag }); }}
-              className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all"
+              className="flex-1 py-2.5 rounded-xl bg-primary text-gray-900 text-sm font-semibold hover:bg-primary/90 transition-all"
             >
               {initial?.id ? 'Save changes' : 'Add contact'}
             </button>
@@ -207,27 +207,27 @@ export default function Contacts() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#f8fafc]/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-display font-bold text-white flex items-center gap-2.5">
+            <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2.5">
               <Users className="w-6 h-6 text-primary" /> Contacts
             </h1>
-            <p className="text-sm text-white/35 mt-0.5">{contacts.length} contact{contacts.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-gray-400 mt-0.5">{contacts.length} contact{contacts.length !== 1 ? 's' : ''}</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search contacts..."
-                className="bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 w-48"
+                className="bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/40 w-48"
               />
             </div>
             <button
               onClick={() => setModal({ mode: 'create' })}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all shrink-0"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-gray-900 text-sm font-semibold hover:bg-primary/90 transition-all shrink-0"
             >
               <Plus className="w-4 h-4" /> Add contact
             </button>
@@ -242,7 +242,7 @@ export default function Contacts() {
             onClick={() => setFilterStatus('all')}
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-              filterStatus === 'all' ? 'bg-white/10 text-white' : 'text-white/35 hover:text-white/60'
+              filterStatus === 'all' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-500'
             )}
           >
             All ({contacts.length})
@@ -255,7 +255,7 @@ export default function Contacts() {
                 onClick={() => setFilterStatus(s)}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                  filterStatus === s ? 'text-white' : 'text-white/35 hover:text-white/60'
+                  filterStatus === s ? 'text-gray-900' : 'text-gray-400 hover:text-gray-500'
                 )}
                 style={filterStatus === s ? { background: cfg.bg, color: cfg.color } : {}}
               >
@@ -268,10 +268,10 @@ export default function Contacts() {
         {/* Contact table */}
         {loading ? (
           <div className="space-y-2">
-            {[0, 1, 2, 3].map(i => <div key={i} className="h-16 bg-white/3 rounded-xl animate-pulse" />)}
+            {[0, 1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />)}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-white/20">
+          <div className="flex flex-col items-center justify-center py-20 text-gray-300">
             <Users className="w-10 h-10 mb-3 opacity-30" />
             <p className="text-sm">{search ? 'No contacts match your search' : 'No contacts yet'}</p>
             {!search && (
@@ -292,11 +292,11 @@ export default function Contacts() {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.97 }}
-                    className="flex items-center gap-4 p-4 bg-[#111520] border border-white/5 rounded-xl hover:border-white/10 transition-all group"
+                    className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-xl hover:border-gray-200 transition-all group"
                   >
                     {/* Avatar */}
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 text-white"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 text-gray-900"
                       style={{ background: cfg.bg, color: cfg.color }}
                     >
                       {contact.name.slice(0, 1).toUpperCase()}
@@ -304,9 +304,9 @@ export default function Contacts() {
 
                     {/* Name + company */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{contact.name}</p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">{contact.name}</p>
                       {contact.company && (
-                        <p className="text-xs text-white/35 truncate flex items-center gap-1 mt-0.5">
+                        <p className="text-xs text-gray-400 truncate flex items-center gap-1 mt-0.5">
                           <Building2 className="w-3 h-3" /> {contact.company}
                         </p>
                       )}
@@ -324,7 +324,7 @@ export default function Contacts() {
                     {contact.email && (
                       <a
                         href={`mailto:${contact.email}`}
-                        className="hidden md:flex items-center gap-1.5 text-xs text-white/35 hover:text-primary transition-colors shrink-0"
+                        className="hidden md:flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary transition-colors shrink-0"
                         onClick={e => e.stopPropagation()}
                       >
                         <Mail className="w-3.5 h-3.5" />
@@ -336,7 +336,7 @@ export default function Contacts() {
                     {contact.phone && (
                       <a
                         href={`tel:${contact.phone}`}
-                        className="hidden lg:flex items-center gap-1.5 text-xs text-white/35 hover:text-primary transition-colors shrink-0"
+                        className="hidden lg:flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary transition-colors shrink-0"
                         onClick={e => e.stopPropagation()}
                       >
                         <Phone className="w-3.5 h-3.5" /> {contact.phone}
@@ -344,7 +344,7 @@ export default function Contacts() {
                     )}
 
                     {/* Added date */}
-                    <span className="hidden xl:block text-[11px] text-white/20 shrink-0">
+                    <span className="hidden xl:block text-[11px] text-gray-300 shrink-0">
                       {format(new Date(contact.createdAt), 'MMM d')}
                     </span>
 
@@ -352,7 +352,7 @@ export default function Contacts() {
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                       <button
                         onClick={() => setModal({ mode: 'edit', contact })}
-                        className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all"
+                        className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
@@ -366,7 +366,7 @@ export default function Contacts() {
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(null)}
-                            className="w-8 h-8 rounded-lg bg-white/5 text-white/40 flex items-center justify-center hover:bg-white/10"
+                            className="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-gray-100"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -374,7 +374,7 @@ export default function Contacts() {
                       ) : (
                         <button
                           onClick={() => setDeleteConfirm(contact.id)}
-                          className="w-8 h-8 rounded-lg bg-white/5 hover:bg-red-500/10 flex items-center justify-center text-white/25 hover:text-red-400 transition-all"
+                          className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-red-500/10 flex items-center justify-center text-gray-400 hover:text-red-400 transition-all"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

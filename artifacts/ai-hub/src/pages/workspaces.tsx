@@ -64,65 +64,65 @@ function WorkspaceEditModal({ initial, onSave, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-md bg-[#131622] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden"
       >
         <div className="h-20 flex items-center justify-center" style={{ background: `${form.color}18` }}>
           <span className="text-4xl">{form.emoji}</span>
         </div>
         <div className="p-6">
-          <h2 className="text-base font-display font-bold text-white mb-5">Edit workspace</h2>
+          <h2 className="text-base font-display font-bold text-gray-900 mb-5">Edit workspace</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs text-white/40 mb-2 block">Icon</label>
+              <label className="text-xs text-gray-400 mb-2 block">Icon</label>
               <div className="flex flex-wrap gap-1.5">
                 {EMOJIS.map(e => (
                   <button key={e} type="button" onClick={() => setForm(f => ({ ...f, emoji: e }))}
-                    className={cn("w-9 h-9 rounded-xl text-xl flex items-center justify-center transition-all", form.emoji === e ? 'bg-white/15 ring-2 ring-white/30' : 'bg-white/5 hover:bg-white/10')}>
+                    className={cn("w-9 h-9 rounded-xl text-xl flex items-center justify-center transition-all", form.emoji === e ? 'bg-gray-200 ring-2 ring-white/30' : 'bg-gray-50 hover:bg-gray-100')}>
                     {e}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <label className="text-xs text-white/40 mb-2 block">Color</label>
+              <label className="text-xs text-gray-400 mb-2 block">Color</label>
               <div className="flex flex-wrap gap-2">
                 {COLORS.map(c => (
                   <button key={c} type="button" onClick={() => setForm(f => ({ ...f, color: c }))}
                     className="w-7 h-7 rounded-lg transition-all flex items-center justify-center"
                     style={{ backgroundColor: c, boxShadow: form.color === c ? '0 0 0 2px white' : 'none' }}>
-                    {form.color === c && <Check className="w-3 h-3 text-white" />}
+                    {form.color === c && <Check className="w-3 h-3 text-gray-900" />}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <label className="text-xs text-white/40 mb-1.5 block">Name *</label>
+              <label className="text-xs text-gray-400 mb-1.5 block">Name *</label>
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/20" />
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-white/20" />
             </div>
             <div>
-              <label className="text-xs text-white/40 mb-1.5 block">Description</label>
+              <label className="text-xs text-gray-400 mb-1.5 block">Description</label>
               <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/20" />
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-white/20" />
             </div>
             <div>
-              <label className="text-xs text-white/40 mb-1.5 block">New password (leave blank to keep current)</label>
+              <label className="text-xs text-gray-400 mb-1.5 block">New password (leave blank to keep current)</label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                 <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                   placeholder="Leave blank to keep current"
-                  className="w-full bg-white/5 border border-white/8 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/20" />
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-white/20" />
               </div>
             </div>
             {error && <p className="text-red-400 text-xs">{error}</p>}
             <div className="flex gap-2 pt-2">
-              <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/8 text-white/50 hover:text-white text-sm transition-all">Cancel</button>
-              <button type="submit" className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold" style={{ background: form.color }}>Save changes</button>
+              <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-900 text-sm transition-all">Cancel</button>
+              <button type="submit" className="flex-1 py-2.5 rounded-xl text-gray-900 text-sm font-semibold" style={{ background: form.color }}>Save changes</button>
             </div>
           </form>
         </div>
@@ -200,20 +200,20 @@ function WorkspaceWizard({ onSave, onClose }: {
   const stepLabel = ['Basics', 'Business Profile', 'Create'];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-lg bg-[#131622] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-lg bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden"
       >
         {/* Banner */}
         <div className="h-20 flex items-center justify-between px-6 relative overflow-hidden" style={{ background: `${form.color}18` }}>
           <div className="flex items-center gap-3">
             <span className="text-4xl">{form.emoji}</span>
             <div>
-              <p className="text-sm font-bold text-white">{form.name || 'New Workspace'}</p>
-              <p className="text-xs text-white/35">{step === 1 ? 'Set up basics' : step === 2 ? 'Business context' : 'Ready to create'}</p>
+              <p className="text-sm font-bold text-gray-900">{form.name || 'New Workspace'}</p>
+              <p className="text-xs text-gray-400">{step === 1 ? 'Set up basics' : step === 2 ? 'Business context' : 'Ready to create'}</p>
             </div>
           </div>
           {/* Steps */}
@@ -231,44 +231,44 @@ function WorkspaceWizard({ onSave, onClose }: {
             {step === 1 && (
               <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                 <div>
-                  <label className="text-xs text-white/40 mb-2 block">Pick an icon</label>
+                  <label className="text-xs text-gray-400 mb-2 block">Pick an icon</label>
                   <div className="flex flex-wrap gap-1.5">
                     {EMOJIS.map(e => (
                       <button key={e} type="button" onClick={() => setForm(f => ({ ...f, emoji: e }))}
-                        className={cn("w-9 h-9 rounded-xl text-xl flex items-center justify-center transition-all", form.emoji === e ? 'bg-white/15 ring-2 ring-white/30' : 'bg-white/5 hover:bg-white/10')}>
+                        className={cn("w-9 h-9 rounded-xl text-xl flex items-center justify-center transition-all", form.emoji === e ? 'bg-gray-200 ring-2 ring-white/30' : 'bg-gray-50 hover:bg-gray-100')}>
                         {e}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-white/40 mb-2 block">Brand color</label>
+                  <label className="text-xs text-gray-400 mb-2 block">Brand color</label>
                   <div className="flex flex-wrap gap-2">
                     {COLORS.map(c => (
                       <button key={c} type="button" onClick={() => setForm(f => ({ ...f, color: c }))}
                         className="w-7 h-7 rounded-lg flex items-center justify-center"
                         style={{ backgroundColor: c, boxShadow: form.color === c ? '0 0 0 2px white' : 'none' }}>
-                        {form.color === c && <Check className="w-3 h-3 text-white" />}
+                        {form.color === c && <Check className="w-3 h-3 text-gray-900" />}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Business name *</label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Business name *</label>
                   <input autoFocus value={form.name} onChange={e => handleName(e.target.value)}
-                    placeholder="e.g. Sweepello" className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20" />
+                    placeholder="e.g. Sweepello" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20" />
                 </div>
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Workspace ID <span className="text-white/20">(auto-generated, cannot be changed later)</span></label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Workspace ID <span className="text-gray-300">(auto-generated, cannot be changed later)</span></label>
                   <input value={form.slug} onChange={e => { setSlugEdited(true); setForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })); }}
-                    placeholder="e.g. sweepello" className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 font-mono" />
+                    placeholder="e.g. sweepello" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20 font-mono" />
                 </div>
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">
+                  <label className="text-xs text-gray-400 mb-1.5 block">
                     <Lock className="w-3 h-3 inline mr-1" />Workspace password *
                   </label>
                   <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                    placeholder="Min 4 characters" className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20" />
+                    placeholder="Min 4 characters" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20" />
                 </div>
               </motion.div>
             )}
@@ -277,11 +277,11 @@ function WorkspaceWizard({ onSave, onClose }: {
             {step === 2 && (
               <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Industry</label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Industry</label>
                   <select
                     value={form.industry}
                     onChange={e => handleIndustry(e.target.value)}
-                    className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/20"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-white/20"
                   >
                     <option value="">Select an industry...</option>
                     {INDUSTRIES.map(ind => (
@@ -290,23 +290,23 @@ function WorkspaceWizard({ onSave, onClose }: {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Short description</label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Short description</label>
                   <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                     placeholder={`What ${form.name || 'this business'} does in one line`}
-                    className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20" />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20" />
                 </div>
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> AI Business Context <span className="text-white/20 font-normal ml-1">(auto-filled from industry, edit as needed)</span>
+                  <label className="text-xs text-gray-400 mb-1.5 block flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> AI Business Context <span className="text-gray-300 font-normal ml-1">(auto-filled from industry, edit as needed)</span>
                   </label>
                   <textarea
                     value={form.businessContext}
                     onChange={e => setForm(f => ({ ...f, businessContext: e.target.value }))}
                     placeholder="Describe what this business does, who the customers are, key goals, and revenue model. This gets injected into every AI conversation in this workspace."
                     rows={5}
-                    className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 resize-none leading-relaxed"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20 resize-none leading-relaxed"
                   />
-                  <p className="text-[10px] text-white/25 mt-1">This context is automatically injected into every AI agent conversation in this workspace.</p>
+                  <p className="text-[10px] text-gray-400 mt-1">This context is automatically injected into every AI agent conversation in this workspace.</p>
                 </div>
               </motion.div>
             )}
@@ -323,8 +323,8 @@ function WorkspaceWizard({ onSave, onClose }: {
                     { label: 'AI Context', value: form.businessContext ? `${form.businessContext.slice(0, 80)}...` : 'Not set' },
                   ].map(item => (
                     <div key={item.label} className="flex gap-3 text-sm">
-                      <span className="text-white/35 w-24 shrink-0">{item.label}</span>
-                      <span className="text-white font-medium leading-relaxed">{item.value}</span>
+                      <span className="text-gray-400 w-24 shrink-0">{item.label}</span>
+                      <span className="text-gray-900 font-medium leading-relaxed">{item.value}</span>
                     </div>
                   ))}
                 </div>
@@ -341,13 +341,13 @@ function WorkspaceWizard({ onSave, onClose }: {
           <div className="flex gap-2 mt-6">
             <button
               onClick={step === 1 ? onClose : () => { setStep(s => s - 1); setError(''); }}
-              className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-white/8 text-white/50 hover:text-white text-sm transition-all"
+              className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-900 text-sm transition-all"
             >
               {step === 1 ? 'Cancel' : <><ChevronLeft className="w-4 h-4" /> Back</>}
             </button>
             <button
               onClick={step < 3 ? handleNext : handleCreate}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white text-sm font-semibold transition-all"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-gray-900 text-sm font-semibold transition-all"
               style={{ background: form.color }}
             >
               {step < 3 ? (<>Next <ChevronRight className="w-4 h-4" /></>) : (<><Check className="w-4 h-4" /> Create workspace</>)}
@@ -445,22 +445,22 @@ export default function Workspaces() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#f8fafc]/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-display font-bold text-white">Workspaces</h1>
-            <p className="text-sm text-white/35 mt-0.5">Manage your business workspaces and login access</p>
+            <h1 className="text-2xl font-display font-bold text-gray-900">Workspaces</h1>
+            <p className="text-sm text-gray-400 mt-0.5">Manage your business workspaces and login access</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={load}
-              className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/8 border border-white/8 flex items-center justify-center text-white/40 hover:text-white transition-all"
+              className="w-9 h-9 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
               onClick={() => setModal({ mode: 'create' })}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-gray-900 text-sm font-semibold hover:bg-primary/90 transition-all"
             >
               <Plus className="w-4 h-4" /> Add workspace
             </button>
@@ -476,7 +476,7 @@ export default function Workspaces() {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-white/25">
+          <div className="flex items-center justify-center py-20 text-gray-400">
             <RefreshCw className="w-6 h-6 animate-spin" />
           </div>
         ) : (
@@ -487,7 +487,7 @@ export default function Workspaces() {
                 layout
                 className={cn(
                   "flex items-center gap-4 p-4 rounded-2xl border transition-all",
-                  ws.isActive ? 'bg-[#111520] border-white/5 hover:border-white/10' : 'bg-[#0e1018] border-white/3 opacity-50'
+                  ws.isActive ? 'bg-white border-gray-100 hover:border-gray-200' : 'bg-[#f8fafc] border-gray-100 opacity-50'
                 )}
               >
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: `${ws.color}18` }}>
@@ -495,27 +495,27 @@ export default function Workspaces() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-white">{ws.name}</p>
-                    <span className="text-[10px] font-mono text-white/25 bg-white/5 px-1.5 py-0.5 rounded">{ws.slug}</span>
+                    <p className="text-sm font-semibold text-gray-900">{ws.name}</p>
+                    <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{ws.slug}</span>
                     {!ws.isActive && <span className="text-[10px] text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">inactive</span>}
                   </div>
-                  <p className="text-xs text-white/35 mt-0.5 truncate">{ws.description || 'No description'}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">{ws.description || 'No description'}</p>
                 </div>
                 <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: ws.color, boxShadow: `0 0 8px ${ws.color}60` }} />
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <button onClick={() => setModal({ mode: 'edit', ws })} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all" title="Edit">
+                  <button onClick={() => setModal({ mode: 'edit', ws })} className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all" title="Edit">
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => handleToggle(ws)} className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-all", ws.isActive ? 'bg-white/5 hover:bg-amber-500/10 text-white/40 hover:text-amber-400' : 'bg-white/5 hover:bg-emerald-500/10 text-white/40 hover:text-emerald-400')} title={ws.isActive ? 'Deactivate' : 'Activate'}>
+                  <button onClick={() => handleToggle(ws)} className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-all", ws.isActive ? 'bg-gray-50 hover:bg-amber-500/10 text-gray-400 hover:text-amber-400' : 'bg-gray-50 hover:bg-emerald-500/10 text-gray-400 hover:text-emerald-400')} title={ws.isActive ? 'Deactivate' : 'Activate'}>
                     {ws.isActive ? <PowerOff className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
                   </button>
                   {deleteConfirm === ws.id ? (
                     <div className="flex items-center gap-1">
                       <button onClick={() => handleDelete(ws.id)} className="w-8 h-8 rounded-lg bg-red-500/15 text-red-400 flex items-center justify-center hover:bg-red-500/25 transition-all"><Check className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => setDeleteConfirm(null)} className="w-8 h-8 rounded-lg bg-white/5 text-white/40 flex items-center justify-center hover:bg-white/10 transition-all"><X className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => setDeleteConfirm(null)} className="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-gray-100 transition-all"><X className="w-3.5 h-3.5" /></button>
                     </div>
                   ) : (
-                    <button onClick={() => setDeleteConfirm(ws.id)} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-red-500/10 flex items-center justify-center text-white/25 hover:text-red-400 transition-all" title="Remove">
+                    <button onClick={() => setDeleteConfirm(ws.id)} className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-red-500/10 flex items-center justify-center text-gray-400 hover:text-red-400 transition-all" title="Remove">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -524,7 +524,7 @@ export default function Workspaces() {
             ))}
 
             {workspaces.length === 0 && (
-              <div className="text-center py-16 text-white/20">
+              <div className="text-center py-16 text-gray-300">
                 <p className="text-sm">No workspaces yet</p>
                 <button onClick={() => setModal({ mode: 'create' })} className="mt-3 text-primary text-sm hover:underline">
                   Create your first workspace
@@ -534,8 +534,8 @@ export default function Workspaces() {
           </div>
         )}
 
-        <div className="mt-8 p-4 rounded-2xl bg-white/3 border border-white/5 text-xs text-white/30 leading-relaxed">
-          <p className="font-semibold text-white/50 mb-1">Tip: Override passwords via environment secrets</p>
+        <div className="mt-8 p-4 rounded-2xl bg-gray-50 border border-gray-100 text-xs text-gray-400 leading-relaxed">
+          <p className="font-semibold text-gray-400 mb-1">Tip: Override passwords via environment secrets</p>
           Set GENERAL_PASSWORD, LES_A_PASSWORD, CARRIERDESKH_PASSWORD, SALONSYNC_PASSWORD, SWEEPELLO_PASSWORD, or REAL_ESTATE_PASSWORD as secrets to override workspace passwords at startup.
         </div>
       </div>

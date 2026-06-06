@@ -81,7 +81,7 @@ const item      = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, tra
 
 function CharBadge({ value, limit, label }: { value: string; limit: number; label: string }) {
   const len = value?.length ?? 0;
-  const color = len > limit ? 'text-red-400' : len > limit * 0.85 ? 'text-amber-400' : 'text-white/30';
+  const color = len > limit ? 'text-red-400' : len > limit * 0.85 ? 'text-amber-400' : 'text-gray-400';
   return <span className={cn("text-[10px] font-mono tabular-nums", color)}>{label}: {len}/{limit}</span>;
 }
 
@@ -93,7 +93,7 @@ function CopyBtn({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 1800);
   };
   return (
-    <button onClick={copy} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white text-[11px] font-medium transition-all">
+    <button onClick={copy} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-900 text-[11px] font-medium transition-all">
       {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
       {copied ? 'Copied' : 'Copy'}
     </button>
@@ -111,14 +111,14 @@ function SoshiPanel({
 }) {
   if (loading) {
     return (
-      <div className="bg-[#111520] border border-pink-500/20 rounded-2xl p-4 flex items-center gap-3">
+      <div className="bg-white border border-pink-500/20 rounded-2xl p-4 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-pink-500/10 flex items-center justify-center flex-shrink-0">
           <span className="text-lg">📱</span>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <p className="text-xs font-bold text-pink-400">SOSHI</p>
-            <span className="text-[10px] text-white/25">is analysing your business…</span>
+            <span className="text-[10px] text-gray-400">is analysing your business…</span>
           </div>
           <div className="flex gap-1">
             {[1,2,3].map(i => (
@@ -133,13 +133,13 @@ function SoshiPanel({
   if (!rec) return null;
 
   return (
-    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-[#111520] border border-pink-500/20 rounded-2xl overflow-hidden">
+    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-pink-500/20 rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-pink-500/10">
         <div className="w-9 h-9 rounded-xl bg-pink-500/10 flex items-center justify-center flex-shrink-0 text-lg">📱</div>
         <div>
           <p className="text-xs font-bold text-pink-400">SOSHI's Recommendations</p>
-          <p className="text-[10px] text-white/30">Your AI social media & ad strategist</p>
+          <p className="text-[10px] text-gray-400">Your AI social media & ad strategist</p>
         </div>
         <button
           onClick={() => onApply(rec.best_platform, rec.best_framework)}
@@ -152,30 +152,30 @@ function SoshiPanel({
       <div className="px-4 py-4 space-y-4">
         {/* Platform + Framework picks */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-3 rounded-xl bg-white/3 border border-white/5">
-            <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-1">Best Platform</p>
-            <p className="text-sm font-semibold text-white mb-1.5" style={{ color: PLATFORM_COLORS[rec.best_platform] ?? 'white' }}>
+          <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Best Platform</p>
+            <p className="text-sm font-semibold text-gray-900 mb-1.5" style={{ color: PLATFORM_COLORS[rec.best_platform] ?? 'white' }}>
               {PLATFORM_NAMES[rec.best_platform] ?? rec.best_platform}
             </p>
-            <p className="text-[11px] text-white/40 leading-relaxed">{rec.platform_reason}</p>
+            <p className="text-[11px] text-gray-400 leading-relaxed">{rec.platform_reason}</p>
           </div>
-          <div className="p-3 rounded-xl bg-white/3 border border-white/5">
-            <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-1">Best Framework</p>
+          <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Best Framework</p>
             <p className="text-sm font-semibold text-primary mb-1.5">{rec.best_framework?.toUpperCase().replace(/_/g, ' ')}</p>
-            <p className="text-[11px] text-white/40 leading-relaxed">{rec.framework_reason}</p>
+            <p className="text-[11px] text-gray-400 leading-relaxed">{rec.framework_reason}</p>
           </div>
         </div>
 
         {/* Creative angles */}
         <div>
-          <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-2">Top Creative Angles</p>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Top Creative Angles</p>
           <div className="space-y-1.5">
             {rec.top_angles?.map((a, i) => (
               <div key={i} className="flex gap-2.5 items-start">
                 <span className="w-5 h-5 rounded-md bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
                 <div>
-                  <span className="text-xs font-semibold text-white">{a.angle}</span>
-                  <span className="text-[11px] text-white/35 ml-1.5">{a.description}</span>
+                  <span className="text-xs font-semibold text-gray-900">{a.angle}</span>
+                  <span className="text-[11px] text-gray-400 ml-1.5">{a.description}</span>
                 </div>
               </div>
             ))}
@@ -183,8 +183,8 @@ function SoshiPanel({
         </div>
 
         {/* Audience insight */}
-        <div className="p-3 rounded-xl bg-white/3 border border-white/5">
-          <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+        <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
             <Users className="w-3 h-3" /> Audience Psychology
           </p>
           <p className="text-[11px] text-white/55 leading-relaxed">{rec.audience_insight}</p>
@@ -264,21 +264,21 @@ function AdCard({
   };
 
   return (
-    <motion.div variants={item} className="bg-[#111520] border border-white/6 rounded-2xl overflow-hidden">
+    <motion.div variants={item} className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
       {/* Card header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold" style={{ background: `${color}22`, color }}>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-900 text-xs font-bold" style={{ background: `${color}22`, color }}>
             {ad.variation}
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">Variation {ad.variation} — {angleLabels[ad.variation] ?? 'Alternative Angle'}</p>
-            <p className="text-[11px] text-white/30">{ad.framework_used} · Powered by SOSHI 📱</p>
+            <p className="text-sm font-semibold text-gray-900">Variation {ad.variation} — {angleLabels[ad.variation] ?? 'Alternative Angle'}</p>
+            <p className="text-[11px] text-gray-400">{ad.framework_used} · Powered by SOSHI 📱</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <CopyBtn text={fullCopy} />
-          <button onClick={() => setExpanded(e => !e)} className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-white/30 hover:text-white transition-all">
+          <button onClick={() => setExpanded(e => !e)} className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all">
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
@@ -293,12 +293,12 @@ function AdCard({
               {ad.hook && (
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[10px] font-semibold text-white/40 uppercase tracking-wider flex items-center gap-1.5">
+                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                       <Zap className="w-3 h-3 text-amber-400" /> Hook / Thumb-Stop
                     </label>
                     <CopyBtn text={ad.hook} />
                   </div>
-                  <p className="text-sm text-white leading-relaxed bg-amber-500/5 border border-amber-500/10 rounded-xl px-4 py-3">{ad.hook}</p>
+                  <p className="text-sm text-gray-900 leading-relaxed bg-amber-500/5 border border-amber-500/10 rounded-xl px-4 py-3">{ad.hook}</p>
                 </div>
               )}
 
@@ -307,12 +307,12 @@ function AdCard({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-3">
-                      <label className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">Headline</label>
+                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Headline</label>
                       {platformData && <CharBadge value={ad.headline} limit={platformData.charLimits.headline} label="chars" />}
                     </div>
                     <CopyBtn text={ad.headline} />
                   </div>
-                  <p className="text-sm font-semibold text-white bg-white/3 border border-white/5 rounded-xl px-4 py-3">{ad.headline}</p>
+                  <p className="text-sm font-semibold text-gray-900 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">{ad.headline}</p>
                 </div>
               )}
 
@@ -321,12 +321,12 @@ function AdCard({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-3">
-                      <label className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">Body Copy</label>
+                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Body Copy</label>
                       {platformData && <CharBadge value={ad.body} limit={platformData.charLimits.body} label="chars" />}
                     </div>
                     <CopyBtn text={ad.body} />
                   </div>
-                  <p className="text-sm text-white/80 leading-relaxed whitespace-pre-line bg-white/3 border border-white/5 rounded-xl px-4 py-3">{ad.body}</p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">{ad.body}</p>
                 </div>
               )}
 
@@ -335,12 +335,12 @@ function AdCard({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-3">
-                      <label className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">Description</label>
+                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Description</label>
                       {platformData && <CharBadge value={ad.description} limit={platformData.charLimits.description} label="chars" />}
                     </div>
                     <CopyBtn text={ad.description} />
                   </div>
-                  <p className="text-sm text-white/70 bg-white/3 border border-white/5 rounded-xl px-4 py-2.5">{ad.description}</p>
+                  <p className="text-sm text-gray-600 bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5">{ad.description}</p>
                 </div>
               )}
 
@@ -348,7 +348,7 @@ function AdCard({
               {ad.cta && (
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[10px] font-semibold text-white/40 uppercase tracking-wider flex items-center gap-1.5">
+                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                       <Target className="w-3 h-3 text-primary" /> Call to Action
                     </label>
                     <CopyBtn text={ad.cta} />
@@ -368,8 +368,8 @@ function AdCard({
               )}
 
               {/* Send to Social Queue */}
-              <div className="pt-1 border-t border-white/5 flex items-center justify-between">
-                <p className="text-[10px] text-white/25">Send this variation to your Social Media approval queue</p>
+              <div className="pt-1 border-t border-gray-100 flex items-center justify-between">
+                <p className="text-[10px] text-gray-400">Send this variation to your Social Media approval queue</p>
                 {queued ? (
                   <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-semibold">
                     <CheckCircle2 className="w-3.5 h-3.5" /> In queue
@@ -493,13 +493,13 @@ export default function AdsPage() {
     <div className="h-full overflow-y-auto">
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#f8fafc]/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-display font-bold text-white flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
               <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Ad Creator
             </h1>
-            <p className="hidden sm:block text-sm text-white/35 mt-0.5">
+            <p className="hidden sm:block text-sm text-gray-400 mt-0.5">
               Powered by SOSHI 📱 · Methods from Ogilvy, Halbert, Kennedy & Hormozi
             </p>
           </div>
@@ -513,7 +513,7 @@ export default function AdsPage() {
               Ask SOSHI
             </button>
             {results.length > 0 && (
-              <button onClick={() => setResults([])} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white/50 hover:text-white text-xs font-medium transition-all">
+              <button onClick={() => setResults([])} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-400 hover:text-gray-900 text-xs font-medium transition-all">
                 <RefreshCw className="w-3.5 h-3.5" /> New Ad
               </button>
             )}
@@ -532,8 +532,8 @@ export default function AdsPage() {
           <div className="lg:col-span-2 space-y-5">
 
             {/* Platform Selector */}
-            <div className="bg-[#111520] border border-white/6 rounded-2xl p-4">
-              <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 block flex items-center gap-1.5">
+            <div className="bg-white border border-gray-100 rounded-2xl p-4">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 block flex items-center gap-1.5">
                 <BarChart3 className="w-3.5 h-3.5" /> Platform
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -543,7 +543,7 @@ export default function AdsPage() {
                     onClick={() => { setPlatform(p.key); setAdType(''); }}
                     className={cn(
                       "flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium border transition-all",
-                      platform === p.key ? "text-white border-transparent" : "text-white/40 border-white/6 bg-white/3 hover:text-white/70 hover:bg-white/5"
+                      platform === p.key ? "text-gray-900 border-transparent" : "text-gray-400 border-gray-100 bg-gray-50 hover:text-gray-600 hover:bg-gray-50"
                     )}
                     style={platform === p.key ? { background: `${PLATFORM_COLORS[p.key]}22`, borderColor: `${PLATFORM_COLORS[p.key]}44`, color: PLATFORM_COLORS[p.key] } : {}}
                   >
@@ -555,11 +555,11 @@ export default function AdsPage() {
 
               {adTypes.length > 0 && (
                 <div className="mt-3">
-                  <label className="text-[10px] text-white/30 uppercase tracking-wider mb-1.5 block">Ad Type</label>
+                  <label className="text-[10px] text-gray-400 uppercase tracking-wider mb-1.5 block">Ad Type</label>
                   <div className="flex flex-wrap gap-1.5">
                     {adTypes.map(t => (
                       <button key={t} onClick={() => setAdType(adType === t ? '' : t)}
-                        className={cn("px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all", adType === t ? "text-white border-transparent" : "text-white/35 border-white/6 bg-white/3 hover:text-white/60")}
+                        className={cn("px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all", adType === t ? "text-gray-900 border-transparent" : "text-gray-400 border-gray-100 bg-gray-50 hover:text-gray-500")}
                         style={adType === t ? { background: `${platformColor}22`, borderColor: `${platformColor}44`, color: platformColor } : {}}
                       >
                         {t}
@@ -571,8 +571,8 @@ export default function AdsPage() {
             </div>
 
             {/* Framework */}
-            <div className="bg-[#111520] border border-white/6 rounded-2xl p-4">
-              <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 block flex items-center gap-1.5">
+            <div className="bg-white border border-gray-100 rounded-2xl p-4">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 block flex items-center gap-1.5">
                 <BookOpen className="w-3.5 h-3.5" /> Framework
                 {soshiRec && (
                   <span className="ml-auto text-[10px] text-pink-400 font-normal">
@@ -583,25 +583,25 @@ export default function AdsPage() {
               <div className="space-y-1.5">
                 {frameworks.map(fw => (
                   <button key={fw.key} onClick={() => setFramework(fw.key)}
-                    className={cn("w-full text-left px-3 py-2.5 rounded-xl border transition-all", framework === fw.key ? "bg-primary/10 border-primary/30 text-white" : "border-white/5 bg-white/2 text-white/40 hover:text-white/70 hover:bg-white/5")}
+                    className={cn("w-full text-left px-3 py-2.5 rounded-xl border transition-all", framework === fw.key ? "bg-primary/10 border-primary/30 text-gray-900" : "border-gray-100 bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-50")}
                   >
                     <div className="flex items-center gap-2">
                       <p className="text-xs font-semibold">{fw.name}</p>
                       {soshiRec?.best_framework === fw.key && <span className="text-[9px] text-pink-400 bg-pink-500/10 px-1.5 py-0.5 rounded-full">SOSHI pick</span>}
                     </div>
-                    <p className="text-[10px] text-white/30 mt-0.5 leading-tight">{fw.description}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{fw.description}</p>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Variations count */}
-            <div className="bg-[#111520] border border-white/6 rounded-2xl p-4">
-              <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 block">Variations</label>
+            <div className="bg-white border border-gray-100 rounded-2xl p-4">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 block">Variations</label>
               <div className="flex gap-2">
                 {[2, 3, 4, 5].map(n => (
                   <button key={n} onClick={() => setVariations(n)}
-                    className={cn("flex-1 py-2 rounded-xl text-sm font-semibold border transition-all", variations === n ? "bg-primary/15 border-primary/30 text-primary" : "border-white/6 bg-white/3 text-white/40 hover:text-white/70")}
+                    className={cn("flex-1 py-2 rounded-xl text-sm font-semibold border transition-all", variations === n ? "bg-primary/15 border-primary/30 text-primary" : "border-gray-100 bg-gray-50 text-gray-400 hover:text-gray-600")}
                   >
                     {n}
                   </button>
@@ -614,60 +614,60 @@ export default function AdsPage() {
           <div className="lg:col-span-3 space-y-5">
 
             {/* Campaign Details */}
-            <div className="bg-[#111520] border border-white/6 rounded-2xl p-5 space-y-4">
-              <label className="text-xs font-semibold text-white/50 uppercase tracking-wider block flex items-center gap-1.5">
+            <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-4">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5" /> Campaign Details
               </label>
 
               <div>
-                <label className="text-xs text-white/40 mb-1.5 block">Product / Service <span className="text-red-400">*</span></label>
+                <label className="text-xs text-gray-400 mb-1.5 block">Product / Service <span className="text-red-400">*</span></label>
                 <textarea
                   value={product}
                   onChange={e => setProduct(e.target.value)}
                   onBlur={() => product.trim() && !soshiRec && fetchRecommendations(product)}
                   placeholder="e.g. Home inspection service for real estate agents — fast 24-hour turnaround, certified inspector, detailed reports"
                   rows={3}
-                  className="w-full bg-white/4 border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 resize-none"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40 resize-none"
                 />
-                <p className="text-[10px] text-white/20 mt-1">Fill this in and SOSHI will give you personalised recommendations above</p>
+                <p className="text-[10px] text-gray-300 mt-1">Fill this in and SOSHI will give you personalised recommendations above</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block flex items-center gap-1"><Users className="w-3 h-3" /> Target Audience</label>
+                  <label className="text-xs text-gray-400 mb-1.5 block flex items-center gap-1"><Users className="w-3 h-3" /> Target Audience</label>
                   <input value={audience} onChange={e => setAudience(e.target.value)}
                     placeholder="e.g. Real estate agents in South Florida"
-                    className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40" />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40" />
                 </div>
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Unique Selling Point</label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Unique Selling Point</label>
                   <input value={usp} onChange={e => setUsp(e.target.value)}
                     placeholder="e.g. Fastest turnaround in the area"
-                    className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40" />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Main Pain Point</label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Main Pain Point</label>
                   <input value={painPoint} onChange={e => setPainPoint(e.target.value)}
                     placeholder="e.g. Slow reports delay closings"
-                    className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40" />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40" />
                 </div>
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Desired CTA</label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Desired CTA</label>
                   <input value={cta} onChange={e => setCta(e.target.value)}
                     placeholder="e.g. Book your inspection today"
-                    className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40" />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40" />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-white/40 mb-1.5 block">Tone of Voice</label>
+                <label className="text-xs text-gray-400 mb-1.5 block">Tone of Voice</label>
                 <div className="flex flex-wrap gap-1.5">
                   {TONES.map(t => (
                     <button key={t} onClick={() => setTone(t)}
-                      className={cn("px-3 py-1.5 rounded-lg text-xs font-medium border transition-all", tone === t ? "bg-primary/15 border-primary/30 text-primary" : "border-white/6 bg-white/3 text-white/35 hover:text-white/60")}
+                      className={cn("px-3 py-1.5 rounded-lg text-xs font-medium border transition-all", tone === t ? "bg-primary/15 border-primary/30 text-primary" : "border-gray-100 bg-gray-50 text-gray-400 hover:text-gray-500")}
                     >
                       {t}
                     </button>
@@ -685,7 +685,7 @@ export default function AdsPage() {
               onClick={handleGenerate}
               disabled={generating || !product.trim()}
               className={cn(
-                "w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-white font-semibold text-sm transition-all",
+                "w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-gray-900 font-semibold text-sm transition-all",
                 generating || !product.trim() ? "bg-primary/30 opacity-50 cursor-not-allowed" : "bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
               )}
             >
@@ -699,9 +699,9 @@ export default function AdsPage() {
             {/* Character limits hint */}
             {currentPlatform && (
               <div className="flex flex-wrap gap-3 px-1">
-                <span className="text-[11px] text-white/25"><span className="font-medium text-white/40">Headline:</span> {currentPlatform.charLimits.headline} chars</span>
-                <span className="text-[11px] text-white/25"><span className="font-medium text-white/40">Body:</span> {currentPlatform.charLimits.body} chars</span>
-                <span className="text-[11px] text-white/25"><span className="font-medium text-white/40">Description:</span> {currentPlatform.charLimits.description} chars</span>
+                <span className="text-[11px] text-gray-400"><span className="font-medium text-gray-400">Headline:</span> {currentPlatform.charLimits.headline} chars</span>
+                <span className="text-[11px] text-gray-400"><span className="font-medium text-gray-400">Body:</span> {currentPlatform.charLimits.body} chars</span>
+                <span className="text-[11px] text-gray-400"><span className="font-medium text-gray-400">Description:</span> {currentPlatform.charLimits.description} chars</span>
               </div>
             )}
 
@@ -710,12 +710,12 @@ export default function AdsPage() {
               {results.length > 0 && (
                 <motion.div variants={container} initial="hidden" animate="show" className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-white">
+                    <p className="text-sm font-semibold text-gray-900">
                       {results.length} Variations
-                      <span className="text-white/30 font-normal ml-2">· {frameworks.find(f => f.key === framework)?.name} · {currentPlatform?.name}</span>
+                      <span className="text-gray-400 font-normal ml-2">· {frameworks.find(f => f.key === framework)?.name} · {currentPlatform?.name}</span>
                     </p>
                     <button onClick={handleGenerate} disabled={generating}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/8 text-white/40 hover:text-white text-xs font-medium transition-all">
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-900 text-xs font-medium transition-all">
                       <RefreshCw className={cn("w-3 h-3", generating && "animate-spin")} /> Regenerate
                     </button>
                   </div>
@@ -725,11 +725,11 @@ export default function AdsPage() {
                   ))}
 
                   {/* A/B tip */}
-                  <div className="flex gap-3 p-4 rounded-2xl bg-white/2 border border-white/5">
+                  <div className="flex gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-100">
                     <Lightbulb className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs font-semibold text-white mb-1">SOSHI's A/B Testing Tip</p>
-                      <p className="text-[11px] text-white/40 leading-relaxed">
+                      <p className="text-xs font-semibold text-gray-900 mb-1">SOSHI's A/B Testing Tip</p>
+                      <p className="text-[11px] text-gray-400 leading-relaxed">
                         Run variations 1 and 2 first with a small budget ($5–10/day each) for 3–5 days.
                         Pause the lower CTR and scale the winner. Then test Variation 3 against the winner.
                         Use "Send to Social Queue" to route approved ads into your posting workflow.
@@ -742,7 +742,7 @@ export default function AdsPage() {
 
             {/* Empty state */}
             {!generating && results.length === 0 && (
-              <div className="flex flex-col items-center justify-center text-center py-12 text-white/15 space-y-2">
+              <div className="flex flex-col items-center justify-center text-center py-12 text-gray-300 space-y-2">
                 <span className="text-4xl opacity-30">📱</span>
                 <p className="text-sm">Fill in your campaign details and let SOSHI write your ads</p>
                 <p className="text-xs">Methods from Ogilvy · Halbert · Kennedy · Hopkins · Hormozi</p>

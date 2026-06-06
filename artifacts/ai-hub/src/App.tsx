@@ -127,7 +127,7 @@ function App() {
           <Router />
         </WouterRouter>
         <Toaster />
-        <SonnerToaster position="bottom-right" theme="dark" richColors />
+        <SonnerToaster position="bottom-right" theme="light" richColors />
       </TooltipProvider>
     </QueryClientProvider>
   );

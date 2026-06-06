@@ -156,9 +156,9 @@ function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
   return (
     <>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-display font-semibold text-white flex items-center gap-2 text-sm">
+        <h3 className="font-display font-semibold text-gray-900 flex items-center gap-2 text-sm">
           <TrendingUp className="w-4 h-4 text-primary" /> KPIs
-          {kpis[0]?.period && <span className="text-xs text-white/25 font-normal">· {kpis[0].period}</span>}
+          {kpis[0]?.period && <span className="text-xs text-gray-400 font-normal">· {kpis[0].period}</span>}
           {kpiUrl && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 font-normal">auto-synced</span>
           )}
@@ -167,7 +167,7 @@ function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
           {workspaceId && (
             <button
               onClick={() => setShowUrlPanel(v => !v)}
-              className={`text-xs flex items-center gap-1 transition-colors ${showUrlPanel ? 'text-primary' : 'text-white/20 hover:text-white/50'}`}
+              className={`text-xs flex items-center gap-1 transition-colors ${showUrlPanel ? 'text-primary' : 'text-gray-300 hover:text-gray-400'}`}
               title="Configure KPI feed URL"
             >
               <Settings2 className="w-3 h-3" />
@@ -175,7 +175,7 @@ function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
           )}
           <button
             onClick={openCreate}
-            className="text-xs text-white/30 hover:text-primary flex items-center gap-1 transition-colors"
+            className="text-xs text-gray-400 hover:text-primary flex items-center gap-1 transition-colors"
           >
             <Plus className="w-3 h-3" /> Add
           </button>
@@ -191,22 +191,22 @@ function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
             exit={{ opacity: 0, height: 0 }}
             className="mb-3 overflow-hidden"
           >
-            <div className="p-3 rounded-xl border border-white/8 bg-white/3 space-y-2">
-              <p className="text-[11px] text-white/40">
+            <div className="p-3 rounded-xl border border-gray-200 bg-gray-50 space-y-2">
+              <p className="text-[11px] text-gray-400">
                 Point to a JSON endpoint that returns KPI data — it'll be polled every hour.
-                Format: <code className="text-white/60 bg-white/5 px-1 rounded">{'{"kpis":[{"name":"Revenue","value":5000,"unit":"$"}]}'}</code>
+                Format: <code className="text-gray-500 bg-gray-50 px-1 rounded">{'{"kpis":[{"name":"Revenue","value":5000,"unit":"$"}]}'}</code>
               </p>
               <div className="flex gap-2">
                 <input
                   value={urlDraft}
                   onChange={e => setUrlDraft(e.target.value)}
                   placeholder="https://your-app.com/api/kpis"
-                  className="flex-1 bg-white/4 border border-white/8 rounded-lg px-3 py-2 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all"
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40 transition-all"
                 />
                 <button
                   onClick={saveKpiUrl}
                   disabled={savingUrl}
-                  className="px-3 py-2 rounded-lg bg-primary/90 hover:bg-primary text-white text-xs font-semibold disabled:opacity-50 flex items-center gap-1 transition-all"
+                  className="px-3 py-2 rounded-lg bg-primary/90 hover:bg-primary text-gray-900 text-xs font-semibold disabled:opacity-50 flex items-center gap-1 transition-all"
                 >
                   {savingUrl ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                   Save
@@ -214,7 +214,7 @@ function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
                 {kpiUrl && (
                   <button
                     onClick={() => { setUrlDraft(''); saveKpiUrl(); }}
-                    className="px-3 py-2 rounded-lg bg-white/5 hover:bg-red-500/10 text-white/40 hover:text-red-400 text-xs transition-all"
+                    className="px-3 py-2 rounded-lg bg-gray-50 hover:bg-red-500/10 text-gray-400 hover:text-red-400 text-xs transition-all"
                   >
                     Clear
                   </button>
@@ -228,7 +228,7 @@ function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
       {kpis.length === 0 ? (
         <button
           onClick={openCreate}
-          className="w-full py-6 rounded-xl border border-dashed border-white/8 text-white/20 hover:text-white/40 hover:border-white/15 text-xs transition-all flex flex-col items-center gap-2"
+          className="w-full py-6 rounded-xl border border-dashed border-gray-200 text-gray-300 hover:text-gray-400 hover:border-white/15 text-xs transition-all flex flex-col items-center gap-2"
         >
           <TrendingUp className="w-5 h-5 opacity-40" />
           Add your first KPI metric
@@ -236,14 +236,14 @@ function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
           {kpis.map(kpi => (
-            <div key={kpi.id} className="group relative p-4 rounded-xl bg-white/3 border border-white/5 hover:border-white/10 transition-all">
-              <p className="text-[11px] text-white/35 mb-1 truncate">{kpi.name}</p>
-              <p className="text-xl font-display font-bold text-white">{formatVal(kpi)}</p>
+            <div key={kpi.id} className="group relative p-4 rounded-xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all">
+              <p className="text-[11px] text-gray-400 mb-1 truncate">{kpi.name}</p>
+              <p className="text-xl font-display font-bold text-gray-900">{formatVal(kpi)}</p>
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                <button onClick={() => openEdit(kpi)} className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10">
+                <button onClick={() => openEdit(kpi)} className="w-6 h-6 rounded-md bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100">
                   <Pencil className="w-3 h-3" />
                 </button>
-                <button onClick={() => handleDelete(kpi.id)} className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-white/20 hover:text-red-400 hover:bg-red-500/10">
+                <button onClick={() => handleDelete(kpi.id)} className="w-6 h-6 rounded-md bg-gray-50 flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-500/10">
                   <Trash2 className="w-3 h-3" />
                 </button>
               </div>
@@ -251,7 +251,7 @@ function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
           ))}
           <button
             onClick={openCreate}
-            className="p-4 rounded-xl border border-dashed border-white/8 text-white/20 hover:text-white/40 hover:border-white/15 transition-all flex items-center justify-center"
+            className="p-4 rounded-xl border border-dashed border-gray-200 text-gray-300 hover:text-gray-400 hover:border-white/15 transition-all flex items-center justify-center"
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -261,20 +261,20 @@ function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
       {/* KPI Modal */}
       <AnimatePresence>
         {modal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm bg-[#131622] border border-white/10 rounded-2xl shadow-2xl p-6"
+              className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-2xl p-6"
             >
-              <h2 className="text-sm font-display font-bold text-white mb-4">
+              <h2 className="text-sm font-display font-bold text-gray-900 mb-4">
                 {modal.mode === 'create' ? 'Add KPI' : 'Edit KPI'}
               </h2>
               <div className="space-y-3">
                 {modal.mode === 'create' && templates.length > 0 && (
                   <div>
-                    <label className="text-xs text-white/40 mb-2 block">Quick-fill</label>
+                    <label className="text-xs text-gray-400 mb-2 block">Quick-fill</label>
                     <div className="flex flex-wrap gap-1.5">
                       {templates.map(t => (
                         <button
@@ -284,7 +284,7 @@ function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
                           className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
                             form.name === t.name
                               ? 'bg-primary/20 border-primary/40 text-primary'
-                              : 'bg-white/4 border-white/8 text-white/45 hover:text-white/80 hover:border-white/20'
+                              : 'bg-gray-50 border-gray-200 text-gray-400 hover:text-gray-700 hover:border-white/20'
                           }`}
                         >
                           {t.name}
@@ -294,32 +294,32 @@ function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
                   </div>
                 )}
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Metric name *</label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Metric name *</label>
                   <input
                     autoFocus
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="e.g. Monthly Revenue"
-                    className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-white/40 mb-1.5 block">Value</label>
+                    <label className="text-xs text-gray-400 mb-1.5 block">Value</label>
                     <input
                       type="number"
                       value={form.value}
                       onChange={e => setForm(f => ({ ...f, value: e.target.value }))}
                       placeholder="0"
-                      className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-white/40 mb-1.5 block">Unit</label>
+                    <label className="text-xs text-gray-400 mb-1.5 block">Unit</label>
                     <select
                       value={form.unit}
                       onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/20"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-white/20"
                     >
                       {['$', '%', '#', 'hrs', 'leads', 'clients', 'jobs', 'deals'].map(u => (
                         <option key={u} value={u}>{u}</option>
@@ -328,22 +328,22 @@ function KpiSection({ businessTag, workspaceId, initialKpiUrl, token }: {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Period</label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Period</label>
                   <input
                     value={form.period}
                     onChange={e => setForm(f => ({ ...f, period: e.target.value }))}
                     placeholder="e.g. Apr 2026"
-                    className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20"
                   />
                 </div>
                 <div className="flex gap-2 pt-1">
-                  <button onClick={() => setModal(null)} className="flex-1 py-2.5 rounded-xl border border-white/8 text-white/50 hover:text-white text-sm transition-all">
+                  <button onClick={() => setModal(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-900 text-sm transition-all">
                     Cancel
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={saving || !form.name}
-                    className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all"
+                    className="flex-1 py-2.5 rounded-xl bg-primary text-gray-900 text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all"
                   >
                     {saving ? 'Saving…' : modal.mode === 'create' ? 'Add KPI' : 'Save'}
                   </button>
@@ -374,7 +374,7 @@ function ActivePipelinesWidget({ onNavigate }: { onNavigate: () => void }) {
   return (
     <motion.div variants={item} className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-display font-semibold text-white text-sm flex items-center gap-2">
+        <h3 className="font-display font-semibold text-gray-900 text-sm flex items-center gap-2">
           <GitFork className="w-4 h-4 text-indigo-400" />
           {runs.length} Pipeline run{runs.length > 1 ? 's' : ''} awaiting review
         </h3>
@@ -384,11 +384,11 @@ function ActivePipelinesWidget({ onNavigate }: { onNavigate: () => void }) {
       </div>
       <div className="space-y-2">
         {runs.map((run: any) => (
-          <div key={run.id} className="flex items-center gap-3 bg-black/20 rounded-xl px-4 py-2.5 border border-white/5">
+          <div key={run.id} className="flex items-center gap-3 bg-black/20 rounded-xl px-4 py-2.5 border border-gray-100">
             <GitFork className="w-4 h-4 text-indigo-400 shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-white truncate">{run.pipelineName ?? `Pipeline Run #${run.id}`}</p>
-              <p className="text-[10px] text-white/30">{run.ranAt ? format(new Date(run.ranAt), 'MMM d, h:mm a') : ''}</p>
+              <p className="text-xs font-semibold text-gray-900 truncate">{run.pipelineName ?? `Pipeline Run #${run.id}`}</p>
+              <p className="text-[10px] text-gray-400">{run.ranAt ? format(new Date(run.ranAt), 'MMM d, h:mm a') : ''}</p>
             </div>
             <button
               onClick={onNavigate}
@@ -436,8 +436,8 @@ function CrossBusinessOverview() {
   if (allWorkspaces.length === 0) return null;
 
   return (
-    <motion.div variants={item} className="rounded-2xl border border-white/5 bg-[#111520] p-6">
-      <h3 className="font-display font-semibold text-white text-sm mb-4 flex items-center gap-2">
+    <motion.div variants={item} className="rounded-2xl border border-gray-100 bg-white p-6">
+      <h3 className="font-display font-semibold text-gray-900 text-sm mb-4 flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-primary" /> All Businesses
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -446,7 +446,7 @@ function CrossBusinessOverview() {
           return (
             <div
               key={ws.slug}
-              className="p-3 rounded-xl bg-white/3 border border-white/5 hover:border-white/10 transition-all cursor-pointer"
+              className="p-3 rounded-xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all cursor-pointer"
             >
               <div className="flex items-center gap-2 mb-2">
                 <div
@@ -455,9 +455,9 @@ function CrossBusinessOverview() {
                 >
                   {ws.emoji}
                 </div>
-                <p className="text-xs font-semibold text-white/80 truncate">{ws.name}</p>
+                <p className="text-xs font-semibold text-gray-700 truncate">{ws.name}</p>
               </div>
-              <div className="flex gap-3 text-[11px] text-white/30">
+              <div className="flex gap-3 text-[11px] text-gray-400">
                 <span>{taskCounts[ws.slug] ?? 0} tasks</span>
                 {overdue > 0 && (
                   <span className="text-red-400 flex items-center gap-0.5">
@@ -496,14 +496,14 @@ function SocialStatsWidget({ businessTag, onNavigate }: { businessTag: string; o
   ];
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-[#111520] p-5">
+    <div className="rounded-2xl border border-gray-100 bg-white p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-display font-semibold text-white text-sm flex items-center gap-2">
+        <h3 className="font-display font-semibold text-gray-900 text-sm flex items-center gap-2">
           <Share2 className="w-4 h-4 text-violet-400" /> Social Media
         </h3>
         <button
           onClick={onNavigate}
-          className="text-xs text-white/30 hover:text-white/60 flex items-center gap-1 transition-colors"
+          className="text-xs text-gray-400 hover:text-gray-500 flex items-center gap-1 transition-colors"
         >
           View all <ArrowRight className="w-3 h-3" />
         </button>
@@ -515,13 +515,13 @@ function SocialStatsWidget({ businessTag, onNavigate }: { businessTag: string; o
             <button
               key={it.label}
               onClick={onNavigate}
-              className="text-left p-3 rounded-xl border border-white/5 hover:border-white/10 hover:bg-white/3 transition-all group"
+              className="text-left p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all group"
             >
               <div className="w-7 h-7 rounded-lg flex items-center justify-center mb-2" style={{ background: it.bg, color: it.color }}>
                 <Icon className="w-3.5 h-3.5" />
               </div>
-              <p className="text-lg font-display font-bold text-white">{it.value}</p>
-              <p className="text-[10px] text-white/30 mt-0.5">{it.label}</p>
+              <p className="text-lg font-display font-bold text-gray-900">{it.value}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">{it.label}</p>
             </button>
           );
         })}
@@ -598,15 +598,15 @@ export default function Dashboard() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Top header */}
-      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#f8fafc]/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-display font-bold text-white">{greeting} 👋</h1>
-            <p className="text-sm text-white/35 mt-0.5">{format(new Date(), "EEEE, MMMM d, yyyy")}</p>
+            <h1 className="text-2xl font-display font-bold text-gray-900">{greeting} 👋</h1>
+            <p className="text-sm text-gray-400 mt-0.5">{format(new Date(), "EEEE, MMMM d, yyyy")}</p>
           </div>
           <button
             onClick={() => setLocation('/agents')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/90 hover:bg-primary text-white text-sm font-semibold transition-all shadow-lg shadow-primary/20"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/90 hover:bg-primary text-gray-900 text-sm font-semibold transition-all shadow-lg shadow-primary/20"
           >
             <Sparkles className="w-4 h-4" /> New chat
           </button>
@@ -624,7 +624,7 @@ export default function Dashboard() {
                 <button
                   key={stat.label}
                   onClick={() => setLocation(stat.href)}
-                  className="text-left p-4 rounded-2xl border border-white/5 bg-[#111520] hover:bg-[#141824] hover:border-white/10 transition-all group"
+                  className="text-left p-4 rounded-2xl border border-gray-100 bg-white hover:bg-[#f9fafb] hover:border-gray-200 transition-all group"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div
@@ -633,17 +633,17 @@ export default function Dashboard() {
                     >
                       <Icon className="w-4 h-4" />
                     </div>
-                    <ArrowRight className="w-3 h-3 text-white/15 group-hover:text-white/40 transition-colors" />
+                    <ArrowRight className="w-3 h-3 text-gray-300 group-hover:text-gray-400 transition-colors" />
                   </div>
-                  <p className="text-xl font-display font-bold text-white">{stat.value}</p>
-                  <p className="text-[11px] text-white/35 mt-0.5">{stat.label}</p>
+                  <p className="text-xl font-display font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{stat.label}</p>
                 </button>
               );
             })}
           </motion.div>
 
           {/* KPI Section */}
-          <motion.div variants={item} className="rounded-2xl border border-white/5 bg-[#111520] p-6">
+          <motion.div variants={item} className="rounded-2xl border border-gray-100 bg-white p-6">
             <KpiSection
               businessTag={businessTag}
               workspaceId={wsId}
@@ -680,14 +680,14 @@ export default function Dashboard() {
               </div>
               <div className="space-y-2.5">
                 {pendingRuns.slice(0, 3).map((run) => (
-                  <div key={run.id} className="flex items-center justify-between gap-3 bg-black/20 rounded-xl px-4 py-3 border border-white/5">
+                  <div key={run.id} className="flex items-center justify-between gap-3 bg-black/20 rounded-xl px-4 py-3 border border-gray-100">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0" style={{ background: `${run.agentColor}20` }}>
                         {run.agentIcon}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">{run.automationName}</p>
-                        <p className="text-xs text-white/35">{run.agentName} · {format(new Date(run.ranAt), 'MMM d, h:mm a')}</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">{run.automationName}</p>
+                        <p className="text-xs text-gray-400">{run.agentName} · {format(new Date(run.ranAt), 'MMM d, h:mm a')}</p>
                       </div>
                     </div>
                     <div className="flex gap-1.5 shrink-0">
@@ -706,12 +706,12 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
             {/* Agent shortcuts */}
-            <motion.div variants={item} className="lg:col-span-3 rounded-2xl border border-white/5 bg-[#111520] p-6">
+            <motion.div variants={item} className="lg:col-span-3 rounded-2xl border border-gray-100 bg-white p-6">
               <div className="flex items-center justify-between mb-5">
-                <h3 className="font-display font-semibold text-white flex items-center gap-2 text-sm">
+                <h3 className="font-display font-semibold text-gray-900 flex items-center gap-2 text-sm">
                   <Bot className="w-4 h-4 text-primary" /> Your AI Team
                 </h3>
-                <button onClick={() => setLocation('/agents')} className="text-xs text-white/30 hover:text-primary flex items-center gap-1 transition-colors">
+                <button onClick={() => setLocation('/agents')} className="text-xs text-gray-400 hover:text-primary flex items-center gap-1 transition-colors">
                   Open <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
@@ -720,29 +720,29 @@ export default function Dashboard() {
                   <button
                     key={agent.id}
                     onClick={() => setLocation('/agents')}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/3 hover:bg-white/6 border border-white/5 hover:border-white/10 transition-all group"
+                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-all group"
                   >
                     <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl" style={{ background: `${agent.color}18` }}>
                       {agent.icon}
                     </div>
-                    <p className="text-xs font-semibold text-white/70 group-hover:text-white truncate w-full text-center">{agent.name}</p>
+                    <p className="text-xs font-semibold text-gray-600 group-hover:text-gray-900 truncate w-full text-center">{agent.name}</p>
                   </button>
                 ))}
               </div>
             </motion.div>
 
             {/* Recent sessions */}
-            <motion.div variants={item} className="lg:col-span-2 rounded-2xl border border-white/5 bg-[#111520] p-6">
+            <motion.div variants={item} className="lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-6">
               <div className="flex items-center justify-between mb-5">
-                <h3 className="font-display font-semibold text-white flex items-center gap-2 text-sm">
+                <h3 className="font-display font-semibold text-gray-900 flex items-center gap-2 text-sm">
                   <Clock className="w-4 h-4 text-primary" /> Recent Chats
                 </h3>
-                <button onClick={() => setLocation('/agents')} className="text-xs text-white/30 hover:text-primary flex items-center gap-1 transition-colors">
+                <button onClick={() => setLocation('/agents')} className="text-xs text-gray-400 hover:text-primary flex items-center gap-1 transition-colors">
                   All <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
               {recentConvs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center text-center py-8 text-white/20">
+                <div className="flex flex-col items-center justify-center text-center py-8 text-gray-300">
                   <Sparkles className="w-8 h-8 mb-3 opacity-30" />
                   <p className="text-xs">No chats yet</p>
                 </div>
@@ -751,15 +751,15 @@ export default function Dashboard() {
                   {recentConvs.map(conv => {
                     const agent = agents.find(a => a.id === conv.agentId);
                     return (
-                      <button key={conv.id} onClick={() => setLocation('/agents')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-left group">
+                      <button key={conv.id} onClick={() => setLocation('/agents')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left group">
                         {agent && (
                           <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0" style={{ background: `${agent.color}18` }}>
                             {agent.icon}
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-white/70 group-hover:text-white truncate font-medium">{conv.title}</p>
-                          <p className="text-[10px] text-white/25">{agent?.name} · {format(new Date(conv.createdAt), 'MMM d')}</p>
+                          <p className="text-xs text-gray-600 group-hover:text-gray-900 truncate font-medium">{conv.title}</p>
+                          <p className="text-[10px] text-gray-400">{agent?.name} · {format(new Date(conv.createdAt), 'MMM d')}</p>
                         </div>
                       </button>
                     );
@@ -782,14 +782,14 @@ export default function Dashboard() {
                 <button
                   key={q.href}
                   onClick={() => setLocation(q.href)}
-                  className="flex items-center gap-3 p-4 rounded-2xl border border-white/5 bg-[#111520] hover:bg-[#141824] hover:border-white/10 transition-all group text-left"
+                  className="flex items-center gap-3 p-4 rounded-2xl border border-gray-100 bg-white hover:bg-[#f9fafb] hover:border-gray-200 transition-all group text-left"
                 >
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${q.color}18`, color: q.color }}>
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white/80 group-hover:text-white">{q.label}</p>
-                    <p className="text-xs text-white/30 truncate">{q.sub}</p>
+                    <p className="text-sm font-semibold text-gray-700 group-hover:text-gray-900">{q.label}</p>
+                    <p className="text-xs text-gray-400 truncate">{q.sub}</p>
                   </div>
                 </button>
               );

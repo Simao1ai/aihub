@@ -112,7 +112,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="p-1.5 rounded-lg text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
+      className="p-1.5 rounded-lg text-muted-foreground hover:text-gray-900 hover:bg-gray-100 transition-colors"
       title="Copy to clipboard"
     >
       {copied ? <CheckCheck className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
@@ -147,7 +147,7 @@ function AgentFlow({
                 compact ? "px-2 py-0.5" : "px-2.5 py-1",
                 isActive && "border-primary/60 bg-primary/10 shadow-[0_0_12px_rgba(99,102,241,0.3)]",
                 isDone && "border-emerald-500/40 bg-emerald-500/10",
-                !isActive && !isDone && "border-border/50 bg-white/3"
+                !isActive && !isDone && "border-border/50 bg-gray-50"
               )}
               style={isActive ? { borderColor: `${agent?.color || '#6366f1'}60` } : isDone ? {} : undefined}
             >
@@ -155,13 +155,13 @@ function AgentFlow({
                 {isDone ? '✅' : agent?.icon || '🤖'}
               </span>
               {!compact && (
-                <span className="text-xs font-medium text-white/80 max-w-[60px] truncate">
+                <span className="text-xs font-medium text-gray-700 max-w-[60px] truncate">
                   {agent?.name || `#${step.agentId}`}
                 </span>
               )}
             </div>
             {i < steps.length - 1 && (
-              <ArrowRight className={cn("w-3 h-3 shrink-0", isDone ? "text-emerald-400/60" : "text-white/20")} />
+              <ArrowRight className={cn("w-3 h-3 shrink-0", isDone ? "text-emerald-400/60" : "text-gray-300")} />
             )}
           </span>
         );
@@ -191,7 +191,7 @@ function StepOutputCard({ step, defaultOpen = false }: { step: StepOutput; defau
           {step.agentIcon}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white">Step {step.stepIndex + 1}: {step.stepName}</p>
+          <p className="text-sm font-semibold text-gray-900">Step {step.stepIndex + 1}: {step.stepName}</p>
           <p className="text-xs text-muted-foreground">{step.agentName}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -211,8 +211,8 @@ function StepOutputCard({ step, defaultOpen = false }: { step: StepOutput; defau
             exit={{ height: 0 }}
             className="overflow-hidden"
           >
-            <div className="p-4 border-t border-border/40 bg-[#0c0e14]">
-              <div className="prose prose-invert prose-sm max-w-none max-h-80 overflow-y-auto text-white/80 leading-relaxed">
+            <div className="p-4 border-t border-border/40 bg-[#f8fafc]">
+              <div className="prose prose-invert prose-sm max-w-none max-h-80 overflow-y-auto text-gray-700 leading-relaxed">
                 <ReactMarkdown>{step.output}</ReactMarkdown>
               </div>
             </div>
@@ -247,7 +247,7 @@ function LaunchModal({
       <div className="space-y-5">
         {/* Pipeline preview */}
         <div className="bg-card/30 border border-border/40 rounded-2xl p-4">
-          <p className="text-base font-bold text-white mb-1">{pipeline.name}</p>
+          <p className="text-base font-bold text-gray-900 mb-1">{pipeline.name}</p>
           {pipeline.description && (
             <p className="text-xs text-muted-foreground mb-3">{pipeline.description}</p>
           )}
@@ -259,7 +259,7 @@ function LaunchModal({
 
         {/* Topic input */}
         <div>
-          <label className="block text-sm font-medium text-white/80 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             What do you want to create?
             <span className="ml-1 text-xs text-muted-foreground font-normal">(your topic or task)</span>
           </label>
@@ -269,7 +269,7 @@ function LaunchModal({
             onChange={e => setTopic(e.target.value)}
             rows={3}
             placeholder={`e.g., "Promote our 5-star reviews to attract new clients" or "Highlight our fast-turnaround inspection reports"`}
-            className="w-full bg-black/30 border border-border rounded-xl p-3 text-sm text-white placeholder:text-white/30 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 resize-none focus:outline-none"
+            className="w-full bg-black/30 border border-border rounded-xl p-3 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 resize-none focus:outline-none"
           />
           <p className="text-xs text-muted-foreground mt-1">
             Use <span className="font-mono text-primary/70 bg-primary/10 px-1 rounded">{'{{TOPIC}}'}</span> appears in prompts automatically.
@@ -279,7 +279,7 @@ function LaunchModal({
         {/* Business selector */}
         {workspaces.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">Business context</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Business context</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {workspaces.map(ws => (
                 <button
@@ -288,8 +288,8 @@ function LaunchModal({
                   className={cn(
                     "flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all text-sm",
                     businessTag === ws.slug
-                      ? "border-primary/60 bg-primary/10 text-white"
-                      : "border-border/40 bg-white/3 text-muted-foreground hover:border-border hover:text-white"
+                      ? "border-primary/60 bg-primary/10 text-gray-900"
+                      : "border-border/40 bg-gray-50 text-muted-foreground hover:border-border hover:text-gray-900"
                   )}
                 >
                   <span className="text-base shrink-0">{ws.emoji}</span>
@@ -419,7 +419,7 @@ function ExecutionView({
               <span className="text-sm text-primary font-medium">Pipeline Running</span>
               <span className="text-xs text-muted-foreground">{elapsed}s</span>
             </div>
-            <h2 className="text-2xl font-display font-bold text-white">{pipeline.name}</h2>
+            <h2 className="text-2xl font-display font-bold text-gray-900">{pipeline.name}</h2>
             <p className="text-sm text-muted-foreground mt-0.5 italic">"{topic}"</p>
           </div>
           <Button variant="ghost" size="sm" onClick={handleCancel}>
@@ -433,7 +433,7 @@ function ExecutionView({
             <span>{doneCount} of {pipeline.steps.length} steps complete</span>
             <span>{Math.round(progress)}%</span>
           </div>
-          <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-gray-50 rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-primary rounded-full"
               initial={{ width: 0 }}
@@ -454,7 +454,7 @@ function ExecutionView({
                 "flex items-center gap-3 p-4 rounded-2xl border transition-all duration-500",
                 step.status === 'running' && "border-primary/40 bg-primary/5 shadow-[0_0_20px_rgba(99,102,241,0.1)]",
                 step.status === 'done' && "border-emerald-500/30 bg-emerald-500/5",
-                step.status === 'pending' && "border-border/30 bg-white/2"
+                step.status === 'pending' && "border-border/30 bg-gray-50"
               )}
             >
               <div
@@ -471,7 +471,7 @@ function ExecutionView({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold text-gray-900">
                     Step {step.stepIndex + 1}: {step.stepName}
                   </p>
                   {step.status === 'running' && (
@@ -504,7 +504,7 @@ function ExecutionView({
                 {step.status === 'done' && <Check className="w-3.5 h-3.5 text-emerald-400" />}
                 {step.status === 'running' && <Loader2 className="w-3 h-3 text-primary animate-spin" />}
                 {step.status === 'pending' && (
-                  <span className="text-xs text-white/30 font-mono">{i + 1}</span>
+                  <span className="text-xs text-gray-400 font-mono">{i + 1}</span>
                 )}
               </div>
             </motion.div>
@@ -525,7 +525,7 @@ function ExecutionView({
         {/* Completed step outputs (live) */}
         {completedSteps.length > 0 && (
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider">Step Outputs</h3>
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Step Outputs</h3>
             {completedSteps.map((step, i) => (
               <StepOutputCard key={i} step={step} defaultOpen={false} />
             ))}
@@ -565,7 +565,7 @@ function ResultView({
               <span className="text-emerald-400">✅</span>
               <span className="text-sm text-emerald-400 font-medium">Pipeline Complete</span>
             </div>
-            <h2 className="text-2xl font-display font-bold text-white">{pipeline.name}</h2>
+            <h2 className="text-2xl font-display font-bold text-gray-900">{pipeline.name}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               {(run.stepsOutput || []).length} agents · {format(new Date(run.ranAt), 'MMM d, h:mm a')}
             </p>
@@ -593,7 +593,7 @@ function ResultView({
 
         {/* All step outputs */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider">All Steps</h3>
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">All Steps</h3>
           {(run.stepsOutput || []).map((step, i) => (
             <StepOutputCard key={i} step={step} defaultOpen={false} />
           ))}
@@ -665,11 +665,11 @@ function PipelineBuilderModal({
       <form onSubmit={handleSubmit} className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
         <div className="grid grid-cols-1 gap-4">
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-1.5">Pipeline Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pipeline Name</label>
             <Input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Lead Research & Outreach" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-1.5">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Description <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
             <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="What does this pipeline do?" />
@@ -678,7 +678,7 @@ function PipelineBuilderModal({
 
         <div className="space-y-1">
           <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-medium text-white/80">
+            <label className="text-sm font-medium text-gray-700">
               Steps <span className="text-muted-foreground">({steps.length})</span>
             </label>
             <button type="button" onClick={addStep} className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
@@ -724,7 +724,7 @@ function PipelineBuilderModal({
                           required
                           value={step.agentId}
                           onChange={e => updateStep(i, 'agentId', Number(e.target.value))}
-                          className="w-full bg-card/50 border border-border rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none"
+                          className="w-full bg-card/50 border border-border rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none"
                         >
                           {agents.map(a => (
                             <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
@@ -738,14 +738,14 @@ function PipelineBuilderModal({
                         Prompt{' '}
                         <span className="text-primary/60 font-mono">{'{{TOPIC}}'}</span>
                         {' '}= your task input
-                        {i > 0 && <span className="text-white/40"> · previous step output auto-included</span>}
+                        {i > 0 && <span className="text-gray-400"> · previous step output auto-included</span>}
                       </label>
                       <textarea
                         required
                         value={step.promptTemplate}
                         onChange={e => updateStep(i, 'promptTemplate', e.target.value)}
                         rows={3}
-                        className="w-full bg-black/20 border border-border rounded-xl p-3 text-sm text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50 resize-none focus:outline-none"
+                        className="w-full bg-black/20 border border-border rounded-xl p-3 text-sm text-gray-900 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 resize-none focus:outline-none"
                         placeholder={i === 0 ? "What should this agent do first? Use {{TOPIC}} for the user's task." : "What should this agent do with the previous step's output?"}
                       />
                     </div>
@@ -901,7 +901,7 @@ export default function Pipelines() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-display font-bold text-white flex items-center gap-3">
+          <h2 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 flex items-center gap-3">
             <GitFork className="text-primary w-7 h-7 sm:w-8 sm:h-8" />
             Pipelines
           </h2>
@@ -927,7 +927,7 @@ export default function Pipelines() {
                 {pendingRuns.map(run => {
                   const pipeline = pipelines.find(p => p.id === run.pipelineId);
                   return (
-                    <Card key={run.id} className="p-3 sm:p-4 bg-[#1a1512] border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <Card key={run.id} className="p-3 sm:p-4 bg-[#fdf8f6] border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <div className="flex -space-x-1.5">
                           {(run.stepsOutput || []).slice(0, 4).map((s, i) => (
@@ -937,7 +937,7 @@ export default function Pipelines() {
                           ))}
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white/90">{pipeline?.name || 'Pipeline'}</p>
+                          <p className="text-sm font-semibold text-gray-800">{pipeline?.name || 'Pipeline'}</p>
                           <p className="text-xs text-muted-foreground">{(run.stepsOutput || []).length} steps · {format(new Date(run.ranAt), 'MMM d, h:mm a')}</p>
                         </div>
                       </div>
@@ -967,7 +967,7 @@ export default function Pipelines() {
       ) : pipelines.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border-2 border-dashed border-border rounded-2xl bg-card/10">
           <GitFork className="w-12 h-12 mb-4 opacity-40" />
-          <p className="text-lg font-medium text-white/60">No pipelines yet</p>
+          <p className="text-lg font-medium text-gray-500">No pipelines yet</p>
           <p className="text-sm mt-1 mb-6">Templates are added automatically on server restart</p>
           <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-2" /> Create Pipeline</Button>
         </div>
@@ -993,14 +993,14 @@ export default function Pipelines() {
                   </div>
 
                   {/* Name + description */}
-                  <h4 className="text-base font-bold text-white mb-1 leading-snug">{pipeline.name}</h4>
+                  <h4 className="text-base font-bold text-gray-900 mb-1 leading-snug">{pipeline.name}</h4>
                   {pipeline.description && (
                     <p className="text-xs text-muted-foreground mb-3 line-clamp-2 leading-relaxed">{pipeline.description}</p>
                   )}
 
                   {/* Step count + status */}
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="text-xs text-white/40 bg-white/5 border border-border/30 px-2 py-0.5 rounded-full">
+                    <span className="text-xs text-gray-400 bg-gray-50 border border-border/30 px-2 py-0.5 rounded-full">
                       {pipeline.steps.length} steps
                     </span>
                     {pipeline.lastRanAt && (
@@ -1017,7 +1017,7 @@ export default function Pipelines() {
                   <div className="mt-auto pt-3 border-t border-border/40 flex items-center gap-2">
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditPipeline(pipeline); }}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-gray-900 hover:bg-gray-50 transition-colors"
                       title="Edit pipeline"
                     >
                       <Pencil className="w-3.5 h-3.5" />
@@ -1049,7 +1049,7 @@ export default function Pipelines() {
           {/* Add card */}
           <button
             onClick={() => setCreateOpen(true)}
-            className="rounded-2xl border-2 border-dashed border-border hover:border-primary/40 bg-transparent hover:bg-primary/5 transition-all p-5 flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-white group min-h-[200px]"
+            className="rounded-2xl border-2 border-dashed border-border hover:border-primary/40 bg-transparent hover:bg-primary/5 transition-all p-5 flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-gray-900 group min-h-[200px]"
           >
             <div className="w-12 h-12 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
               <Plus className="w-6 h-6 text-primary" />

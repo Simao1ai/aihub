@@ -55,10 +55,10 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#0c0e16] overflow-hidden">
+    <div className="min-h-screen flex bg-[#f8fafc] overflow-hidden">
 
       {/* Left panel */}
-      <div className="hidden lg:flex w-[45%] flex-col justify-between p-12 bg-[#090b12] border-r border-white/5 relative overflow-hidden">
+      <div className="hidden lg:flex w-[45%] flex-col justify-between p-12 bg-white border-r border-gray-100 relative overflow-hidden">
         {/* Floating workspace preview cards */}
         {workspaces.slice(0, 3).map((ws, i) => (
           <motion.div
@@ -77,9 +77,9 @@ export default function Login() {
             }}
           >
             <span className="text-3xl">{ws.emoji}</span>
-            <p className="text-xs font-semibold text-white/60">{ws.name}</p>
+            <p className="text-xs font-semibold text-gray-500">{ws.name}</p>
             {ws.description && (
-              <p className="text-[10px] text-white/30 leading-relaxed line-clamp-2">{ws.description}</p>
+              <p className="text-[10px] text-gray-400 leading-relaxed line-clamp-2">{ws.description}</p>
             )}
           </motion.div>
         ))}
@@ -89,22 +89,22 @@ export default function Login() {
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-white text-lg">S</div>
-          <span className="font-display font-bold text-white text-lg">SynthDesk.ai</span>
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-gray-900 text-lg">S</div>
+          <span className="font-display font-bold text-gray-900 text-lg">SynthDesk.ai</span>
         </div>
 
         {/* Tagline */}
         <div className="relative z-10">
-          <h2 className="text-4xl font-display font-bold text-white leading-snug mb-3">
+          <h2 className="text-4xl font-display font-bold text-gray-900 leading-snug mb-3">
             One hub,<br />every business.
           </h2>
-          <p className="text-white/35 text-sm leading-relaxed max-w-xs">
+          <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
             Log in to a dedicated workspace — each business gets its own agents, brain, automations, and pipelines.
           </p>
         </div>
 
         {/* Workspace count */}
-        <div className="relative z-10 flex items-center gap-2 text-xs text-white/20">
+        <div className="relative z-10 flex items-center gap-2 text-xs text-gray-300">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           {workspaces.length} workspace{workspaces.length !== 1 ? 's' : ''} available
         </div>
@@ -116,8 +116,8 @@ export default function Login() {
 
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-10 lg:hidden">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-white text-lg">S</div>
-            <span className="font-display font-bold text-white text-lg">SynthDesk.ai</span>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-gray-900 text-lg">S</div>
+            <span className="font-display font-bold text-gray-900 text-lg">SynthDesk.ai</span>
           </div>
 
           <AnimatePresence mode="wait">
@@ -131,8 +131,8 @@ export default function Login() {
                 exit={{ opacity: 0, x: -16 }}
                 transition={{ duration: 0.22 }}
               >
-                <h1 className="text-2xl font-display font-bold text-white mb-1">Choose your workspace</h1>
-                <p className="text-white/35 text-sm mb-8">Select the business you'd like to access</p>
+                <h1 className="text-2xl font-display font-bold text-gray-900 mb-1">Choose your workspace</h1>
+                <p className="text-gray-400 text-sm mb-8">Select the business you'd like to access</p>
 
                 <div className="space-y-2.5">
                   {workspaces.map((ws) => (
@@ -141,7 +141,7 @@ export default function Login() {
                       onClick={() => handleSelectWorkspace(ws)}
                       whileHover={{ scale: 1.015 }}
                       whileTap={{ scale: 0.99 }}
-                      className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/8 bg-white/3 hover:bg-white/6 hover:border-white/15 transition-all text-left group"
+                      className="w-full flex items-center gap-4 p-4 rounded-2xl border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-white/15 transition-all text-left group"
                     >
                       <div
                         className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
@@ -150,12 +150,12 @@ export default function Login() {
                         {ws.emoji}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-white text-sm">{ws.name}</p>
+                        <p className="font-semibold text-gray-900 text-sm">{ws.name}</p>
                         {ws.description && (
-                          <p className="text-white/35 text-xs mt-0.5 line-clamp-1">{ws.description}</p>
+                          <p className="text-gray-400 text-xs mt-0.5 line-clamp-1">{ws.description}</p>
                         )}
                       </div>
-                      <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-colors shrink-0" />
+                      <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition-colors shrink-0" />
                     </motion.button>
                   ))}
                 </div>
@@ -173,7 +173,7 @@ export default function Login() {
               >
                 <button
                   onClick={handleBack}
-                  className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/70 transition-colors mb-8"
+                  className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors mb-8"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" /> All workspaces
                 </button>
@@ -187,21 +187,21 @@ export default function Login() {
                     {selectedWorkspace.emoji}
                   </div>
                   <div>
-                    <p className="text-xs text-white/30 font-medium uppercase tracking-wider mb-0.5">Signing in to</p>
-                    <h1 className="text-xl font-display font-bold text-white">{selectedWorkspace.name}</h1>
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Signing in to</p>
+                    <h1 className="text-xl font-display font-bold text-gray-900">{selectedWorkspace.name}</h1>
                   </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 pointer-events-none" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     <input
                       type="password"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder="Workspace password"
                       autoFocus
-                      className="w-full bg-white/5 border border-white/8 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-white/20 transition-all"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-white/20 transition-all"
                     />
                   </div>
 
@@ -214,22 +214,22 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={loginMutation.isPending || !password}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-gray-900 text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                       background: selectedWorkspace.color,
                       boxShadow: `0 4px 20px ${selectedWorkspace.color}35`,
                     }}
                   >
                     {loginMutation.isPending ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-gray-1000 border-t-white rounded-full animate-spin" />
                     ) : (
                       <>Enter workspace <ArrowRight className="w-4 h-4" /></>
                     )}
                   </button>
                 </form>
 
-                <p className="text-white/15 text-xs text-center mt-6">
-                  Default password: <span className="font-mono text-white/25">aihub2024</span>
+                <p className="text-gray-300 text-xs text-center mt-6">
+                  Default password: <span className="font-mono text-gray-400">aihub2024</span>
                 </p>
               </motion.div>
             )}

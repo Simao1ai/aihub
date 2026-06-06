@@ -348,7 +348,7 @@ function CopyBtn({ text }: { text: string }) {
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="p-1 rounded text-white/25 hover:text-white/60 transition-all flex-shrink-0"
+      className="p-1 rounded text-gray-400 hover:text-gray-500 transition-all flex-shrink-0"
       title="Copy"
     >
       {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -550,33 +550,33 @@ function SetupDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <motion.div
         initial={{ y: 60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 60, opacity: 0 }}
-        className="relative w-full sm:max-w-lg bg-[#0f1119] border border-white/8 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden"
+        className="relative w-full sm:max-w-lg bg-white border border-gray-200 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden"
       >
         {/* Mobile drag handle */}
         <div className="flex justify-center pt-3 sm:hidden">
-          <div className="w-10 h-1 rounded-full bg-white/15" />
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/6">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
           <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: platform.bg }}>
             {platform.emoji}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-white">{platform.name}</p>
-            <p className="text-xs text-white/35">{platform.subLabel}</p>
+            <p className="font-bold text-gray-900">{platform.name}</p>
+            <p className="text-xs text-gray-400">{platform.subLabel}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border", DIFFICULTY_COLOR[platform.difficulty as keyof typeof DIFFICULTY_COLOR])}>
               {platform.difficulty}
             </span>
-            <span className="text-[10px] text-white/30 bg-white/5 px-2 py-0.5 rounded-full border border-white/8">{platform.timeEstimate}</span>
-            <button onClick={onClose} className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-white/30 hover:text-white transition-all ml-1">
+            <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200">{platform.timeEstimate}</span>
+            <button onClick={onClose} className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all ml-1">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -584,16 +584,16 @@ function SetupDrawer({
 
         {/* Tab switcher (only for oauth platforms) */}
         {platform.authType === 'oauth' && (
-          <div className="flex mx-5 mt-4 bg-white/4 rounded-xl p-1 gap-1">
+          <div className="flex mx-5 mt-4 bg-gray-50 rounded-xl p-1 gap-1">
             <button
               onClick={() => setMode('guide')}
-              className={cn("flex-1 py-2 rounded-lg text-xs font-semibold transition-all", mode === 'guide' ? "bg-white/10 text-white" : "text-white/35 hover:text-white/55")}
+              className={cn("flex-1 py-2 rounded-lg text-xs font-semibold transition-all", mode === 'guide' ? "bg-gray-100 text-gray-900" : "text-gray-400 hover:text-white/55")}
             >
               🔐 OAuth (Recommended)
             </button>
             <button
               onClick={() => setMode('token')}
-              className={cn("flex-1 py-2 rounded-lg text-xs font-semibold transition-all", mode === 'token' ? "bg-white/10 text-white" : "text-white/35 hover:text-white/55")}
+              className={cn("flex-1 py-2 rounded-lg text-xs font-semibold transition-all", mode === 'token' ? "bg-gray-100 text-gray-900" : "text-gray-400 hover:text-white/55")}
             >
               🔑 Paste Token
             </button>
@@ -606,7 +606,7 @@ function SetupDrawer({
           {platform.authType === 'commhub' && (
             <>
               <div>
-                <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">{platform.quickGuide.title}</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{platform.quickGuide.title}</p>
                 <div className="space-y-2">
                   {platform.quickGuide.steps.map((step, i) => (
                     <div key={i} className="flex gap-3 items-start">
@@ -619,16 +619,16 @@ function SetupDrawer({
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs text-white/40 mb-1.5 block">Username <span className="text-red-400">*</span></label>
+                    <label className="text-xs text-gray-400 mb-1.5 block">Username <span className="text-red-400">*</span></label>
                     <input value={chUser} onChange={e => { setChUser(e.target.value); setChBusinesses([]); }} placeholder="admin"
-                      className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40" />
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40" />
                   </div>
                   <div>
-                    <label className="text-xs text-white/40 mb-1.5 block">Password <span className="text-red-400">*</span></label>
+                    <label className="text-xs text-gray-400 mb-1.5 block">Password <span className="text-red-400">*</span></label>
                     <div className="relative">
                       <input type={chPassVisible ? 'text' : 'password'} value={chPass} onChange={e => { setChPass(e.target.value); setChBusinesses([]); }} placeholder="••••••••"
-                        className="w-full bg-white/4 border border-white/8 rounded-xl px-3 pr-9 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40" />
-                      <button onClick={() => setChPassVisible(s => !s)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50">
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 pr-9 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40" />
+                      <button onClick={() => setChPassVisible(s => !s)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-400">
                         {chPassVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
                     </div>
@@ -646,19 +646,19 @@ function SetupDrawer({
                 )}
                 {chBusinesses.length > 0 && (
                   <div>
-                    <label className="text-xs text-white/40 mb-2 block">Which business should this workspace use? <span className="text-red-400">*</span></label>
+                    <label className="text-xs text-gray-400 mb-2 block">Which business should this workspace use? <span className="text-red-400">*</span></label>
                     <div className="space-y-1.5">
                       {chBusinesses.map(biz => (
                         <button key={biz.id} onClick={() => setChSelected({ id: biz.id, name: biz.name })}
                           className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left",
-                            chSelected?.id === biz.id ? "border-[#10b981]/40 bg-[#10b981]/12 text-white" : "border-white/8 bg-white/3 text-white/60 hover:bg-white/6")}>
+                            chSelected?.id === biz.id ? "border-[#10b981]/40 bg-[#10b981]/12 text-gray-900" : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100")}>
                           <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0",
                             chSelected?.id === biz.id ? "border-[#10b981] bg-[#10b981]" : "border-white/20")}>
                             {chSelected?.id === biz.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold truncate">{biz.name}</p>
-                            <p className="text-[10px] text-white/30 truncate">{biz.phone_number || biz.carrier || 'No phone set'}</p>
+                            <p className="text-[10px] text-gray-400 truncate">{biz.phone_number || biz.carrier || 'No phone set'}</p>
                           </div>
                           {chSelected?.id === biz.id && <CheckCircle2 className="w-4 h-4 text-[#10b981] flex-shrink-0" />}
                         </button>
@@ -667,16 +667,16 @@ function SetupDrawer({
                   </div>
                 )}
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Label <span className="text-white/20">(optional)</span></label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Label <span className="text-gray-300">(optional)</span></label>
                   <input value={label} onChange={e => setLabel(e.target.value)} placeholder={chSelected?.name || 'e.g. Equifind Recovery SMS'}
-                    className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40" />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40" />
                 </div>
                 <div className="p-3 rounded-xl bg-emerald-500/8 border border-emerald-500/15 flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-white/50">Your admin password is used only to fetch the API key and is <strong className="text-white/70">never stored</strong>.</p>
+                  <p className="text-[11px] text-gray-400">Your admin password is used only to fetch the API key and is <strong className="text-gray-600">never stored</strong>.</p>
                 </div>
                 <button onClick={handleSave} disabled={saving || !chSelected}
-                  className="w-full py-3 rounded-xl disabled:opacity-35 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl disabled:opacity-35 text-gray-900 text-sm font-semibold transition-all flex items-center justify-center gap-2"
                   style={{ background: chSelected ? '#10b981' : undefined, backgroundColor: !chSelected ? 'rgba(255,255,255,0.05)' : undefined }}>
                   {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
                   {saving ? 'Connecting…' : chSelected ? `Connect ${chSelected.name}` : 'Load businesses first'}
@@ -689,7 +689,7 @@ function SetupDrawer({
           {platform.authType === 'mailbase' && (
             <>
               <div>
-                <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">{platform.quickGuide.title}</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{platform.quickGuide.title}</p>
                 <div className="space-y-2">
                   {platform.quickGuide.steps.map((step, i) => (
                     <div key={i} className="flex gap-3 items-start">
@@ -704,11 +704,11 @@ function SetupDrawer({
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">MailBase API Key <span className="text-red-400">*</span></label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">MailBase API Key <span className="text-red-400">*</span></label>
                   <div className="relative">
                     <input type={mbKeyVisible ? 'text' : 'password'} value={mbKey} onChange={e => { setMbKey(e.target.value); setMbTenants([]); setMbSelected(null); }} placeholder="mb_..."
-                      className="w-full bg-white/4 border border-white/8 rounded-xl px-3 pr-10 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 font-mono" />
-                    <button onClick={() => setMbKeyVisible(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50">
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 pr-10 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40 font-mono" />
+                    <button onClick={() => setMbKeyVisible(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-400">
                       {mbKeyVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
@@ -725,19 +725,19 @@ function SetupDrawer({
                 )}
                 {mbTenants.length > 0 && (
                   <div>
-                    <label className="text-xs text-white/40 mb-2 block">Which tenant does this workspace belong to?</label>
+                    <label className="text-xs text-gray-400 mb-2 block">Which tenant does this workspace belong to?</label>
                     <div className="space-y-1.5 max-h-36 overflow-y-auto">
                       {mbTenants.map(t => (
                         <button key={t.id} onClick={() => setMbSelected({ id: t.id, name: t.name })}
                           className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left",
-                            mbSelected?.id === t.id ? "border-[#f59e0b]/40 bg-[#f59e0b]/12 text-white" : "border-white/8 bg-white/3 text-white/60 hover:bg-white/6")}>
+                            mbSelected?.id === t.id ? "border-[#f59e0b]/40 bg-[#f59e0b]/12 text-gray-900" : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100")}>
                           <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0",
                             mbSelected?.id === t.id ? "border-[#f59e0b] bg-[#f59e0b]" : "border-white/20")}>
                             {mbSelected?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold truncate">{t.name}</p>
-                            {t.slug && <p className="text-[10px] text-white/30">{t.slug}</p>}
+                            {t.slug && <p className="text-[10px] text-gray-400">{t.slug}</p>}
                           </div>
                           {mbSelected?.id === t.id && <CheckCircle2 className="w-4 h-4 text-[#f59e0b] flex-shrink-0" />}
                         </button>
@@ -749,23 +749,23 @@ function SetupDrawer({
                   <>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs text-white/40 mb-1.5 block">From Name <span className="text-red-400">*</span></label>
+                        <label className="text-xs text-gray-400 mb-1.5 block">From Name <span className="text-red-400">*</span></label>
                         <input value={mbFromName} onChange={e => setMbFromName(e.target.value)} placeholder="Simao — LES A"
-                          className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40" />
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40" />
                       </div>
                       <div>
-                        <label className="text-xs text-white/40 mb-1.5 block">From Email <span className="text-red-400">*</span></label>
+                        <label className="text-xs text-gray-400 mb-1.5 block">From Email <span className="text-red-400">*</span></label>
                         <input type="email" value={mbFromEmail} onChange={e => setMbFromEmail(e.target.value)} placeholder="hello@lesainspections.com"
-                          className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40" />
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40" />
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-white/40 mb-1.5 block">Label <span className="text-white/20">(optional)</span></label>
+                      <label className="text-xs text-gray-400 mb-1.5 block">Label <span className="text-gray-300">(optional)</span></label>
                       <input value={label} onChange={e => setLabel(e.target.value)} placeholder={mbFromEmail || 'e.g. LESA Inspections Email'}
-                        className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40" />
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40" />
                     </div>
                     <button onClick={handleSave} disabled={saving || !mbKey.trim() || !mbFromEmail.trim()}
-                      className="w-full py-3 rounded-xl disabled:opacity-35 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                      className="w-full py-3 rounded-xl disabled:opacity-35 text-gray-900 text-sm font-semibold transition-all flex items-center justify-center gap-2"
                       style={{ background: mbKey.trim() && mbFromEmail.trim() ? '#f59e0b' : undefined, backgroundColor: !(mbKey.trim() && mbFromEmail.trim()) ? 'rgba(255,255,255,0.05)' : undefined }}>
                       {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
                       {saving ? 'Connecting…' : 'Connect MailBase'}
@@ -781,7 +781,7 @@ function SetupDrawer({
             <>
               {/* Steps guide */}
               <div>
-                <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">{platform.quickGuide.title}</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{platform.quickGuide.title}</p>
                 <div className="space-y-2">
                   {platform.quickGuide.steps.map((step, i) => (
                     <div key={i} className="flex gap-3 items-start">
@@ -807,7 +807,7 @@ function SetupDrawer({
                   const revealed = showFieldSecrets[field.key];
                   return (
                     <div key={field.key}>
-                      <label className="text-xs text-white/40 mb-1.5 flex items-center gap-1">
+                      <label className="text-xs text-gray-400 mb-1.5 flex items-center gap-1">
                         {field.label}
                         {field.required && <span className="text-red-400">*</span>}
                       </label>
@@ -817,37 +817,37 @@ function SetupDrawer({
                           value={fieldValues[field.key] || ''}
                           onChange={e => setFieldValues(v => ({ ...v, [field.key]: e.target.value }))}
                           placeholder={field.placeholder}
-                          className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all pr-10"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40 transition-all pr-10"
                         />
                         {isSecret && (
                           <button
                             onClick={() => setShowFieldSecrets(s => ({ ...s, [field.key]: !s[field.key] }))}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50 transition-all"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-400 transition-all"
                           >
                             {revealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
                         )}
                       </div>
-                      {field.hint && <p className="text-[10px] text-white/25 mt-1 leading-relaxed">{field.hint}</p>}
+                      {field.hint && <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">{field.hint}</p>}
                     </div>
                   );
                 })}
 
                 {/* Optional label override */}
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Account Label <span className="text-white/20">(optional)</span></label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Account Label <span className="text-gray-300">(optional)</span></label>
                   <input
                     value={label}
                     onChange={e => setLabel(e.target.value)}
                     placeholder={platform.key === 'smtp' ? fieldValues['fromAddress'] || 'e.g. hello@lesainspections.com' : fieldValues['phoneNumber'] || `e.g. ${platform.name}`}
-                    className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40 transition-all"
                   />
                 </div>
 
                 <button
                   onClick={handleSave}
                   disabled={saving || !allFieldsFilled}
-                  className="w-full py-3 rounded-xl disabled:opacity-35 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl disabled:opacity-35 text-gray-900 text-sm font-semibold transition-all flex items-center justify-center gap-2"
                   style={{ background: allFieldsFilled ? platform.color : undefined, backgroundColor: !allFieldsFilled ? 'rgba(255,255,255,0.05)' : undefined }}
                 >
                   {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
@@ -861,7 +861,7 @@ function SetupDrawer({
           {mode === 'guide' && platform.authType === 'oauth' && (
             <>
               <div>
-                <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">{platform.quickGuide.title}</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{platform.quickGuide.title}</p>
                 <div className="space-y-2">
                   {platform.quickGuide.steps.map((step, i) => (
                     <div key={i} className="flex gap-3 items-start">
@@ -883,8 +883,8 @@ function SetupDrawer({
               {/* Redirect URI */}
               {platform.quickGuide.redirectPath && (
                 <div>
-                  <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wider mb-1.5">Your Redirect URI (copy this into the developer portal)</p>
-                  <div className="flex items-center gap-2 bg-white/4 border border-white/8 rounded-xl px-3 py-2.5">
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Your Redirect URI (copy this into the developer portal)</p>
+                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5">
                     <code className="text-[11px] text-emerald-300 font-mono flex-1 break-all leading-relaxed">{redirectUri}</code>
                     <CopyBtn text={redirectUri} />
                   </div>
@@ -894,16 +894,16 @@ function SetupDrawer({
               {/* Env vars needed */}
               {platform.envVars.length > 0 && (
                 <div>
-                  <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wider mb-1.5">Add these to Replit → Secrets</p>
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Add these to Replit → Secrets</p>
                   <div className="space-y-1.5">
                     {platform.envVars.map(v => (
-                      <div key={v} className="flex items-center gap-2 bg-white/4 border border-white/8 rounded-xl px-3 py-2">
+                      <div key={v} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
                         <code className="text-[11px] text-amber-300 font-mono flex-1">{v}</code>
                         <CopyBtn text={v} />
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-white/25 mt-1.5">In Replit: click the lock icon (🔒) in the sidebar → Secrets → add each one</p>
+                  <p className="text-[10px] text-gray-400 mt-1.5">In Replit: click the lock icon (🔒) in the sidebar → Secrets → add each one</p>
                 </div>
               )}
 
@@ -936,8 +936,8 @@ function SetupDrawer({
                 className={cn(
                   "w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all",
                   oauthReady
-                    ? "text-white hover:opacity-90"
-                    : "opacity-35 cursor-not-allowed bg-white/5 border border-white/8 text-white/40"
+                    ? "text-gray-900 hover:opacity-90"
+                    : "opacity-35 cursor-not-allowed bg-gray-50 border border-gray-200 text-gray-400"
                 )}
                 style={oauthReady ? { background: platform.color } : undefined}
               >
@@ -956,7 +956,7 @@ function SetupDrawer({
                   <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-semibold text-blue-400 mb-1">How to get your token</p>
-                    <p className="text-[11px] text-white/50 leading-relaxed">{platform.quickGuide.tokenGuide}</p>
+                    <p className="text-[11px] text-gray-400 leading-relaxed">{platform.quickGuide.tokenGuide}</p>
                   </div>
                 </div>
                 <a href={platform.quickGuide.tokenLink} target="_blank" rel="noopener noreferrer"
@@ -968,7 +968,7 @@ function SetupDrawer({
               {/* Step-by-step for token platforms */}
               {platform.authType === 'token' && (
                 <div>
-                  <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Steps</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Steps</p>
                   <div className="space-y-2">
                     {platform.quickGuide.steps.map((step, i) => (
                       <div key={i} className="flex gap-3 items-start">
@@ -991,7 +991,7 @@ function SetupDrawer({
               {/* Token input */}
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">
+                  <label className="text-xs text-gray-400 mb-1.5 block">
                     Access Token <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
@@ -1000,11 +1000,11 @@ function SetupDrawer({
                       value={token}
                       onChange={e => { setToken(e.target.value); setPages([]); setSelectedPage(null); setPageError(''); }}
                       placeholder="Paste your access token here…"
-                      className="w-full bg-white/4 border border-white/8 rounded-xl px-3 pr-10 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 font-mono transition-all"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 pr-10 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40 font-mono transition-all"
                     />
                     <button
                       onClick={() => setShowToken(s => !s)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50 transition-all"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-400 transition-all"
                     >
                       {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -1045,41 +1045,41 @@ function SetupDrawer({
                   <div className="p-3 rounded-xl border border-[#1877F2]/20 bg-[#1877F2]/5 space-y-3">
                     <div>
                       <p className="text-xs font-semibold text-[#1877F2] mb-1">Enter Page Token directly</p>
-                      <p className="text-[11px] text-white/40 leading-relaxed">
-                        In Graph API Explorer → change "User Token" dropdown to <strong className="text-white/60">Page Token</strong> → select <em>LESA A Inspections</em> → Generate Access Token → copy it here.
+                      <p className="text-[11px] text-gray-400 leading-relaxed">
+                        In Graph API Explorer → change "User Token" dropdown to <strong className="text-gray-500">Page Token</strong> → select <em>LESA A Inspections</em> → Generate Access Token → copy it here.
                       </p>
                     </div>
                     <div>
-                      <label className="text-[11px] text-white/40 mb-1 block">Page Name <span className="text-white/20">(optional)</span></label>
+                      <label className="text-[11px] text-gray-400 mb-1 block">Page Name <span className="text-gray-300">(optional)</span></label>
                       <input
                         value={manualPageName}
                         onChange={e => setManualPageName(e.target.value)}
                         placeholder="e.g. LESA A Inspections"
-                        className="w-full bg-white/4 border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#1877F2]/40 transition-all"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-[#1877F2]/40 transition-all"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-white/40 mb-1 block">Page ID <span className="text-red-400">*</span></label>
+                      <label className="text-[11px] text-gray-400 mb-1 block">Page ID <span className="text-red-400">*</span></label>
                       <input
                         value={manualPageId}
                         onChange={e => setManualPageId(e.target.value)}
                         placeholder="e.g. 123456789012345"
-                        className="w-full bg-white/4 border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#1877F2]/40 transition-all font-mono"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-[#1877F2]/40 transition-all font-mono"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-white/40 mb-1 block">Page Access Token <span className="text-red-400">*</span></label>
+                      <label className="text-[11px] text-gray-400 mb-1 block">Page Access Token <span className="text-red-400">*</span></label>
                       <input
                         value={manualPageToken}
                         onChange={e => setManualPageToken(e.target.value)}
                         placeholder="Paste Page Token from Graph Explorer…"
-                        className="w-full bg-white/4 border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#1877F2]/40 transition-all font-mono text-xs"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-[#1877F2]/40 transition-all font-mono text-xs"
                       />
-                      <p className="text-[10px] text-white/25 mt-1">Page tokens are permanent — they never expire</p>
+                      <p className="text-[10px] text-gray-400 mt-1">Page tokens are permanent — they never expire</p>
                     </div>
                     <button
                       onClick={() => { setManualMode(false); setManualPageId(''); setManualPageToken(''); setManualPageName(''); }}
-                      className="text-[11px] text-white/30 hover:text-white/50 underline underline-offset-2 transition-colors"
+                      className="text-[11px] text-gray-400 hover:text-gray-400 underline underline-offset-2 transition-colors"
                     >
                       Back to auto-fetch
                     </button>
@@ -1089,7 +1089,7 @@ function SetupDrawer({
                 {/* Meta: Page list picker */}
                 {platform.key === 'meta' && pages.length > 0 && (
                   <div>
-                    <label className="text-xs text-white/40 mb-2 block">
+                    <label className="text-xs text-gray-400 mb-2 block">
                       Which Facebook Page should this workspace post to? <span className="text-red-400">*</span>
                     </label>
                     <div className="space-y-1.5 max-h-48 overflow-y-auto">
@@ -1100,8 +1100,8 @@ function SetupDrawer({
                           className={cn(
                             "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left",
                             selectedPage?.id === page.id
-                              ? "border-[#1877F2]/40 bg-[#1877F2]/12 text-white"
-                              : "border-white/8 bg-white/3 text-white/60 hover:bg-white/6"
+                              ? "border-[#1877F2]/40 bg-[#1877F2]/12 text-gray-900"
+                              : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100"
                           )}
                         >
                           <div className={cn(
@@ -1112,7 +1112,7 @@ function SetupDrawer({
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold truncate">{page.name}</p>
-                            {page.category && <p className="text-[10px] text-white/30 truncate">{page.category}</p>}
+                            {page.category && <p className="text-[10px] text-gray-400 truncate">{page.category}</p>}
                           </div>
                           {selectedPage?.id === page.id && <CheckCircle2 className="w-4 h-4 text-[#1877F2] flex-shrink-0" />}
                         </button>
@@ -1122,12 +1122,12 @@ function SetupDrawer({
                 )}
 
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Account Label <span className="text-white/20">(optional — defaults to page name)</span></label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Account Label <span className="text-gray-300">(optional — defaults to page name)</span></label>
                   <input
                     value={label}
                     onChange={e => setLabel(e.target.value)}
                     placeholder={selectedPage ? selectedPage.name : `e.g. Simao — ${platform.name}`}
-                    className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40 transition-all"
                   />
                 </div>
 
@@ -1139,7 +1139,7 @@ function SetupDrawer({
                     (platform.key === 'meta' && pages.length > 0 && !selectedPage) ||
                     (platform.key === 'meta' && manualMode && (!manualPageId.trim() || !manualPageToken.trim()))
                   }
-                  className="w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-35 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-35 text-gray-900 text-sm font-semibold transition-all flex items-center justify-center gap-2"
                 >
                   {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
                   {saving ? 'Saving…'
@@ -1179,7 +1179,7 @@ function PlatformCard({
       layout
       className={cn(
         "relative rounded-2xl border overflow-hidden transition-all",
-        hasAny ? "border-emerald-500/25 bg-[#0f1119]" : "border-white/6 bg-[#0f1119] hover:border-white/12"
+        hasAny ? "border-emerald-500/25 bg-white" : "border-gray-100 bg-white hover:border-white/12"
       )}
     >
       {/* Color accent top bar */}
@@ -1193,7 +1193,7 @@ function PlatformCard({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-bold text-white text-sm">{platform.name}</p>
+              <p className="font-bold text-gray-900 text-sm">{platform.name}</p>
               {hasAny ? (
                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/12 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold">
                   <CheckCircle2 className="w-2.5 h-2.5" /> {connections.length} connected
@@ -1207,14 +1207,14 @@ function PlatformCard({
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-white/30 mt-0.5">{platform.subLabel}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{platform.subLabel}</p>
           </div>
         </div>
 
         {/* Capabilities */}
         <div className="flex flex-wrap gap-1.5 mb-4">
           {platform.capabilities.map(cap => (
-            <span key={cap} className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-white/4 border border-white/6 text-white/35">
+            <span key={cap} className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-gray-50 border border-gray-100 text-gray-400">
               {cap}
             </span>
           ))}
@@ -1226,10 +1226,10 @@ function PlatformCard({
             {connections.map(conn => (
               <div key={conn.id} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span className="flex-1 text-xs text-white/70 truncate">{conn.accountLabel || platform.name}</span>
+                <span className="flex-1 text-xs text-gray-600 truncate">{conn.accountLabel || platform.name}</span>
                 <button
                   onClick={() => onTest(conn.id)}
-                  className="text-white/25 hover:text-white/60 transition-all"
+                  className="text-gray-400 hover:text-gray-500 transition-all"
                   title="Test connection"
                 >
                   <RefreshCw className="w-3 h-3" />
@@ -1281,14 +1281,14 @@ function QuickStartBanner({ onStart }: { onStart: () => void }) {
         <Zap className="w-5 h-5 text-primary" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-white">No platforms connected yet</p>
-        <p className="text-[11px] text-white/40 mt-0.5 leading-relaxed">
+        <p className="text-sm font-bold text-gray-900">No platforms connected yet</p>
+        <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
           Connect Meta or LinkedIn first — they're easiest and most used. Each platform has a step-by-step guide built in.
         </p>
       </div>
       <button
         onClick={onStart}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all flex-shrink-0 whitespace-nowrap"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-gray-900 text-xs font-bold transition-all flex-shrink-0 whitespace-nowrap"
       >
         Start with LinkedIn <ArrowRight className="w-3.5 h-3.5" />
       </button>
@@ -1425,13 +1425,13 @@ export default function Connections() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-5 pb-4 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-5 pb-4 bg-[#f8fafc]/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-display font-bold text-white flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
               <Link2 className="w-5 h-5 text-primary" /> Connections
             </h1>
-            <p className="text-[11px] text-white/30 mt-0.5">
+            <p className="text-[11px] text-gray-400 mt-0.5">
               {connectedCount > 0
                 ? `${connectedCount} of ${PLATFORMS.length} platforms connected — your agents can post & send`
                 : 'Connect your social platforms to enable AI-powered posting'}
@@ -1463,11 +1463,11 @@ export default function Connections() {
             { icon: '🔁', title: 'Automate Campaigns', desc: 'Pipelines that draft + schedule posts across multiple platforms in one run.' },
             { icon: '🛡️', title: 'You Stay in Control', desc: 'All posts need your approval first. Nothing goes live without your sign-off.' },
           ].map(item => (
-            <div key={item.title} className="flex gap-3 p-4 rounded-2xl bg-white/3 border border-white/6">
+            <div key={item.title} className="flex gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-100">
               <span className="text-xl flex-shrink-0">{item.icon}</span>
               <div>
-                <p className="text-xs font-semibold text-white/70">{item.title}</p>
-                <p className="text-[11px] text-white/35 mt-0.5 leading-relaxed">{item.desc}</p>
+                <p className="text-xs font-semibold text-gray-600">{item.title}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">{item.desc}</p>
               </div>
             </div>
           ))}
@@ -1493,7 +1493,7 @@ export default function Connections() {
           })}
         </div>
 
-        <p className="text-center text-[10px] text-white/15 pt-2">
+        <p className="text-center text-[10px] text-gray-300 pt-2">
           Tokens are stored encrypted. Your agents only use the permissions you grant.
         </p>
       </div>

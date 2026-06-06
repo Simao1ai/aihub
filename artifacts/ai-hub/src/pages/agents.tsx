@@ -123,7 +123,7 @@ function AgentCard({ agent, onSelect }: { agent: any; onSelect: () => void }) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -3 }}
       transition={{ duration: 0.2 }}
-      className="flex flex-col rounded-2xl border border-white/5 bg-[#111520] hover:border-white/10 transition-all cursor-pointer group overflow-hidden"
+      className="flex flex-col rounded-2xl border border-gray-100 bg-white hover:border-gray-200 transition-all cursor-pointer group overflow-hidden"
     >
       {/* Color banner */}
       <div
@@ -144,16 +144,16 @@ function AgentCard({ agent, onSelect }: { agent: any; onSelect: () => void }) {
 
       {/* Body */}
       <div className="p-4 flex flex-col flex-1">
-        <h3 className="text-sm font-display font-bold text-white mb-1">{agent.name}</h3>
-        <p className="text-xs text-white/40 leading-relaxed mb-3 line-clamp-2">{agent.roleDescription}</p>
+        <h3 className="text-sm font-display font-bold text-gray-900 mb-1">{agent.name}</h3>
+        <p className="text-xs text-gray-400 leading-relaxed mb-3 line-clamp-2">{agent.roleDescription}</p>
 
         {/* Capabilities chips */}
         <div className="flex flex-wrap gap-1 mb-4 flex-1">
           {meta.capabilities.slice(0, 4).map(cap => (
-            <span key={cap} className="text-[10px] text-white/30 bg-white/5 px-2 py-0.5 rounded-md">{cap}</span>
+            <span key={cap} className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md">{cap}</span>
           ))}
           {meta.capabilities.length > 4 && (
-            <span className="text-[10px] text-white/20 px-1">+{meta.capabilities.length - 4}</span>
+            <span className="text-[10px] text-gray-300 px-1">+{meta.capabilities.length - 4}</span>
           )}
         </div>
 
@@ -228,12 +228,12 @@ function ImageGeneratorPanel({ agentColor }: { agentColor: string }) {
   };
 
   return (
-    <div className="border-t border-white/8 bg-[#0d1018] shrink-0">
+    <div className="border-t border-gray-200 bg-[#f8fafc] shrink-0">
       <div className="px-4 py-3 flex items-center gap-2">
         <div className="w-6 h-6 rounded-lg flex items-center justify-center text-sm" style={{ background: `${agentColor}25` }}>
           🎨
         </div>
-        <p className="text-xs font-semibold text-white/70">PIXEL Image Generator</p>
+        <p className="text-xs font-semibold text-gray-600">PIXEL Image Generator</p>
         <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">AI Powered</span>
       </div>
 
@@ -247,7 +247,7 @@ function ImageGeneratorPanel({ agentColor }: { agentColor: string }) {
               "shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all",
               ratio.value === r.value
                 ? "border-rose-400/40 bg-rose-400/10 text-rose-300"
-                : "border-white/8 bg-white/4 text-white/40 hover:text-white/60"
+                : "border-gray-200 bg-gray-50 text-gray-400 hover:text-gray-500"
             )}
           >
             {r.label}
@@ -262,12 +262,12 @@ function ImageGeneratorPanel({ agentColor }: { agentColor: string }) {
           onChange={e => setPrompt(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && generate()}
           placeholder="Paste PIXEL's image prompt here to generate..."
-          className="flex-1 bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-rose-400/30"
+          className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-rose-400/30"
         />
         <button
           onClick={generate}
           disabled={!prompt.trim() || loading}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 transition-all"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-900 disabled:opacity-40 transition-all"
           style={{ background: agentColor }}
         >
           <Wand2 className="w-3.5 h-3.5" />
@@ -285,15 +285,15 @@ function ImageGeneratorPanel({ agentColor }: { agentColor: string }) {
             exit={{ opacity: 0 }}
             className="px-4 pb-4"
           >
-            <div className="relative rounded-2xl overflow-hidden border border-white/8 bg-white/3">
+            <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-50">
               {loading && !error && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-10 gap-3">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 gap-3">
                   <div className="w-8 h-8 border-2 border-rose-400/30 border-t-rose-400 rounded-full animate-spin" />
-                  <p className="text-xs text-white/50">Generating your image…</p>
+                  <p className="text-xs text-gray-400">Generating your image…</p>
                 </div>
               )}
               {error && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 gap-2">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 z-10 gap-2">
                   <p className="text-xs text-red-400">Generation failed — try regenerating</p>
                 </div>
               )}
@@ -308,14 +308,14 @@ function ImageGeneratorPanel({ agentColor }: { agentColor: string }) {
                 <div className="absolute top-2 right-2 flex gap-1.5">
                   <button
                     onClick={regenerate}
-                    className="w-8 h-8 rounded-lg bg-black/60 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white border border-white/10 transition-all"
+                    className="w-8 h-8 rounded-lg bg-black/40 backdrop-blur-sm flex items-center justify-center text-gray-600 hover:text-gray-900 border border-gray-200 transition-all"
                     title="Regenerate"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={handleDownload}
-                    className="w-8 h-8 rounded-lg bg-black/60 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white border border-white/10 transition-all"
+                    className="w-8 h-8 rounded-lg bg-black/40 backdrop-blur-sm flex items-center justify-center text-gray-600 hover:text-gray-900 border border-gray-200 transition-all"
                     title="Download image"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -324,7 +324,7 @@ function ImageGeneratorPanel({ agentColor }: { agentColor: string }) {
               )}
             </div>
             {!loading && !error && (
-              <p className="text-[10px] text-white/25 mt-1.5 text-center">{ratio.hint} · {ratio.w}×{ratio.h}</p>
+              <p className="text-[10px] text-gray-400 mt-1.5 text-center">{ratio.hint} · {ratio.w}×{ratio.h}</p>
             )}
           </motion.div>
         )}
@@ -390,23 +390,23 @@ function HandoffModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <motion.div
         initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}
-        className="relative w-full sm:max-w-lg bg-[#111520] border border-white/8 rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-2xl"
+        className="relative w-full sm:max-w-lg bg-white border border-gray-200 rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-2xl"
       >
         {/* Handle */}
-        <div className="flex justify-center pt-3 sm:hidden"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
+        <div className="flex justify-center pt-3 sm:hidden"><div className="w-10 h-1 rounded-full bg-gray-200" /></div>
 
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/6">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg" style={{ background: `${currentAgent.color}20` }}>
             {currentAgent.icon}
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">Pass to a colleague</p>
-            <p className="text-xs text-white/35">Context from this chat will be included automatically</p>
+            <p className="text-sm font-semibold text-gray-900">Pass to a colleague</p>
+            <p className="text-xs text-gray-400">Context from this chat will be included automatically</p>
           </div>
-          <button onClick={onClose} className="ml-auto w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/40 hover:text-white">
+          <button onClick={onClose} className="ml-auto w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -415,13 +415,13 @@ function HandoffModal({
           {done ? (
             <div className="flex flex-col items-center py-6 gap-3">
               <CheckCircle2 className="w-10 h-10 text-emerald-400" />
-              <p className="text-sm font-semibold text-white">Handoff created!</p>
-              <p className="text-xs text-white/40">Switching to {targetAgent?.name}…</p>
+              <p className="text-sm font-semibold text-gray-900">Handoff created!</p>
+              <p className="text-xs text-gray-400">Switching to {targetAgent?.name}…</p>
             </div>
           ) : (
             <>
               <div>
-                <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">Choose a colleague</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Choose a colleague</p>
                 <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
                   {otherAgents.map(agent => (
                     <button
@@ -431,13 +431,13 @@ function HandoffModal({
                         "flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all",
                         targetAgentId === agent.id
                           ? "border-primary/40 bg-primary/10"
-                          : "border-white/6 bg-white/3 hover:bg-white/5"
+                          : "border-gray-100 bg-gray-50 hover:bg-gray-50"
                       )}
                     >
                       <span className="text-lg">{agent.icon}</span>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-white truncate">{agent.name}</p>
-                        <p className="text-[10px] text-white/30 truncate">{AGENT_META[agent.slug]?.category ?? 'AI'}</p>
+                        <p className="text-xs font-semibold text-gray-900 truncate">{agent.name}</p>
+                        <p className="text-[10px] text-gray-400 truncate">{AGENT_META[agent.slug]?.category ?? 'AI'}</p>
                       </div>
                     </button>
                   ))}
@@ -445,34 +445,34 @@ function HandoffModal({
               </div>
 
               <div>
-                <label className="text-xs text-white/40 mb-1.5 block">Additional instructions for {targetAgent?.name ?? 'colleague'} (optional)</label>
+                <label className="text-xs text-gray-400 mb-1.5 block">Additional instructions for {targetAgent?.name ?? 'colleague'} (optional)</label>
                 <textarea
                   value={note}
                   onChange={e => setNote(e.target.value)}
                   placeholder={`e.g. "Focus on the email sequence part" or "Expand on the pricing section"`}
                   rows={2}
-                  className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 resize-none"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-primary/40 resize-none"
                 />
               </div>
 
               {targetAgent && (
-                <div className="flex gap-2 p-3 rounded-xl bg-white/3 border border-white/5 items-center">
+                <div className="flex gap-2 p-3 rounded-xl bg-gray-50 border border-gray-100 items-center">
                   <span className="text-2xl">{targetAgent.icon}</span>
                   <div>
-                    <p className="text-xs font-semibold text-white">{currentAgent.name} → {targetAgent.name}</p>
-                    <p className="text-[10px] text-white/35">Last 6 messages will be shared as context</p>
+                    <p className="text-xs font-semibold text-gray-900">{currentAgent.name} → {targetAgent.name}</p>
+                    <p className="text-[10px] text-gray-400">Last 6 messages will be shared as context</p>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-white/20 ml-auto" />
+                  <ArrowRight className="w-4 h-4 text-gray-300 ml-auto" />
                 </div>
               )}
 
               <button
                 onClick={handleHandoff}
                 disabled={!targetAgentId || sending}
-                className="w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-40 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-40 text-gray-900 text-sm font-semibold transition-all flex items-center justify-center gap-2"
               >
                 {sending ? (
-                  <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating handoff…</>
+                  <><span className="w-4 h-4 border-2 border-gray-1000 border-t-white rounded-full animate-spin" /> Creating handoff…</>
                 ) : (
                   <><Share2 className="w-4 h-4" /> Pass to {targetAgent?.name ?? 'colleague'}</>
                 )}
@@ -570,22 +570,22 @@ function ChatView({
   return (
     <div className="flex flex-col h-full">
       {/* Chat header */}
-      <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-b border-white/5 shrink-0">
-        <button onClick={onBack} className="p-2 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all">
+      <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-b border-gray-100 shrink-0">
+        <button onClick={onBack} className="p-2 rounded-xl hover:bg-gray-50 text-gray-400 hover:text-gray-900 transition-all">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: `${agent.color}20` }}>
           {agent.icon}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white">{agent.name}</p>
-          <p className="text-xs text-white/35 truncate hidden sm:block">{agent.roleDescription}</p>
+          <p className="text-sm font-semibold text-gray-900">{agent.name}</p>
+          <p className="text-xs text-gray-400 truncate hidden sm:block">{agent.roleDescription}</p>
         </div>
         {/* Pass to colleague */}
         {convId && (
           <button
             onClick={() => setShowHandoff(true)}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/8 text-white/40 hover:text-white text-xs transition-all"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-400 hover:text-gray-900 text-xs transition-all"
             title="Pass this conversation to another agent"
           >
             <Share2 className="w-3.5 h-3.5" />
@@ -596,14 +596,14 @@ function ChatView({
         {conv?.messages?.length > 0 && (
           <button
             onClick={handleExportConversation}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white text-xs transition-all"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-900 text-xs transition-all"
             title="Export conversation as .txt"
           >
             <Download className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Export</span>
           </button>
         )}
-        <button onClick={onNewConv} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-xs transition-all">
+        <button onClick={onNewConv} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-900 text-xs transition-all">
           <Plus className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">New chat</span>
         </button>
@@ -630,8 +630,8 @@ function ChatView({
         {messages.length === 0 && !isStreaming && (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="text-5xl mb-4">{agent.icon}</div>
-            <h3 className="text-lg font-display font-bold text-white mb-2">Chat with {agent.name}</h3>
-            <p className="text-sm text-white/35 max-w-sm leading-relaxed">{agent.roleDescription}</p>
+            <h3 className="text-lg font-display font-bold text-gray-900 mb-2">Chat with {agent.name}</h3>
+            <p className="text-sm text-gray-400 max-w-sm leading-relaxed">{agent.roleDescription}</p>
           </div>
         )}
         {messages.map((msg: any) => (
@@ -645,8 +645,8 @@ function ChatView({
               <div className={cn(
                 "rounded-2xl px-4 py-3 text-sm leading-relaxed",
                 msg.role === 'user'
-                  ? 'bg-primary text-white rounded-br-sm'
-                  : 'bg-white/5 text-white/85 rounded-bl-sm border border-white/5'
+                  ? 'bg-primary text-gray-900 rounded-br-sm'
+                  : 'bg-gray-50 text-white/85 rounded-bl-sm border border-gray-100'
               )}>
                 {msg.role === 'assistant' ? (
                   <div className="prose prose-invert prose-sm max-w-none text-white/85">
@@ -659,7 +659,7 @@ function ChatView({
                 onClick={() => handleCopyMessage(msg.id, msg.content)}
                 className={cn(
                   "absolute -bottom-5 flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] transition-all opacity-0 group-hover:opacity-100",
-                  msg.role === 'user' ? 'right-0 text-white/30 hover:text-white/60' : 'left-0 text-white/30 hover:text-white/60'
+                  msg.role === 'user' ? 'right-0 text-gray-400 hover:text-gray-500' : 'left-0 text-gray-400 hover:text-gray-500'
                 )}
               >
                 {copiedMsgId === msg.id ? (
@@ -676,7 +676,7 @@ function ChatView({
             <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 mt-0.5" style={{ background: `${agent.color}20` }}>
               {agent.icon}
             </div>
-            <div className="max-w-[75%] rounded-2xl rounded-bl-sm px-4 py-3 bg-white/5 border border-white/5">
+            <div className="max-w-[75%] rounded-2xl rounded-bl-sm px-4 py-3 bg-gray-50 border border-gray-100">
               <div className="prose prose-invert prose-sm max-w-none text-white/85 text-sm leading-relaxed">
                 <ReactMarkdown>{streamingMessage}</ReactMarkdown>
               </div>
@@ -688,9 +688,9 @@ function ChatView({
             <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0" style={{ background: `${agent.color}20` }}>
               {agent.icon}
             </div>
-            <div className="flex items-center gap-1.5 px-4 py-3 bg-white/5 rounded-2xl border border-white/5">
+            <div className="flex items-center gap-1.5 px-4 py-3 bg-gray-50 rounded-2xl border border-gray-100">
               {[0, 1, 2].map(i => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
               ))}
             </div>
           </div>
@@ -701,12 +701,12 @@ function ChatView({
               {agent.icon}
             </div>
             <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1.5 px-4 py-3 bg-white/5 rounded-2xl border border-white/5">
+              <div className="flex items-center gap-1.5 px-4 py-3 bg-gray-50 rounded-2xl border border-gray-100">
                 {[0, 1, 2].map(i => (
-                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
+                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
                 ))}
               </div>
-              <p className="text-[10px] text-white/25 pl-4">{agent.name} is reviewing the brief…</p>
+              <p className="text-[10px] text-gray-400 pl-4">{agent.name} is reviewing the brief…</p>
             </div>
           </div>
         )}
@@ -717,19 +717,19 @@ function ChatView({
       {agent.slug === 'pixel' && <ImageGeneratorPanel agentColor={agent.color} />}
 
       {/* Input */}
-      <form onSubmit={handleSend} className="px-4 sm:px-6 py-4 sm:py-5 border-t border-white/5 shrink-0">
-        <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-white/20 transition-colors">
+      <form onSubmit={handleSend} className="px-4 sm:px-6 py-4 sm:py-5 border-t border-gray-100 shrink-0">
+        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 focus-within:border-white/20 transition-colors">
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder={agent.slug === 'pixel' ? 'Ask PIXEL to design a visual…' : `Message ${agent.name}...`}
-            className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25 focus:outline-none"
+            className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
             disabled={isStreaming || !convId}
           />
           <button
             type="submit"
             disabled={!input.trim() || isStreaming || !convId}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-white disabled:opacity-30 transition-all"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-900 disabled:opacity-30 transition-all"
             style={{ background: input.trim() && !isStreaming ? agent.color : 'rgba(255,255,255,0.1)' }}
           >
             <Send className="w-3.5 h-3.5" />
@@ -835,11 +835,11 @@ export default function Agents() {
     return (
       <div className="h-full flex">
         {/* Conversation sidebar */}
-        <div className="w-64 shrink-0 bg-[#090b12] border-r border-white/5 flex flex-col">
-          <div className="px-4 pt-5 pb-3 border-b border-white/5">
+        <div className="w-64 shrink-0 bg-white border-r border-gray-100 flex flex-col">
+          <div className="px-4 pt-5 pb-3 border-b border-gray-100">
             <button
               onClick={handleBack}
-              className="flex items-center gap-2 text-white/40 hover:text-white text-xs transition-colors mb-4"
+              className="flex items-center gap-2 text-gray-400 hover:text-gray-900 text-xs transition-colors mb-4"
             >
               <ChevronLeft className="w-3.5 h-3.5" /> Back to team
             </button>
@@ -848,8 +848,8 @@ export default function Agents() {
                 {activeAgent.icon}
               </div>
               <div>
-                <p className="text-xs font-bold text-white">{activeAgent.name}</p>
-                <p className="text-[10px] text-white/30">{AGENT_META[activeAgent.slug]?.category ?? 'AI Agent'}</p>
+                <p className="text-xs font-bold text-gray-900">{activeAgent.name}</p>
+                <p className="text-[10px] text-gray-400">{AGENT_META[activeAgent.slug]?.category ?? 'AI Agent'}</p>
               </div>
             </div>
           </div>
@@ -857,18 +857,18 @@ export default function Agents() {
           <div className="flex-1 overflow-y-auto p-3 space-y-1">
             <button
               onClick={handleNewConv}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 text-xs transition-all border border-dashed border-white/8 mb-2"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-50 text-xs transition-all border border-dashed border-gray-200 mb-2"
             >
               <Plus className="w-3.5 h-3.5" /> New conversation
             </button>
             {conversations.filter(c => c.businessTag === businessTag).length > 3 && (
               <div className="relative mb-2">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/20" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-300" />
                 <input
                   value={convSearch}
                   onChange={e => setConvSearch(e.target.value)}
                   placeholder="Search chats..."
-                  className="w-full bg-white/4 border border-white/8 rounded-lg pl-7 pr-3 py-1.5 text-[11px] text-white placeholder:text-white/20 focus:outline-none focus:border-white/15"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-7 pr-3 py-1.5 text-[11px] text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/15"
                 />
               </div>
             )}
@@ -878,13 +878,13 @@ export default function Agents() {
                 onClick={() => setSelectedConvId(conv.id)}
                 className={cn(
                   "w-full flex items-start gap-2 px-3 py-2.5 rounded-xl text-left transition-all",
-                  selectedConvId === conv.id ? 'bg-white/8 text-white' : 'text-white/40 hover:bg-white/5 hover:text-white/70'
+                  selectedConvId === conv.id ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
                 )}
               >
                 <MessageSquare className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xs font-medium truncate">{conv.title}</p>
-                  <p className="text-[10px] text-white/25">{format(new Date(conv.createdAt), 'MMM d')}</p>
+                  <p className="text-[10px] text-gray-400">{format(new Date(conv.createdAt), 'MMM d')}</p>
                 </div>
               </button>
             ))}
@@ -906,16 +906,16 @@ export default function Agents() {
           ) : (
             <div className="flex flex-col h-full items-center justify-center text-center px-8">
               <div className="text-6xl mb-5">{activeAgent.icon}</div>
-              <h2 className="text-xl font-display font-bold text-white mb-2">Start a conversation with {activeAgent.name}</h2>
-              <p className="text-sm text-white/40 max-w-sm mb-6 leading-relaxed">{activeAgent.roleDescription}</p>
+              <h2 className="text-xl font-display font-bold text-gray-900 mb-2">Start a conversation with {activeAgent.name}</h2>
+              <p className="text-sm text-gray-400 max-w-sm mb-6 leading-relaxed">{activeAgent.roleDescription}</p>
               <div className="flex flex-wrap gap-2 justify-center mb-6">
                 {(AGENT_META[activeAgent.slug]?.capabilities ?? []).map(cap => (
-                  <span key={cap} className="text-xs bg-white/5 text-white/40 px-3 py-1 rounded-full border border-white/8">{cap}</span>
+                  <span key={cap} className="text-xs bg-gray-50 text-gray-400 px-3 py-1 rounded-full border border-gray-200">{cap}</span>
                 ))}
               </div>
               <button
                 onClick={handleNewConv}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-all"
+                className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-gray-900 transition-all"
                 style={{ background: activeAgent.color }}
               >
                 <Sparkles className="w-4 h-4" /> Start chatting
@@ -933,14 +933,14 @@ export default function Agents() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#f8fafc]/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-display font-bold text-white flex items-center gap-2.5">
+              <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2.5">
                 <Users className="w-6 h-6 text-primary" /> AI Team
               </h1>
-              <p className="text-sm text-white/35 mt-0.5">
+              <p className="text-sm text-gray-400 mt-0.5">
                 {agents.length} specialized AI employees · Pick one to start working
               </p>
             </div>
@@ -949,12 +949,12 @@ export default function Agents() {
           {/* Search + category filter */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search agents..."
-                className="bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 w-48"
+                className="bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/40 w-48"
               />
             </div>
             <div className="flex gap-1.5 flex-wrap">
@@ -964,7 +964,7 @@ export default function Agents() {
                   onClick={() => setCategoryFilter(cat)}
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                    categoryFilter === cat ? 'text-white bg-white/10' : 'text-white/35 hover:text-white/60'
+                    categoryFilter === cat ? 'text-gray-900 bg-gray-100' : 'text-gray-400 hover:text-gray-500'
                   )}
                   style={categoryFilter === cat && cat !== 'all' ? { background: `${catColor(cat)}20`, color: catColor(cat) } : {}}
                 >
@@ -984,7 +984,7 @@ export default function Agents() {
           ))}
         </div>
         {filteredAgents.length === 0 && (
-          <div className="text-center py-20 text-white/20">
+          <div className="text-center py-20 text-gray-300">
             <Bot className="w-10 h-10 mx-auto mb-3 opacity-30" />
             <p className="text-sm">No agents match your search</p>
           </div>

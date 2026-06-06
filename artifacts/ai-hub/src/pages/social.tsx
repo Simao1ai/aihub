@@ -181,10 +181,10 @@ function PostCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
-      className="bg-[#111520] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all"
+      className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:border-gray-200 transition-all"
     >
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
           <PlatformBadge platform={post.platform} />
           {post.aiGenerated && (
@@ -193,7 +193,7 @@ function PostCard({
             </span>
           )}
           {post.topic && (
-            <span className="text-[10px] text-white/30 truncate max-w-32">re: {post.topic}</span>
+            <span className="text-[10px] text-gray-400 truncate max-w-32">re: {post.topic}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -206,25 +206,25 @@ function PostCard({
               {format(new Date(post.scheduledAt), 'MMM d, h:mm a')}
             </span>
           )}
-          <span className="text-[10px] text-white/20">{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
+          <span className="text-[10px] text-gray-300">{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
         </div>
       </div>
 
       {/* Content preview */}
       <div className="px-4 py-3 group/content relative">
         <p className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap line-clamp-5">
-          {post.content || <span className="italic text-white/20">Empty draft</span>}
+          {post.content || <span className="italic text-gray-300">Empty draft</span>}
         </p>
         <div className="mt-2 flex items-center justify-between">
           {plt?.maxChars ? (
-            <span className={cn("text-[10px]", post.content.length > plt.maxChars ? 'text-red-400' : 'text-white/20')}>
+            <span className={cn("text-[10px]", post.content.length > plt.maxChars ? 'text-red-400' : 'text-gray-300')}>
               {post.content.length}/{plt.maxChars}
             </span>
           ) : <span />}
           {post.content && (
             <button
               onClick={handleCopyContent}
-              className="flex items-center gap-1 text-[10px] text-white/25 hover:text-white/60 transition-all opacity-0 group-hover/content:opacity-100"
+              className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-500 transition-all opacity-0 group-hover/content:opacity-100"
             >
               {copied ? (
                 <><Check className="w-2.5 h-2.5 text-emerald-400" /><span className="text-emerald-400">Copied!</span></>
@@ -239,7 +239,7 @@ function PostCard({
       {/* Generated image */}
       {localImageUrl && (
         <div className="px-4 pb-3">
-          <div className="rounded-xl overflow-hidden border border-white/8 bg-white/3">
+          <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
             <img
               src={localImageUrl}
               alt="AI-generated visual for post"
@@ -247,7 +247,7 @@ function PostCard({
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           </div>
-          <p className="text-[10px] text-white/25 mt-1.5 flex items-center gap-1">
+          <p className="text-[10px] text-gray-400 mt-1.5 flex items-center gap-1">
             <span>🎨</span> PIXEL-generated visual
           </p>
         </div>
@@ -273,7 +273,7 @@ function PostCard({
               </>
             )}
           </button>
-          <p className="text-[10px] text-white/20 mt-1 text-center">PIXEL wrote a prompt — click to generate the actual image</p>
+          <p className="text-[10px] text-gray-300 mt-1 text-center">PIXEL wrote a prompt — click to generate the actual image</p>
         </div>
       )}
 
@@ -287,7 +287,7 @@ function PostCard({
 
       {/* Posted at + View post link */}
       {post.postedAt && (
-        <div className="px-4 pb-3 text-[11px] text-white/25 flex items-center gap-2.5 flex-wrap">
+        <div className="px-4 pb-3 text-[11px] text-gray-400 flex items-center gap-2.5 flex-wrap">
           <span className="flex items-center gap-1">
             <Check className="w-3 h-3 text-emerald-400" />
             Posted {format(new Date(post.postedAt), 'MMM d, h:mm a')}
@@ -316,7 +316,7 @@ function PostCard({
               <select
                 value={selectedConn ?? ''}
                 onChange={e => setSelectedConn(Number(e.target.value) || null)}
-                className="w-full appearance-none bg-white/5 border border-white/8 rounded-xl px-3 py-2 text-xs text-white/60 focus:outline-none pr-7"
+                className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-500 focus:outline-none pr-7"
               >
                 <option value="">Select account...</option>
                 {platformConns.map(c => {
@@ -325,16 +325,16 @@ function PostCard({
                   return <option key={c.id} value={c.id}>{display}</option>;
                 })}
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-white/30 pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
             </div>
           ) : (
-            <div className="flex-1 text-[11px] text-white/25 flex items-center gap-1.5">
+            <div className="flex-1 text-[11px] text-gray-400 flex items-center gap-1.5">
               <AlertCircle className="w-3 h-3" /> No {plt?.label ?? post.platform} account connected
             </div>
           )}
 
           {/* Action buttons */}
-          <button onClick={() => onEdit(post)} className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all" title="Edit">
+          <button onClick={() => onEdit(post)} className="w-8 h-8 rounded-xl bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all" title="Edit">
             <Edit3 className="w-3.5 h-3.5" />
           </button>
           {post.status === 'pending_approval' && (
@@ -356,7 +356,7 @@ function PostCard({
             disabled={platformConns.length === 0}
             className={cn(
               "w-8 h-8 rounded-xl flex items-center justify-center text-xs transition-all disabled:opacity-30",
-              showSchedule ? "bg-violet-500/20 text-violet-400" : "bg-white/5 hover:bg-white/10 text-white/40 hover:text-violet-400"
+              showSchedule ? "bg-violet-500/20 text-violet-400" : "bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-violet-400"
             )}
             title="Schedule this post"
           >
@@ -367,12 +367,12 @@ function PostCard({
               <button onClick={() => onDelete(post)} className="w-8 h-8 rounded-xl bg-red-500/15 text-red-400 flex items-center justify-center hover:bg-red-500/25">
                 <Check className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => setConfirmDelete(false)} className="w-8 h-8 rounded-xl bg-white/5 text-white/40 flex items-center justify-center hover:bg-white/10">
+              <button onClick={() => setConfirmDelete(false)} className="w-8 h-8 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-gray-100">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
-            <button onClick={() => setConfirmDelete(true)} className="w-8 h-8 rounded-xl bg-white/5 hover:bg-red-500/10 flex items-center justify-center text-white/20 hover:text-red-400 transition-all">
+            <button onClick={() => setConfirmDelete(true)} className="w-8 h-8 rounded-xl bg-gray-50 hover:bg-red-500/10 flex items-center justify-center text-gray-300 hover:text-red-400 transition-all">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           )}
@@ -393,7 +393,7 @@ function PostCard({
                 value={scheduleDate}
                 onChange={e => setScheduleDate(e.target.value)}
                 min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
-                className="flex-1 bg-transparent text-xs text-white focus:outline-none [color-scheme:dark]"
+                className="flex-1 bg-transparent text-xs text-gray-900 focus:outline-none [color-scheme:dark]"
               />
               <button
                 onClick={handleSchedule}
@@ -403,7 +403,7 @@ function PostCard({
                 {scheduling ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                 Schedule
               </button>
-              <button onClick={() => setShowSchedule(false)} className="text-white/25 hover:text-white/50">
+              <button onClick={() => setShowSchedule(false)} className="text-gray-400 hover:text-gray-400">
                 <X className="w-3.5 h-3.5" />
               </button>
             </motion.div>
@@ -524,16 +524,16 @@ function Composer({
   const isOverLimit = plt?.maxChars ? charCount > plt.maxChars : false;
 
   return (
-    <div className="bg-[#111520] border border-white/5 rounded-2xl overflow-hidden">
+    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
       {/* Platform tabs */}
-      <div className="flex border-b border-white/5">
+      <div className="flex border-b border-gray-100">
         {Object.entries(PLATFORMS).map(([key, cfg]) => (
           <button
             key={key}
             onClick={() => { setPlatform(key); setSelectedConn(null); }}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 py-3.5 text-xs font-semibold transition-all",
-              platform === key ? 'text-white border-b-2' : 'text-white/30 hover:text-white/60'
+              platform === key ? 'text-gray-900 border-b-2' : 'text-gray-400 hover:text-gray-500'
             )}
             style={platform === key ? { borderColor: cfg.color } : {}}
           >
@@ -547,20 +547,20 @@ function Composer({
         {/* Topic + tone row */}
         <div className="flex gap-3">
           <div className="flex-1">
-            <label className="text-[11px] text-white/35 mb-1.5 block uppercase tracking-wider">Topic</label>
+            <label className="text-[11px] text-gray-400 mb-1.5 block uppercase tracking-wider">Topic</label>
             <input
               value={topic}
               onChange={e => setTopic(e.target.value)}
               placeholder={`What do you want to post about? e.g. "Tips for new home buyers"`}
-              className="w-full bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20"
             />
           </div>
           <div>
-            <label className="text-[11px] text-white/35 mb-1.5 block uppercase tracking-wider">Tone</label>
+            <label className="text-[11px] text-gray-400 mb-1.5 block uppercase tracking-wider">Tone</label>
             <select
               value={tone}
               onChange={e => setTone(e.target.value)}
-              className="bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white/70 focus:outline-none"
+              className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-600 focus:outline-none"
             >
               {TONES.map(t => <option key={t}>{t}</option>)}
             </select>
@@ -569,7 +569,7 @@ function Composer({
             <button
               onClick={handleAIDraft}
               disabled={drafting || !topic.trim()}
-              className="h-10 px-4 rounded-xl bg-violet-500 hover:bg-violet-400 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap"
+              className="h-10 px-4 rounded-xl bg-violet-500 hover:bg-violet-400 disabled:opacity-40 text-gray-900 text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap"
             >
               {drafting
                 ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Drafting...</>
@@ -581,21 +581,21 @@ function Composer({
 
         {/* Content editor */}
         <div>
-          <label className="text-[11px] text-white/35 mb-1.5 block uppercase tracking-wider">Content</label>
+          <label className="text-[11px] text-gray-400 mb-1.5 block uppercase tracking-wider">Content</label>
           <textarea
             value={content}
             onChange={e => setContent(e.target.value)}
             placeholder={`Write your ${plt?.label} post here, or use AI Draft above...`}
             rows={7}
             className={cn(
-              "w-full bg-white/5 border rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/18 focus:outline-none resize-none leading-relaxed transition-colors",
-              isOverLimit ? 'border-red-500/50 focus:border-red-500' : 'border-white/8 focus:border-white/20'
+              "w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-white/18 focus:outline-none resize-none leading-relaxed transition-colors",
+              isOverLimit ? 'border-red-500/50 focus:border-red-500' : 'border-gray-200 focus:border-white/20'
             )}
           />
           <div className="flex justify-between mt-1.5">
-            <span className="text-[10px] text-white/20">Markdown supported</span>
+            <span className="text-[10px] text-gray-300">Markdown supported</span>
             {plt?.maxChars && (
-              <span className={cn("text-[11px] font-medium", isOverLimit ? 'text-red-400' : charCount > (plt.maxChars * 0.85) ? 'text-amber-400' : 'text-white/25')}>
+              <span className={cn("text-[11px] font-medium", isOverLimit ? 'text-red-400' : charCount > (plt.maxChars * 0.85) ? 'text-amber-400' : 'text-gray-400')}>
                 {charCount.toLocaleString()} / {plt.maxChars.toLocaleString()}
               </span>
             )}
@@ -609,7 +609,7 @@ function Composer({
               <select
                 value={selectedConn ?? ''}
                 onChange={e => setSelectedConn(Number(e.target.value) || null)}
-                className="w-full appearance-none bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white/60 focus:outline-none pr-7"
+                className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-500 focus:outline-none pr-7"
               >
                 <option value="">Select account to publish...</option>
                 {platformConns.map(c => {
@@ -618,10 +618,10 @@ function Composer({
                   return <option key={c.id} value={c.id}>{display}</option>;
                 })}
               </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" />
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             </div>
           ) : (
-            <div className="flex-1 text-xs text-white/30 flex items-center gap-1.5 bg-white/3 border border-white/5 rounded-xl px-3 py-2.5">
+            <div className="flex-1 text-xs text-gray-400 flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
               <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
               No {plt?.label} account connected — go to Integrations to connect one
             </div>
@@ -629,14 +629,14 @@ function Composer({
           <button
             onClick={handleSaveForApproval}
             disabled={saving || !content.trim() || isOverLimit}
-            className="h-10 px-4 rounded-xl border border-white/10 text-white/50 hover:text-white hover:border-white/20 text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-30"
+            className="h-10 px-4 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-900 hover:border-white/20 text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-30"
           >
             <Clock className="w-3.5 h-3.5" /> Queue
           </button>
           <button
             onClick={handlePostNow}
             disabled={posting || !content.trim() || !selectedConn || isOverLimit}
-            className="h-10 px-5 rounded-xl text-white text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-30"
+            className="h-10 px-5 rounded-xl text-gray-900 text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-30"
             style={{ background: plt?.color ?? '#6366f1' }}
           >
             {posting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
@@ -691,10 +691,10 @@ function StatsBar({ posts }: { posts: SocialPost[] }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
       {stats.map(s => (
-        <div key={s.label} className="bg-[#111520] border border-white/5 rounded-2xl px-4 py-3">
-          <p className="text-2xl font-display font-bold text-white">{s.value}</p>
-          <p className="text-xs text-white/35 mt-0.5">{s.label}</p>
-          <div className="mt-2 h-1 rounded-full bg-white/5 overflow-hidden">
+        <div key={s.label} className="bg-white border border-gray-100 rounded-2xl px-4 py-3">
+          <p className="text-2xl font-display font-bold text-gray-900">{s.value}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
+          <div className="mt-2 h-1 rounded-full bg-gray-50 overflow-hidden">
             <div className="h-full rounded-full" style={{ background: s.color, width: `${total > 0 ? (s.value / total) * 100 : 0}%` }} />
           </div>
         </div>
@@ -709,8 +709,8 @@ function PlatformBreakdown({ posts }: { posts: SocialPost[] }) {
   if (posts.length === 0) return null;
 
   return (
-    <div className="bg-[#111520] border border-white/5 rounded-2xl p-5 mt-4">
-      <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+    <div className="bg-white border border-gray-100 rounded-2xl p-5 mt-4">
+      <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
         <BarChart2 className="w-4 h-4 text-primary" /> Posts by Platform
       </h3>
       <div className="space-y-3">
@@ -720,7 +720,7 @@ function PlatformBreakdown({ posts }: { posts: SocialPost[] }) {
           return (
             <div key={key} className="flex items-center gap-3">
               <span className="text-sm w-24 shrink-0" style={{ color: cfg.color }}>{cfg.label}</span>
-              <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+              <div className="flex-1 h-2 rounded-full bg-gray-50 overflow-hidden">
                 <motion.div
                   className="h-full rounded-full"
                   style={{ background: cfg.color }}
@@ -729,14 +729,14 @@ function PlatformBreakdown({ posts }: { posts: SocialPost[] }) {
                   transition={{ duration: 0.6, delay: 0.1 }}
                 />
               </div>
-              <span className="text-xs text-white/30 w-6 text-right">{count}</span>
+              <span className="text-xs text-gray-400 w-6 text-right">{count}</span>
             </div>
           );
         })}
       </div>
 
       {/* Status breakdown */}
-      <h3 className="text-sm font-semibold text-white mt-6 mb-4 flex items-center gap-2">
+      <h3 className="text-sm font-semibold text-gray-900 mt-6 mb-4 flex items-center gap-2">
         <TrendingUp className="w-4 h-4 text-primary" /> Posts by Status
       </h3>
       <div className="grid grid-cols-3 gap-3">
@@ -746,7 +746,7 @@ function PlatformBreakdown({ posts }: { posts: SocialPost[] }) {
           return (
             <div key={key} className="rounded-xl px-3 py-2" style={{ background: cfg.bg }}>
               <p className="text-lg font-bold" style={{ color: cfg.color }}>{count}</p>
-              <p className="text-[11px] text-white/35">{cfg.label}</p>
+              <p className="text-[11px] text-gray-400">{cfg.label}</p>
             </div>
           );
         })}
@@ -961,21 +961,21 @@ export default function Social() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-0 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-0 bg-[#f8fafc]/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h1 className="text-xl sm:text-2xl font-display font-bold text-white flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
                 <Share2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Social Media
               </h1>
-              <p className="hidden sm:block text-sm text-white/35 mt-0.5">
+              <p className="hidden sm:block text-sm text-gray-400 mt-0.5">
                 AI-powered content creation · Human approval · One-click publishing
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => { setLoading(true); Promise.all([loadPosts(), loadConnections()]).finally(() => setLoading(false)); }}
-                className="w-9 h-9 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center text-white/40 hover:text-white transition-all"
+                className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all"
               >
                 <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
               </button>
@@ -995,12 +995,12 @@ export default function Social() {
                 onClick={() => setTab(t.key)}
                 className={cn(
                   "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-all",
-                  tab === t.key ? 'border-primary text-white' : 'border-transparent text-white/35 hover:text-white/60'
+                  tab === t.key ? 'border-primary text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-500'
                 )}
               >
                 {t.label}
                 {t.count !== undefined && t.count > 0 && (
-                  <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-bold", tab === t.key ? 'bg-primary/20 text-primary' : 'bg-white/8 text-white/40')}>
+                  <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-bold", tab === t.key ? 'bg-primary/20 text-primary' : 'bg-gray-100 text-gray-400')}>
                     {t.count}
                   </span>
                 )}
@@ -1027,10 +1027,10 @@ export default function Social() {
 
                 {/* Tips + connected accounts sidebar */}
                 <div className="space-y-4">
-                  <div className="bg-[#111520] border border-white/5 rounded-2xl p-4">
-                    <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">Connected Accounts</h3>
+                  <div className="bg-white border border-gray-100 rounded-2xl p-4">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Connected Accounts</h3>
                     {socialConnections.length === 0 ? (
-                      <p className="text-xs text-white/25 leading-relaxed">
+                      <p className="text-xs text-gray-400 leading-relaxed">
                         No social accounts connected yet. Go to <a href="/connections" className="text-primary hover:underline">Integrations</a> to connect LinkedIn, Twitter/X, or Facebook.
                       </p>
                     ) : (
@@ -1038,12 +1038,12 @@ export default function Social() {
                         {socialConnections.map(conn => {
                           const cfg = PLATFORMS[conn.platform];
                           return (
-                            <div key={conn.id} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/3 border border-white/5">
+                            <div key={conn.id} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
                               <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style={{ background: `${cfg?.color}20` }}>
                                 {cfg?.icon}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-white truncate">{conn.accountLabel || conn.displayName}</p>
+                                <p className="text-xs font-medium text-gray-900 truncate">{conn.accountLabel || conn.displayName}</p>
                                 <p className="text-[10px]" style={{ color: conn.hasToken ? '#10b981' : '#ef4444' }}>
                                   {conn.hasToken ? '● Connected' : '○ Not connected'}
                                 </p>
@@ -1055,9 +1055,9 @@ export default function Social() {
                     )}
                   </div>
 
-                  <div className="bg-[#111520] border border-white/5 rounded-2xl p-4">
-                    <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">SOSHI Tips</h3>
-                    <ul className="space-y-2 text-xs text-white/35 leading-relaxed">
+                  <div className="bg-white border border-gray-100 rounded-2xl p-4">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">SOSHI Tips</h3>
+                    <ul className="space-y-2 text-xs text-gray-400 leading-relaxed">
                       <li>🧭 Use the topic field to guide SOSHI — be specific for better results</li>
                       <li>✏️ Always review AI drafts before posting</li>
                       <li>⏰ Queue posts for team review before they go live</li>
@@ -1067,11 +1067,11 @@ export default function Social() {
                   </div>
 
                   {/* LESA FB Agent card */}
-                  <div className="bg-[#111520] border border-white/5 rounded-2xl p-4">
+                  <div className="bg-white border border-gray-100 rounded-2xl p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-lg bg-[#1877f2]/15 flex items-center justify-center text-xs">f</div>
-                        <h3 className="text-xs font-semibold text-white">LESA Auto-Poster</h3>
+                        <h3 className="text-xs font-semibold text-gray-900">LESA Auto-Poster</h3>
                       </div>
                       {lesaFbStatus && (
                         <button
@@ -1079,7 +1079,7 @@ export default function Social() {
                           disabled={lesaFbLoading === 'toggle'}
                           className={cn(
                             "relative w-9 h-5 rounded-full transition-all",
-                            lesaFbStatus.enabled ? 'bg-emerald-500' : 'bg-white/10'
+                            lesaFbStatus.enabled ? 'bg-emerald-500' : 'bg-gray-100'
                           )}
                         >
                           <span className={cn(
@@ -1091,15 +1091,15 @@ export default function Social() {
                     </div>
 
                     {!lesaFbStatus ? (
-                      <p className="text-[11px] text-white/25">Loading...</p>
+                      <p className="text-[11px] text-gray-400">Loading...</p>
                     ) : (
                       <div className="space-y-3">
                         <div className="flex items-center gap-1.5">
-                          <span className={cn("w-1.5 h-1.5 rounded-full", lesaFbStatus.enabled ? 'bg-emerald-400' : 'bg-white/20')} />
-                          <span className="text-[11px] text-white/40">
+                          <span className={cn("w-1.5 h-1.5 rounded-full", lesaFbStatus.enabled ? 'bg-emerald-400' : 'bg-gray-200')} />
+                          <span className="text-[11px] text-gray-400">
                             {lesaFbStatus.enabled ? 'Mon/Wed/Fri · 9:15am ET' : 'Paused'}
                           </span>
-                          <span className="ml-auto text-[11px] text-white/25">{lesaFbStatus.postCount} queued</span>
+                          <span className="ml-auto text-[11px] text-gray-400">{lesaFbStatus.postCount} queued</span>
                         </div>
 
                         {lesaFbStatus.lastError && (
@@ -1109,7 +1109,7 @@ export default function Social() {
                         )}
 
                         {lesaFbStatus.recent.length > 0 && (
-                          <div className="text-[10px] text-white/25 leading-relaxed">
+                          <div className="text-[10px] text-gray-400 leading-relaxed">
                             Last: {lesaFbStatus.recent[0].theme.replace(/_/g, ' ')} · {formatDistanceToNow(new Date(lesaFbStatus.recent[0].at), { addSuffix: true })}
                           </div>
                         )}
@@ -1118,7 +1118,7 @@ export default function Social() {
                           <button
                             onClick={handleLesaPreview}
                             disabled={!!lesaFbLoading}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/8 text-white/50 hover:text-white text-[11px] transition-all disabled:opacity-40"
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-gray-200 text-gray-400 hover:text-gray-900 text-[11px] transition-all disabled:opacity-40"
                           >
                             <EyeIcon className="w-3 h-3" />
                             {lesaFbLoading === 'preview' ? '...' : 'Preview'}
@@ -1133,7 +1133,7 @@ export default function Social() {
                           </button>
                         </div>
 
-                        <p className="text-[10px] text-white/20 leading-relaxed">
+                        <p className="text-[10px] text-gray-300 leading-relaxed">
                           Posts land in Approval Queue for your review before publishing to LESA's Facebook page.
                         </p>
                       </div>
@@ -1143,47 +1143,47 @@ export default function Social() {
                   {/* LESA preview modal */}
                   <AnimatePresence>
                     {showLesaPreview && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLesaPreview(false)}>
+                      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setShowLesaPreview(false)}>
                         <motion.div
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.95 }}
-                          className="w-full max-w-md bg-[#131622] border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+                          className="w-full max-w-md bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-2xl"
                           onClick={e => e.stopPropagation()}
                         >
-                          <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+                          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <div className="w-6 h-6 rounded-lg bg-[#1877f2]/15 flex items-center justify-center text-xs">f</div>
                               <div>
-                                <h2 className="text-sm font-bold text-white">LESA Post Preview</h2>
-                                {lesaFbPreview && <p className="text-[10px] text-white/35 capitalize">{lesaFbPreview.theme.replace(/_/g, ' ')}</p>}
+                                <h2 className="text-sm font-bold text-gray-900">LESA Post Preview</h2>
+                                {lesaFbPreview && <p className="text-[10px] text-gray-400 capitalize">{lesaFbPreview.theme.replace(/_/g, ' ')}</p>}
                               </div>
                             </div>
-                            <button onClick={() => setShowLesaPreview(false)} className="text-white/40 hover:text-white"><X className="w-4 h-4" /></button>
+                            <button onClick={() => setShowLesaPreview(false)} className="text-gray-400 hover:text-gray-900"><X className="w-4 h-4" /></button>
                           </div>
                           <div className="p-5 space-y-4">
                             {lesaFbLoading === 'preview' && !lesaFbPreview ? (
-                              <div className="flex items-center justify-center py-8 gap-2 text-white/30 text-sm">
+                              <div className="flex items-center justify-center py-8 gap-2 text-gray-400 text-sm">
                                 <RefreshCw className="w-4 h-4 animate-spin" /> Generating preview...
                               </div>
                             ) : lesaFbPreview ? (
                               <>
-                                <div className="bg-white/3 border border-white/5 rounded-xl p-4 text-sm text-white/80 leading-relaxed whitespace-pre-wrap">
+                                <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
                                   {lesaFbPreview.text}
                                 </div>
-                                <div className="flex items-center justify-between text-[11px] text-white/30">
+                                <div className="flex items-center justify-between text-[11px] text-gray-400">
                                   <span>{lesaFbPreview.text.length} chars</span>
                                   <span className={lesaFbPreview.safety.ok ? 'text-emerald-400' : 'text-red-400'}>
                                     {lesaFbPreview.safety.ok ? '✓ Brand safety pass' : `⚠ ${lesaFbPreview.safety.reasons[0]}`}
                                   </span>
                                 </div>
                                 <div className="flex gap-2 pt-1">
-                                  <button onClick={() => setShowLesaPreview(false)} className="flex-1 py-2.5 rounded-xl border border-white/8 text-white/40 hover:text-white text-sm transition-all">
+                                  <button onClick={() => setShowLesaPreview(false)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-900 text-sm transition-all">
                                     Close
                                   </button>
                                   <button
                                     onClick={() => { setShowLesaPreview(false); handleLesaRunNow(); }}
-                                    className="flex-1 py-2.5 rounded-xl bg-[#1877f2] text-white text-sm font-semibold hover:bg-[#1877f2]/90 transition-all"
+                                    className="flex-1 py-2.5 rounded-xl bg-[#1877f2] text-gray-900 text-sm font-semibold hover:bg-[#1877f2]/90 transition-all"
                                   >
                                     Queue this post
                                   </button>
@@ -1203,10 +1203,10 @@ export default function Social() {
           {tab === 'queue' && (
             <motion.div key="queue" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {queuePosts.length === 0 ? (
-                <div className="text-center py-16 text-white/20">
+                <div className="text-center py-16 text-gray-300">
                   <Clock className="w-10 h-10 mx-auto mb-3 opacity-30" />
                   <p className="text-sm mb-1">No posts waiting for approval</p>
-                  <p className="text-xs text-white/15 mb-5">LESA FB auto-generates posts Mon / Wed / Fri at 9:15 AM ET</p>
+                  <p className="text-xs text-gray-300 mb-5">LESA FB auto-generates posts Mon / Wed / Fri at 9:15 AM ET</p>
                   <div className="flex items-center justify-center gap-3">
                     <button
                       onClick={handleLesaRunNow}
@@ -1214,7 +1214,7 @@ export default function Social() {
                     >
                       <Sparkles className="w-3.5 h-3.5" /> Generate Now with LESA
                     </button>
-                    <button onClick={() => setTab('compose')} className="text-white/30 text-sm hover:text-white/60 transition-colors">
+                    <button onClick={() => setTab('compose')} className="text-gray-400 text-sm hover:text-gray-500 transition-colors">
                       Write manually
                     </button>
                   </div>
@@ -1222,7 +1222,7 @@ export default function Social() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-white/30">{queuePosts.length} post{queuePosts.length !== 1 ? 's' : ''} waiting for review</p>
+                    <p className="text-xs text-gray-400">{queuePosts.length} post{queuePosts.length !== 1 ? 's' : ''} waiting for review</p>
                     <button
                       onClick={handleLesaRunNow}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium transition-all"
@@ -1254,7 +1254,7 @@ export default function Social() {
           {tab === 'history' && (
             <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {historyPosts.length === 0 ? (
-                <div className="text-center py-20 text-white/20">
+                <div className="text-center py-20 text-gray-300">
                   <Share2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
                   <p className="text-sm">No published posts yet</p>
                 </div>
@@ -1282,7 +1282,7 @@ export default function Social() {
           {tab === 'analytics' && (
             <motion.div key="analytics" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {posts.length === 0 ? (
-                <div className="text-center py-20 text-white/20">
+                <div className="text-center py-20 text-gray-300">
                   <BarChart2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
                   <p className="text-sm">Create your first post to see analytics</p>
                 </div>
@@ -1292,8 +1292,8 @@ export default function Social() {
                   <PlatformBreakdown posts={posts} />
 
                   {/* AI usage card */}
-                  <div className="mt-4 bg-[#111520] border border-white/5 rounded-2xl p-5">
-                    <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                  <div className="mt-4 bg-white border border-gray-100 rounded-2xl p-5">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <Bot className="w-4 h-4 text-violet-400" /> AI Content Usage
                     </h3>
                     <div className="grid grid-cols-3 gap-4">
@@ -1304,9 +1304,9 @@ export default function Social() {
                           ? `${Math.round((posts.filter(p => p.aiGenerated && p.status === 'posted').length / Math.max(posts.filter(p => p.aiGenerated).length, 1)) * 100)}%`
                           : '—', color: '#10b981' },
                       ].map(item => (
-                        <div key={item.label} className="rounded-xl bg-white/3 border border-white/5 p-4">
+                        <div key={item.label} className="rounded-xl bg-gray-50 border border-gray-100 p-4">
                           <p className="text-2xl font-display font-bold" style={{ color: item.color }}>{item.value}</p>
-                          <p className="text-xs text-white/35 mt-0.5">{item.label}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{item.label}</p>
                         </div>
                       ))}
                     </div>
@@ -1321,19 +1321,19 @@ export default function Social() {
       {/* Edit post modal */}
       <AnimatePresence>
         {editPost && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg bg-[#131622] border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+              className="w-full max-w-lg bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-2xl"
             >
-              <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-bold text-white">Edit Post</h2>
+                  <h2 className="text-sm font-bold text-gray-900">Edit Post</h2>
                   <PlatformBadge platform={editPost.platform} />
                 </div>
-                <button onClick={() => setEditPost(null)} className="text-white/40 hover:text-white">
+                <button onClick={() => setEditPost(null)} className="text-gray-400 hover:text-gray-900">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -1342,17 +1342,17 @@ export default function Social() {
                   value={editContent}
                   onChange={e => setEditContent(e.target.value)}
                   rows={8}
-                  className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white/20 resize-none leading-relaxed"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-white/20 resize-none leading-relaxed"
                   autoFocus
                 />
                 <div className="flex gap-2 mt-4">
-                  <button onClick={() => setEditPost(null)} className="flex-1 py-2.5 rounded-xl border border-white/8 text-white/50 hover:text-white text-sm transition-all">
+                  <button onClick={() => setEditPost(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-900 text-sm transition-all">
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveEdit}
                     disabled={saving || !editContent.trim()}
-                    className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all"
+                    className="flex-1 py-2.5 rounded-xl bg-primary text-gray-900 text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all"
                   >
                     {saving ? 'Saving...' : 'Save changes'}
                   </button>
@@ -1372,7 +1372,7 @@ export default function Social() {
             exit={{ opacity: 0, y: 20 }}
             className={cn(
               "fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl text-sm font-medium shadow-2xl flex items-center gap-2",
-              globalToast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
+              globalToast.type === 'success' ? 'bg-emerald-500 text-gray-900' : 'bg-red-500 text-gray-900'
             )}
           >
             {globalToast.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}

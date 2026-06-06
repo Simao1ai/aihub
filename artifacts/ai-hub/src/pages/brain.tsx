@@ -80,21 +80,21 @@ function UploadModal({
   const isLoading = createMutation.isPending || uploadMutation.isPending;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-lg bg-[#131622] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-lg bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden"
       >
-        <div className="px-6 py-5 border-b border-white/5">
-          <h2 className="text-base font-display font-bold text-white">Add to Brain</h2>
-          <p className="text-xs text-white/35 mt-0.5">This content will be available to all AI agents as context</p>
+        <div className="px-6 py-5 border-b border-gray-100">
+          <h2 className="text-base font-display font-bold text-gray-900">Add to Brain</h2>
+          <p className="text-xs text-gray-400 mt-0.5">This content will be available to all AI agents as context</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Type tabs */}
-          <div className="flex gap-1 p-1 bg-white/5 rounded-xl">
+          <div className="flex gap-1 p-1 bg-gray-50 rounded-xl">
             {(['text', 'url', 'pdf'] as const).map(t => (
               <button
                 key={t}
@@ -102,7 +102,7 @@ function UploadModal({
                 onClick={() => setUploadType(t)}
                 className={cn(
                   "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all",
-                  uploadType === t ? 'bg-white/10 text-white' : 'text-white/35 hover:text-white/60'
+                  uploadType === t ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-500'
                 )}
               >
                 {t === 'text' ? <FileText className="w-3.5 h-3.5" /> : t === 'url' ? <LinkIcon className="w-3.5 h-3.5" /> : <FileUp className="w-3.5 h-3.5" />}
@@ -113,19 +113,19 @@ function UploadModal({
 
           {/* Title */}
           <div>
-            <label className="text-xs text-white/40 mb-1.5 block">Title *</label>
+            <label className="text-xs text-gray-400 mb-1.5 block">Title *</label>
             <input
               autoFocus
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="e.g. Our Pricing Guide"
-              className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20"
             />
           </div>
 
           {/* Category */}
           <div>
-            <label className="text-xs text-white/40 mb-1.5 block">Category</label>
+            <label className="text-xs text-gray-400 mb-1.5 block">Category</label>
             <div className="flex flex-wrap gap-1.5">
               {CATEGORIES.map(cat => (
                 <button
@@ -134,7 +134,7 @@ function UploadModal({
                   onClick={() => setCategory(cat.key)}
                   className={cn(
                     "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border",
-                    category === cat.key ? 'border-transparent' : 'border-white/8 text-white/35 hover:text-white/60'
+                    category === cat.key ? 'border-transparent' : 'border-gray-200 text-gray-400 hover:text-gray-500'
                   )}
                   style={category === cat.key ? { background: cat.bg, color: cat.color, borderColor: `${cat.color}40` } : {}}
                 >
@@ -147,47 +147,47 @@ function UploadModal({
           {/* Content input */}
           {uploadType === 'text' && (
             <div>
-              <label className="text-xs text-white/40 mb-1.5 block">Content</label>
+              <label className="text-xs text-gray-400 mb-1.5 block">Content</label>
               <textarea
                 value={content}
                 onChange={e => setContent(e.target.value)}
                 placeholder="Paste your text content here..."
                 rows={6}
-                className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 resize-none"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20 resize-none"
               />
             </div>
           )}
           {uploadType === 'url' && (
             <div>
-              <label className="text-xs text-white/40 mb-1.5 block">URL</label>
+              <label className="text-xs text-gray-400 mb-1.5 block">URL</label>
               <input
                 type="url"
                 value={url}
                 onChange={e => setUrl(e.target.value)}
                 placeholder="https://..."
-                className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20"
               />
             </div>
           )}
           {uploadType === 'pdf' && (
             <div>
-              <label className="text-xs text-white/40 mb-1.5 block">PDF file</label>
+              <label className="text-xs text-gray-400 mb-1.5 block">PDF file</label>
               <label className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-white/15 rounded-xl cursor-pointer hover:border-white/25 transition-colors">
-                <FileUp className="w-6 h-6 text-white/25 mb-1" />
-                <span className="text-xs text-white/35">{file ? file.name : 'Click to upload PDF (max 20 MB)'}</span>
+                <FileUp className="w-6 h-6 text-gray-400 mb-1" />
+                <span className="text-xs text-gray-400">{file ? file.name : 'Click to upload PDF (max 20 MB)'}</span>
                 <input type="file" accept=".pdf" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
               </label>
             </div>
           )}
 
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/8 text-white/50 hover:text-white text-sm transition-all">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-900 text-sm transition-all">
               Cancel
             </button>
             <button
               type="submit"
               disabled={!title || isLoading}
-              className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all"
+              className="flex-1 py-2.5 rounded-xl bg-primary text-gray-900 text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all"
             >
               {isLoading ? 'Adding...' : 'Add to Brain'}
             </button>
@@ -229,30 +229,30 @@ function EditModal({ doc, businessTag, onClose }: { doc: BrainDocument; business
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-lg bg-[#131622] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-lg bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden"
       >
-        <div className="px-6 py-5 border-b border-white/5">
-          <h2 className="text-base font-display font-bold text-white">Edit Document</h2>
-          <p className="text-xs text-white/35 mt-0.5 truncate">{doc.title}</p>
+        <div className="px-6 py-5 border-b border-gray-100">
+          <h2 className="text-base font-display font-bold text-gray-900">Edit Document</h2>
+          <p className="text-xs text-gray-400 mt-0.5 truncate">{doc.title}</p>
         </div>
         <form onSubmit={handleSave} className="p-6 space-y-4">
           <div>
-            <label className="text-xs text-white/40 mb-1.5 block">Title *</label>
+            <label className="text-xs text-gray-400 mb-1.5 block">Title *</label>
             <input
               autoFocus
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20"
             />
           </div>
 
           <div>
-            <label className="text-xs text-white/40 mb-1.5 block">Category</label>
+            <label className="text-xs text-gray-400 mb-1.5 block">Category</label>
             <div className="flex flex-wrap gap-1.5">
               {CATEGORIES.map(cat => (
                 <button
@@ -261,7 +261,7 @@ function EditModal({ doc, businessTag, onClose }: { doc: BrainDocument; business
                   onClick={() => setCategory(cat.key)}
                   className={cn(
                     "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border",
-                    category === cat.key ? 'border-transparent' : 'border-white/8 text-white/35 hover:text-white/60'
+                    category === cat.key ? 'border-transparent' : 'border-gray-200 text-gray-400 hover:text-gray-500'
                   )}
                   style={category === cat.key ? { background: cat.bg, color: cat.color, borderColor: `${cat.color}40` } : {}}
                 >
@@ -272,25 +272,25 @@ function EditModal({ doc, businessTag, onClose }: { doc: BrainDocument; business
           </div>
 
           <div>
-            <label className="text-xs text-white/40 mb-1.5 block">Content</label>
+            <label className="text-xs text-gray-400 mb-1.5 block">Content</label>
             <textarea
               value={content}
               onChange={e => setContent(e.target.value)}
               rows={8}
-              className="w-full bg-white/5 border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 resize-none font-mono text-xs"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-white/20 resize-none font-mono text-xs"
             />
           </div>
 
           {error && <p className="text-xs text-red-400">{error}</p>}
 
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/8 text-white/50 hover:text-white text-sm transition-all">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-900 text-sm transition-all">
               Cancel
             </button>
             <button
               type="submit"
               disabled={!title.trim() || saving}
-              className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all"
+              className="flex-1 py-2.5 rounded-xl bg-primary text-gray-900 text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all"
             >
               {saving ? 'Saving...' : 'Save changes'}
             </button>
@@ -335,20 +335,20 @@ export default function Brain() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#0c0e16]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-5 bg-[#f8fafc]/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-display font-bold text-white flex items-center gap-2.5">
+              <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2.5">
                 <BrainCircuit className="w-6 h-6 text-primary" /> Brain
               </h1>
-              <p className="text-sm text-white/35 mt-0.5">
+              <p className="text-sm text-gray-400 mt-0.5">
                 {documents.length} document{documents.length !== 1 ? 's' : ''} · automatically injected into AI conversations
               </p>
             </div>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-gray-900 text-sm font-semibold hover:bg-primary/90 transition-all"
             >
               <Plus className="w-4 h-4" /> Add document
             </button>
@@ -357,12 +357,12 @@ export default function Brain() {
           {/* Search + category filters */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search knowledge base..."
-                className="bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 w-52"
+                className="bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/40 w-52"
               />
             </div>
             <div className="flex gap-1.5 flex-wrap">
@@ -370,7 +370,7 @@ export default function Brain() {
                 onClick={() => setActiveCategory('all')}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                  activeCategory === 'all' ? 'bg-white/10 text-white' : 'text-white/35 hover:text-white/60'
+                  activeCategory === 'all' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-500'
                 )}
               >
                 All ({documents.length})
@@ -384,7 +384,7 @@ export default function Brain() {
                     onClick={() => setActiveCategory(cat.key)}
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                      activeCategory === cat.key ? '' : 'text-white/35 hover:text-white/60'
+                      activeCategory === cat.key ? '' : 'text-gray-400 hover:text-gray-500'
                     )}
                     style={activeCategory === cat.key ? { background: cat.bg, color: cat.color } : {}}
                   >
@@ -400,10 +400,10 @@ export default function Brain() {
       <div className="px-4 sm:px-8 py-4 sm:py-6 max-w-5xl mx-auto">
         {isLoading ? (
           <div className="space-y-3">
-            {[0, 1, 2].map(i => <div key={i} className="h-20 bg-white/3 rounded-xl animate-pulse" />)}
+            {[0, 1, 2].map(i => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-white/20">
+          <div className="flex flex-col items-center justify-center py-20 text-gray-300">
             <BrainCircuit className="w-10 h-10 mb-3 opacity-30" />
             <p className="text-sm">{searchQuery ? 'No documents match' : 'Brain is empty — add your first document'}</p>
             {!searchQuery && (
@@ -424,17 +424,17 @@ export default function Brain() {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.97 }}
-                    className="flex items-center gap-4 p-4 bg-[#111520] border border-white/5 rounded-xl hover:border-white/10 transition-all group"
+                    className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-xl hover:border-gray-200 transition-all group"
                   >
                     {/* Icon */}
-                    <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-white/40 shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 shrink-0">
                       {typeIcon(doc.type)}
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <p className="text-sm font-semibold text-white truncate">{doc.title}</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">{doc.title}</p>
                         <span
                           className="text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0"
                           style={{ background: cat.bg, color: cat.color }}
@@ -442,13 +442,13 @@ export default function Brain() {
                           {cat.label}
                         </span>
                       </div>
-                      <p className="text-xs text-white/30 truncate">{doc.content.slice(0, 120)}...</p>
+                      <p className="text-xs text-gray-400 truncate">{doc.content.slice(0, 120)}...</p>
                     </div>
 
                     {/* Meta */}
                     <div className="hidden md:flex items-center gap-3 shrink-0">
-                      <span className="text-[11px] text-white/20">{format(new Date(doc.createdAt), 'MMM d, yyyy')}</span>
-                      <span className="text-[10px] text-white/20 uppercase bg-white/5 px-2 py-0.5 rounded-md">{doc.type}</span>
+                      <span className="text-[11px] text-gray-300">{format(new Date(doc.createdAt), 'MMM d, yyyy')}</span>
+                      <span className="text-[10px] text-gray-300 uppercase bg-gray-50 px-2 py-0.5 rounded-md">{doc.type}</span>
                     </div>
 
                     {/* Actions */}
@@ -458,14 +458,14 @@ export default function Brain() {
                           href={(doc as any).metadata.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all"
+                          className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       )}
                       <button
                         onClick={() => setEditDoc(doc as BrainDocument)}
-                        className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/25 hover:text-white transition-all"
+                        className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all"
                         title="Edit document"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -480,7 +480,7 @@ export default function Brain() {
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(null)}
-                            className="px-3 py-1.5 rounded-lg bg-white/5 text-white/40 text-xs font-medium hover:bg-white/10"
+                            className="px-3 py-1.5 rounded-lg bg-gray-50 text-gray-400 text-xs font-medium hover:bg-gray-100"
                           >
                             Cancel
                           </button>
@@ -488,7 +488,7 @@ export default function Brain() {
                       ) : (
                         <button
                           onClick={() => setDeleteConfirm(doc.id)}
-                          className="w-8 h-8 rounded-lg bg-white/5 hover:bg-red-500/10 flex items-center justify-center text-white/25 hover:text-red-400 transition-all"
+                          className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-red-500/10 flex items-center justify-center text-gray-400 hover:text-red-400 transition-all"
                           title="Delete document"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
