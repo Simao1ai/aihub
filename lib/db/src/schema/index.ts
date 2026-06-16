@@ -12,3 +12,4 @@ export * from "./contacts";
 export * from "./kpis";
 export * from "./automation-templates";
 export * from "./social-posts";
+export * from "./ai-usage";

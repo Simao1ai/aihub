@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { db, brainDocumentsTable } from "@workspace/db";
-import { eq, ilike, or, inArray } from "drizzle-orm";
+import { eq, ilike, or, inArray, isNotNull, sql } from "drizzle-orm";
 import multer from "multer";
 import { logger } from "../lib/logger";
+import { openai } from "@workspace/integrations-openai-ai-server";
 
 const router: IRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
@@ -20,6 +21,42 @@ function chunkText(text: string, chunkSize = 500): string[] {
   }
   if (current.length > 0) chunks.push(current.join(" "));
   return chunks;
+}
+
+// ── Generate OpenAI embedding for a text string ───────────────────────────────
+async function generateEmbedding(text: string): Promise<number[] | null> {
+  try {
+    const response = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: text.slice(0, 8000),
+    });
+    return response.data[0].embedding;
+  } catch (err) {
+    logger.warn({ err }, "Embedding generation failed — will skip vector indexing");
+    return null;
+  }
+}
+
+// ── Generate embeddings for inserted docs in background (fire-and-forget) ────
+async function backfillEmbeddings(docIds: number[]): Promise<void> {
+  for (const id of docIds) {
+    try {
+      const [doc] = await db
+        .select({ id: brainDocumentsTable.id, content: brainDocumentsTable.content, title: brainDocumentsTable.title })
+        .from(brainDocumentsTable)
+        .where(eq(brainDocumentsTable.id, id));
+      if (!doc) continue;
+      const embedding = await generateEmbedding(`${doc.title}\n\n${doc.content}`);
+      if (embedding) {
+        await db
+          .update(brainDocumentsTable)
+          .set({ embedding })
+          .where(eq(brainDocumentsTable.id, id));
+      }
+    } catch (err) {
+      logger.warn({ err, docId: id }, "Failed to backfill embedding for doc");
+    }
+  }
 }
 
 router.get("/documents", async (req, res) => {
@@ -62,6 +99,11 @@ router.post("/documents", async (req, res) => {
     }
 
     res.status(201).json(insertedDocs);
+
+    // Generate embeddings in background — don't block the response
+    backfillEmbeddings(insertedDocs.map(d => d.id)).catch(err =>
+      logger.warn({ err }, "Background embedding generation failed")
+    );
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Failed to create document" });
@@ -99,6 +141,11 @@ router.post("/documents/upload", upload.single("file"), async (req, res) => {
     }
 
     res.status(201).json(insertedDocs);
+
+    // Generate embeddings in background — don't block the response
+    backfillEmbeddings(insertedDocs.map(d => d.id)).catch(err =>
+      logger.warn({ err }, "Background embedding generation for PDF failed")
+    );
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Failed to upload document" });
@@ -116,6 +163,12 @@ router.patch("/documents/:id", async (req, res) => {
     if (Object.keys(updates).length === 0) return res.status(400).json({ error: "Nothing to update" });
     const [updated] = await db.update(brainDocumentsTable).set(updates).where(eq(brainDocumentsTable.id, id)).returning();
     if (!updated) return res.status(404).json({ error: "Document not found" });
+
+    // Re-generate embedding if content changed
+    if (content !== undefined) {
+      backfillEmbeddings([id]).catch(() => {});
+    }
+
     res.json(updated);
   } catch (err) {
     req.log.error(err);
@@ -135,8 +188,40 @@ router.delete("/documents/:id", async (req, res) => {
   }
 });
 
+// ── getBrainContext — semantic (cosine similarity) with keyword fallback ──────
 export async function getBrainContext(query: string, businessTag = "general"): Promise<string> {
   try {
+    const tags = businessTag === "general" ? ["general"] : [businessTag, "general"];
+
+    // ── Attempt vector similarity search first ────────────────────────────────
+    try {
+      const queryEmbedding = await generateEmbedding(query);
+      if (queryEmbedding) {
+        const embeddingLiteral = `[${queryEmbedding.join(",")}]`;
+        const vectorResults = await db
+          .select()
+          .from(brainDocumentsTable)
+          .where(
+            and(
+              inArray(brainDocumentsTable.businessTag, tags),
+              isNotNull(brainDocumentsTable.embedding)
+            )
+          )
+          .orderBy(sql`embedding <=> ${embeddingLiteral}::vector`)
+          .limit(4);
+
+        if (vectorResults.length > 0) {
+          const contextText = vectorResults
+            .map(c => `[${c.title}]\n${c.content}`)
+            .join("\n\n---\n\n");
+          return `RELEVANT CONTEXT FROM YOUR KNOWLEDGE BASE:\n${contextText}`;
+        }
+      }
+    } catch (vecErr) {
+      logger.warn({ vecErr }, "Vector search failed — falling back to keyword search");
+    }
+
+    // ── Keyword fallback ──────────────────────────────────────────────────────
     const STOPWORDS = new Set(["the","and","for","are","was","you","your","that","this","with","have","from","they","will","what","when","how","can","need","want","about","just","also"]);
     const keywords = [...new Set(
       query.toLowerCase()
@@ -144,8 +229,6 @@ export async function getBrainContext(query: string, businessTag = "general"): P
         .split(/\s+/)
         .filter(w => w.length >= 3 && !STOPWORDS.has(w))
     )].slice(0, 8);
-
-    const tags = businessTag === "general" ? ["general"] : [businessTag, "general"];
 
     let chunks: typeof brainDocumentsTable.$inferSelect[] = [];
 

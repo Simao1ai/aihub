@@ -16,6 +16,7 @@ import socialPostsRouter from "./social-posts";
 import adsRouter from "./ads";
 import lesaFbRouter from "./lesa-fb";
 import adminRouter from "./admin";
+import usageRouter from "./usage";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use("/social-posts", socialPostsRouter);
 router.use("/ads", adsRouter);
 router.use("/agents/lesa-fb", lesaFbRouter);
 router.use("/admin", adminRouter);
+router.use("/usage", usageRouter);
 
 export default router;

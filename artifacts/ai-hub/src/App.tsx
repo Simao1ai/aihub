@@ -47,6 +47,9 @@ window.fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
   return response;
 };
 
+// Error boundary
+import { ErrorBoundary } from "@/components/error-boundary";
+
 // Layout & Pages
 import { AppLayout } from "@/components/layout";
 import Login from "@/pages/login";
@@ -84,7 +87,9 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   return (
     <AppLayout>
-      <Component />
+      <ErrorBoundary>
+        <Component />
+      </ErrorBoundary>
     </AppLayout>
   );
 }

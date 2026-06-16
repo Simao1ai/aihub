@@ -548,6 +548,7 @@ export default function Dashboard() {
   const [contactCount, setContactCount] = useState(0);
   const [wsId, setWsId] = useState<number | undefined>(undefined);
   const [wsKpiUrl, setWsKpiUrl] = useState<string | null>(null);
+  const [usageStats, setUsageStats] = useState<{ totalInputTokens: number; totalOutputTokens: number; totalCostUsd: number; callCount: number } | null>(null);
 
   const { account } = useAppStore();
 
@@ -559,6 +560,7 @@ export default function Dashboard() {
       const ws = workspaces.find((w: any) => w.slug === businessTag);
       if (ws) { setWsId(ws.id); setWsKpiUrl(ws.externalKpiUrl ?? null); }
     }).catch(() => {});
+    fetch('/api/usage').then(r => r.ok ? r.json() : null).then(d => { if (d) setUsageStats(d); }).catch(() => {});
   }, [businessTag]);
 
   const approveMutation = useApproveAutomationRun();
@@ -766,6 +768,42 @@ export default function Dashboard() {
               )}
             </motion.div>
           </div>
+
+          {/* AI Usage */}
+          {usageStats && usageStats.callCount > 0 && (
+            <motion.div variants={item} className="rounded-2xl border border-gray-100 bg-white p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-display font-semibold text-gray-900 text-sm flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-violet-400" /> AI Usage — This Month
+                </h3>
+                <span className="text-[10px] text-gray-400">{usageStats.callCount} call{usageStats.callCount !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-100">
+                  <p className="text-lg font-display font-bold text-indigo-700">
+                    {usageStats.totalInputTokens >= 1000
+                      ? `${(usageStats.totalInputTokens / 1000).toFixed(1)}K`
+                      : usageStats.totalInputTokens}
+                  </p>
+                  <p className="text-[10px] text-indigo-400 mt-0.5">Input tokens</p>
+                </div>
+                <div className="p-3 rounded-xl bg-violet-50 border border-violet-100">
+                  <p className="text-lg font-display font-bold text-violet-700">
+                    {usageStats.totalOutputTokens >= 1000
+                      ? `${(usageStats.totalOutputTokens / 1000).toFixed(1)}K`
+                      : usageStats.totalOutputTokens}
+                  </p>
+                  <p className="text-[10px] text-violet-400 mt-0.5">Output tokens</p>
+                </div>
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                  <p className="text-lg font-display font-bold text-emerald-700">
+                    ${usageStats.totalCostUsd.toFixed(4)}
+                  </p>
+                  <p className="text-[10px] text-emerald-400 mt-0.5">Est. cost</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Quick actions */}
           <motion.div variants={item} className="grid grid-cols-2 sm:grid-cols-4 gap-3">

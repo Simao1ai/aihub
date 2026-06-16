@@ -4,6 +4,7 @@ import { eq, desc, ne, and, gte } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/image";
 import { getBrainContext } from "./brain";
+import { recordUsage } from "../lib/usage";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -358,12 +359,15 @@ async function executeToolCall(
 
 // ── Auto-respond on behalf of a target agent after handoff ───────────────────
 // Runs a full tool-use loop so PIXEL can actually generate images, not just describe them.
+// Hard-capped at 90 seconds to prevent the UI from hanging indefinitely.
 async function autoRespondAfterHandoff(
   targetAgent: { id: number; name: string; slug: string; systemPrompt: string | null },
   newConvId: number,
   businessTag: string,
   seedMessage: string,
 ): Promise<void> {
+  const TIMEOUT_MS = 90_000;
+  const startTime = Date.now();
   try {
     let businessContext = "";
     try {
@@ -393,6 +397,11 @@ async function autoRespondAfterHandoff(
     let finalText = "";
 
     for (let round = 0; round < 5; round++) {
+      if (Date.now() - startTime > TIMEOUT_MS) {
+        console.warn(`autoRespondAfterHandoff: timeout reached at round ${round}, stopping`);
+        break;
+      }
+
       const resp = await anthropic.messages.create({
         model: "claude-sonnet-4-6",
         max_tokens: 4096,
@@ -401,6 +410,13 @@ async function autoRespondAfterHandoff(
         tools,
         tool_choice: { type: "auto" },
       });
+
+      recordUsage({
+        workspace: businessTag,
+        agentSlug: targetAgent.slug,
+        model: "claude-sonnet-4-6",
+        usage: resp.usage,
+      }).catch(() => {});
 
       if (resp.stop_reason !== "tool_use") {
         const textBlock = resp.content.find((b: any) => b.type === "text");
@@ -702,6 +718,13 @@ router.post("/conversations/:id/messages", async (req, res) => {
         tool_choice: { type: "auto" },
       });
 
+      recordUsage({
+        workspace: conv.businessTag,
+        agentSlug: agent.slug,
+        model: "claude-sonnet-4-6",
+        usage: loopResp.usage,
+      }).catch(() => {});
+
       if (loopResp.stop_reason !== "tool_use") {
         finalBlocks = loopResp.content;
         break;
@@ -730,6 +753,12 @@ router.post("/conversations/:id/messages", async (req, res) => {
         const finalResp = await anthropic.messages.create({
           model: "claude-sonnet-4-6", max_tokens: 2048, system: systemPrompt, messages: loopMessages,
         });
+        recordUsage({
+          workspace: conv.businessTag,
+          agentSlug: agent.slug,
+          model: "claude-sonnet-4-6",
+          usage: finalResp.usage,
+        }).catch(() => {});
         finalBlocks = finalResp.content;
       }
     }

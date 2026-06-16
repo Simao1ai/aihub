@@ -1,3 +1,5 @@
 - [Meta connection token flow](meta-connection-token.md) — page tokens must be obtained via server-side exchange; browser-direct calls get short-lived tokens
 - [post-now debugging](post-now-debugging.md) — logger import missing in social-posts.ts masked all real FB errors; always check ReferenceError in prod logs first
 - [Security architecture](security-arch.md) — Postgres-backed sessions, bcrypt auth, AES-256-GCM secrets, full route scoping by sessionWorkspace
+- [pgvector + Drizzle setup](pgvector-drizzle.md) — customType pattern for vector(1536), apply via raw SQL not drizzle push, use sql template for <=> operator in orderBy
+- [AI usage tracking](ai-usage-tracking.md) — ai_usage table + recordUsage() in lib/usage.ts; called after every messages.create in anthropic.ts and pipeline.ts; Claude Sonnet 4 pricing: $3/$15 per MTok in/out
