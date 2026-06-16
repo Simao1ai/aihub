@@ -212,7 +212,7 @@ function PostCard({
 
       {/* Content preview */}
       <div className="px-4 py-3 group/content relative">
-        <p className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap line-clamp-5">
+        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-5">
           {post.content || <span className="italic text-gray-300">Empty draft</span>}
         </p>
         <div className="mt-2 flex items-center justify-between">
