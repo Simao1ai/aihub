@@ -1,8 +1,10 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
 
 export const sessionsTable = pgTable("sessions", {
   token: text("token").primaryKey(),
-  workspace: text("workspace").notNull(),
+  workspace: text("workspace"),
+  type: text("type").notNull().default("workspace"),
+  userId: integer("user_id"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

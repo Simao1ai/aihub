@@ -26,7 +26,6 @@ export function useWorkspaces() {
 
 export function useLogin() {
   const login = useAppStore((s) => s.login);
-
   return useMutation({
     mutationFn: async ({ workspace, password }: { workspace: string; password: string }) => {
       const res = await fetch('/api/auth/login', {
@@ -37,34 +36,105 @@ export function useLogin() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
       return data as {
-        success: boolean;
-        token: string;
-        workspace: string;
-        displayName: string;
-        businessTag: string;
-        color: string;
-        emoji: string;
+        success: boolean; token: string; workspace: string;
+        displayName: string; businessTag: string; color: string; emoji: string;
       };
     },
     onSuccess: (data, { password }) => {
       const account: Account = {
-        workspace: data.workspace,
-        displayName: data.displayName,
-        businessTag: data.businessTag as any,
-        password,
-        token: data.token,
-        color: data.color,
-        emoji: data.emoji,
+        workspace: data.workspace, displayName: data.displayName,
+        businessTag: data.businessTag as any, password,
+        token: data.token, color: data.color, emoji: data.emoji,
       };
       login(account);
     },
   });
 }
 
-// Legacy hook — kept so anything that imports it doesn't break
+export interface EmailLoginResult {
+  preToken: string;
+  user: { id: number; email: string; name: string };
+  workspaces: Workspace[];
+}
+
+export function useEmailLogin() {
+  return useMutation({
+    mutationFn: async ({ email, password }: { email: string; password: string }): Promise<EmailLoginResult> => {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed');
+      if (data.type !== 'email' && data.type !== 'signup') {
+        throw new Error('Unexpected response from server');
+      }
+      return data;
+    },
+  });
+}
+
+export function useWorkspaceSelect() {
+  const login = useAppStore((s) => s.login);
+  return useMutation({
+    mutationFn: async ({
+      preToken, workspaceSlug,
+      user,
+    }: {
+      preToken: string; workspaceSlug: string;
+      user: { id: number; email: string; name: string };
+    }) => {
+      const res = await fetch('/api/auth/workspace-select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preToken, workspaceSlug }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Workspace selection failed');
+      return { ...data, user };
+    },
+    onSuccess: (data) => {
+      const account: Account = {
+        workspace: data.workspace,
+        displayName: data.displayName,
+        businessTag: data.businessTag as any,
+        password: '',
+        token: data.token,
+        color: data.color,
+        emoji: data.emoji,
+        userId: data.user?.id,
+        email: data.user?.email,
+        userName: data.user?.name,
+      };
+      login(account);
+    },
+  });
+}
+
+export interface SignupResult extends EmailLoginResult {
+  type: 'signup';
+}
+
+export function useSignup() {
+  return useMutation({
+    mutationFn: async ({
+      email, name, password,
+    }: { email: string; name: string; password: string }): Promise<SignupResult> => {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Signup failed');
+      return data;
+    },
+  });
+}
+
 export function useVerifyPassword() {
   const login = useAppStore((s) => s.login);
-
   return useMutation({
     mutationFn: async (password: string) => {
       const res = await fetch('/api/auth/login', {
@@ -78,12 +148,10 @@ export function useVerifyPassword() {
     },
     onSuccess: (data, password) => {
       login({
-        workspace: 'general',
-        displayName: 'General',
-        businessTag: 'general',
-        password,
-        color: '#6366f1',
-        emoji: '⚡',
+        workspace: 'general', displayName: 'General',
+        businessTag: 'general', password,
+        token: data.token ?? '',
+        color: '#6366f1', emoji: '⚡',
       });
     },
   });

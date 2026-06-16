@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useListAgents } from '@workspace/api-client-react';
 import { Button, Card, Badge, Modal, Input, Switch, cn } from '@/components/ui-elements';
+import { useAppStore } from '@/store';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -83,6 +84,33 @@ interface LiveStep {
 }
 
 // ─── API helpers ────────────────────────────────────────────────────────────
+
+// ─── Pipeline type detection ────────────────────────────────────────────────
+
+type PipelineType = 'social' | 'content' | 'email' | 'generic';
+
+interface PipelineTypeInfo {
+  type: PipelineType;
+  label: string;
+  color: string;
+  bg: string;
+  icon: string;
+  consequenceHint: string;
+}
+
+function detectPipelineType(name: string): PipelineTypeInfo {
+  const n = name.toLowerCase();
+  if (n.includes('social') || n.includes('facebook') || n.includes('instagram') || n.includes('linkedin') || n.includes('twitter') || n.includes('post')) {
+    return { type: 'social', label: '→ Social post', color: '#f59e0b', bg: '#f59e0b18', icon: '📱', consequenceHint: 'Approving will create a social post draft ready for publishing.' };
+  }
+  if (n.includes('blog') || n.includes('content') || n.includes('article') || n.includes('research') || n.includes('report') || n.includes('brain') || n.includes('doc')) {
+    return { type: 'content', label: '→ Brain doc', color: '#8b5cf6', bg: '#8b5cf618', icon: '🧠', consequenceHint: 'Approving will save this output as a Brain document.' };
+  }
+  if (n.includes('email') || n.includes('newsletter') || n.includes('outreach') || n.includes('message') || n.includes('draft')) {
+    return { type: 'email', label: '→ Email draft', color: '#3b82f6', bg: '#3b82f618', icon: '📧', consequenceHint: 'Approving will create an email draft from this output.' };
+  }
+  return { type: 'generic', label: '→ Auto-save', color: '#10b981', bg: '#10b98118', icon: '✅', consequenceHint: 'Approving will save this pipeline output.' };
+}
 
 const api = {
   getPipelines: () => fetch('/api/pipelines').then(r => r.json()),
@@ -599,6 +627,17 @@ function ResultView({
           ))}
         </div>
 
+        {/* Approval consequence hint */}
+        {(() => {
+          const info = detectPipelineType(pipeline.name);
+          return (
+            <div className="flex items-center gap-2.5 p-3.5 rounded-xl text-sm border" style={{ background: info.bg, borderColor: `${info.color}30`, color: info.color }}>
+              <span className="text-base">{info.icon}</span>
+              <span className="font-medium">{info.consequenceHint}</span>
+            </div>
+          );
+        })()}
+
         {/* Actions */}
         <div className="flex items-center gap-3 pt-2 border-t border-border/50">
           <Button variant="destructive" onClick={onDiscard}>
@@ -781,6 +820,7 @@ type PageView =
   | { mode: 'result'; pipeline: Pipeline; run: PipelineRun; topic: string };
 
 export default function Pipelines() {
+  const { addNotification } = useAppStore();
   const { data: agents = [] } = useListAgents();
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [pendingRuns, setPendingRuns] = useState<PipelineRun[]>([]);
@@ -841,10 +881,18 @@ export default function Pipelines() {
   };
 
   const handleApproveRun = async (runId: number) => {
-    await api.approveRun(runId);
+    const result = await api.approveRun(runId);
     setReviewRun(null);
     setView({ mode: 'list' });
     refresh();
+    const effects: string[] = result?.sideEffects ?? [];
+    if (effects.includes('social_post_created')) {
+      addNotification({ type: 'socialPost', icon: '📱', title: 'Social post draft created', body: 'Review and publish it from the Social Media page.' });
+    } else if (effects.includes('brain_doc_created')) {
+      addNotification({ type: 'agentHandoff', icon: '🧠', title: 'Saved to Brain', body: 'The pipeline output was saved as a Brain document.' });
+    } else if (effects.includes('email_sent')) {
+      addNotification({ type: 'agentHandoff', icon: '📧', title: 'Email draft sent', body: 'An email draft was generated from this pipeline output.' });
+    }
   };
 
   const handleDiscardRun = async (runId: number) => {
@@ -879,9 +927,17 @@ export default function Pipelines() {
         pipeline={view.pipeline}
         agents={agents}
         onApprove={async () => {
-          await api.approveRun(view.run.id);
+          const result = await api.approveRun(view.run.id);
           setView({ mode: 'list' });
           refresh();
+          const effects: string[] = result?.sideEffects ?? [];
+          if (effects.includes('social_post_created')) {
+            addNotification({ type: 'socialPost', icon: '📱', title: 'Social post draft created', body: 'Review and publish it from the Social Media page.' });
+          } else if (effects.includes('brain_doc_created')) {
+            addNotification({ type: 'agentHandoff', icon: '🧠', title: 'Saved to Brain', body: 'The pipeline output was saved as a Brain document.' });
+          } else if (effects.includes('email_sent')) {
+            addNotification({ type: 'agentHandoff', icon: '📧', title: 'Email draft sent', body: 'An email draft was generated from this pipeline output.' });
+          }
         }}
         onDiscard={async () => {
           await api.discardRun(view.run.id);
@@ -938,7 +994,17 @@ export default function Pipelines() {
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-gray-800">{pipeline?.name || 'Pipeline'}</p>
-                          <p className="text-xs text-muted-foreground">{(run.stepsOutput || []).length} steps · {format(new Date(run.ranAt), 'MMM d, h:mm a')}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-xs text-muted-foreground">{(run.stepsOutput || []).length} steps · {format(new Date(run.ranAt), 'MMM d, h:mm a')}</p>
+                            {pipeline && (() => {
+                              const info = detectPipelineType(pipeline.name);
+                              return (
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ color: info.color, background: info.bg }}>
+                                  {info.icon} {info.label}
+                                </span>
+                              );
+                            })()}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 w-full sm:w-auto justify-end">

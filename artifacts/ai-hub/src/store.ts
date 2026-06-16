@@ -11,6 +11,9 @@ export interface Account {
   token: string;
   color: string;
   emoji: string;
+  userId?: number;
+  email?: string;
+  userName?: string;
 }
 
 export interface HubNotification {
@@ -32,8 +35,6 @@ interface AppState {
   logout: () => void;
   setBusinessTag: (tag: BusinessTag) => void;
   password: string | null;
-
-  // ── Notification center ──────────────────────────────────────────────────
   notifications: HubNotification[];
   addNotification: (n: Omit<HubNotification, 'id' | 'createdAt' | 'read'>) => void;
   markAllRead: () => void;
@@ -73,7 +74,7 @@ export const useAppStore = create<AppState>()(
             read: false,
           },
           ...state.notifications,
-        ].slice(0, 50), // keep last 50
+        ].slice(0, 50),
       })),
 
       markAllRead: () => set((state) => ({

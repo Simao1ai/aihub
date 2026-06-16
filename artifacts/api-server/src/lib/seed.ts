@@ -1,5 +1,5 @@
-import { db, agentsTable, automationsTable, workspacesTable, automationTemplatesTable, pipelinesTable } from "@workspace/db";
-import { sql } from "drizzle-orm";
+import { db, agentsTable, automationsTable, workspacesTable, automationTemplatesTable, pipelinesTable, usersTable, organizationsTable, orgMembershipsTable } from "@workspace/db";
+import { sql, eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { logger } from "./logger";
@@ -1227,6 +1227,31 @@ export async function seedDatabase() {
   try {
     logger.info("Checking database seed state...");
 
+    // ── Seed default owner user + organization ────────────────────────────────
+    const ownerEmail = (process.env.OWNER_EMAIL ?? "owner@synthdesk.ai").toLowerCase();
+    const ownerName  = process.env.OWNER_NAME  ?? "Workspace Owner";
+    const ownerPass  = process.env.OWNER_PASSWORD ?? "aihub2024";
+
+    let [ownerUser] = await db.select().from(usersTable).where(eq(usersTable.email, ownerEmail));
+    if (!ownerUser) {
+      const passwordHash = await bcrypt.hash(ownerPass, 10);
+      [ownerUser] = await db.insert(usersTable).values({ email: ownerEmail, name: ownerName, passwordHash }).returning();
+      logger.info(`Default owner user created: ${ownerEmail}`);
+    }
+
+    let [defaultOrg] = await db.select().from(organizationsTable).where(eq(organizationsTable.slug, "default"));
+    if (!defaultOrg) {
+      [defaultOrg] = await db.insert(organizationsTable).values({ name: "Default Organization", slug: "default", ownerId: ownerUser.id }).returning();
+      logger.info("Default organization created");
+    }
+
+    const [existingMembership] = await db.select().from(orgMembershipsTable)
+      .where(eq(orgMembershipsTable.userId, ownerUser.id));
+    if (!existingMembership) {
+      await db.insert(orgMembershipsTable).values({ userId: ownerUser.id, orgId: defaultOrg.id, role: "owner" });
+      logger.info("Owner membership created");
+    }
+
     // Seed workspaces (upsert by slug — password only set on initial INSERT, never overwritten)
     for (const ws of WORKSPACES) {
       const plainPw = ws.password ?? crypto.randomBytes(12).toString("base64url");
@@ -1250,6 +1275,11 @@ export async function seedDatabase() {
         });
     }
     logger.info("Workspaces seeded (passwords hashed with bcrypt)");
+
+    // Associate all workspaces (including freshly seeded ones) with the default org
+    await db.update(workspacesTable)
+      .set({ orgId: defaultOrg.id })
+      .where(sql`org_id IS NULL`);
 
     // Seed agents — upsert by slug: insert new, ALWAYS update system prompts on existing
     for (const agent of AGENTS) {

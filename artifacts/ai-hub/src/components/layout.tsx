@@ -214,7 +214,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
-  const wsName     = account?.displayName ?? 'SynthDesk.ai';
+  const wsName     = account?.displayName ?? 'AI Hub';
   const wsColor    = account?.color       ?? '#6366f1';
   const wsInitials = account ? initials(account.displayName) : 'SD';
 
