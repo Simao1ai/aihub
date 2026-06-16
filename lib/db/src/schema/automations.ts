@@ -6,6 +6,7 @@ import { agentsTable } from "./agents";
 export const automationsTable = pgTable("automations", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  businessTag: text("business_tag").notNull().default("general"),
   agentId: integer("agent_id").notNull().references(() => agentsTable.id),
   scheduleCron: text("schedule_cron"),
   promptTemplate: text("prompt_template").notNull(),

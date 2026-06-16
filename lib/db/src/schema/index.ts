@@ -1,4 +1,5 @@
 export * from "./agents";
+export * from "./sessions";
 export * from "./brain";
 export * from "./automations";
 export * from "./connections";

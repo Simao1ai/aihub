@@ -20,6 +20,7 @@ export interface StepOutput {
 export const pipelinesTable = pgTable("pipelines", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  businessTag: text("business_tag").notNull().default("general"),
   description: text("description"),
   steps: jsonb("steps").notNull().$type<PipelineStep[]>().default([]),
   isActive: boolean("is_active").notNull().default(true),

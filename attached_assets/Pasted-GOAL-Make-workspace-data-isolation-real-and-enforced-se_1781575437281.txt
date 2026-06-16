@@ -1,0 +1,37 @@
+GOAL: Make workspace data isolation real and enforced server-side, and harden auth.
+This must work for the current single-user setup without a full user-accounts rewrite yet.
+
+1. SESSION PERSISTENCE
+   - Replace the in-memory session Map in artifacts/api-server/src/lib/session.ts with a
+     Postgres-backed sessions table (Drizzle): token, workspace, expiresAt, createdAt.
+   - Keep the same createSession/getSession/refresh API so callers don't change.
+
+2. ENFORCE SCOPE FROM THE SESSION, NOT THE CLIENT
+   - The auth middleware already sets req.sessionWorkspace from the token. Make every data
+     route derive businessTag from req.sessionWorkspace and IGNORE any businessTag in
+     req.query/req.body for filtering and inserts. Apply to: tasks, contacts, kpis, brain,
+     conversations, social-posts routes.
+   - Replace the "SELECT * then JS .filter()" pattern with Drizzle SQL WHERE clauses
+     (eq(table.businessTag, req.sessionWorkspace)).
+
+3. SCOPE THE UNSCOPED TABLES
+   - Add a businessTag text column (default 'general', not null) to these schemas that lack it:
+     agents, automations, pipelines, connections, automation-templates.
+   - Generate/push the Drizzle migration. Backfill existing rows to 'general'.
+   - Update those routes to filter and insert by req.sessionWorkspace.
+   - IMPORTANT: the 17 seeded agents and automation-templates should be available to ALL
+     workspaces — handle this by treating 'general'/null as global/shared, OR by seeding a
+     copy per workspace. Pick the simpler approach and explain it in a comment.
+
+4. ENCRYPT CONNECTION SECRETS
+   - OAuth tokens / API keys in the connections table must be encrypted at rest using
+     AES-256-GCM with a key from process.env.ENCRYPTION_KEY. Encrypt on write, decrypt on read.
+     Add ENCRYPTION_KEY to the documented env vars.
+
+5. AUTH HARDENING
+   - Add rate limiting to POST /api/auth/login (e.g. express-rate-limit, max ~10/min/IP).
+   - Remove all plaintext-password fallbacks; require bcrypt everywhere (auth.ts, workspaces.ts).
+     When a workspace password is set/updated, always bcrypt-hash it.
+   - Remove the hardcoded default password from the login UI and any 'aihub2024' fallback in seed.
+
+Run pnpm run typecheck, fix errors, and confirm existing pages still load. Update replit.md.

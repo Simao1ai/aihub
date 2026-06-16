@@ -63,9 +63,8 @@ app.use(express.urlencoded({ extended: true }));
 // OAuth callbacks are browser redirects from third-party providers — no Bearer header
 // is possible on these requests. Workspace identity is recovered from the signed state param.
 const PUBLIC_PREFIXES = ["/api/auth/", "/api/health", "/api/connections/oauth/"];
-const PUBLIC_EXACT = ["/api/auth/workspaces", "/api/auth/login", "/api/auth/verify"];
 
-app.use("/api", (req: Request, res: Response, next: NextFunction) => {
+app.use("/api", async (req: Request, res: Response, next: NextFunction) => {
   const fullPath = "/api" + req.path;
 
   // Allow public endpoints
@@ -81,7 +80,7 @@ app.use("/api", (req: Request, res: Response, next: NextFunction) => {
   }
 
   const token = authHeader.slice(7);
-  const workspace = validateSession(token);
+  const workspace = await validateSession(token);
   if (!workspace) {
     return res.status(401).json({ error: "Invalid or expired session. Please log in again." });
   }

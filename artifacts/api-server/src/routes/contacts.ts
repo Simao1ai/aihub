@@ -1,15 +1,16 @@
 import { Router, type IRouter } from "express";
 import { db, contactsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 const router: IRouter = Router();
 
 router.get("/", async (req, res) => {
   try {
-    const { businessTag, status } = req.query as Record<string, string>;
-    let rows = await db.select().from(contactsTable).orderBy(contactsTable.createdAt);
-    if (businessTag) rows = rows.filter(r => r.businessTag === businessTag);
-    if (status) rows = rows.filter(r => r.status === status);
+    const ws = (req as any).sessionWorkspace as string;
+    const { status } = req.query as Record<string, string>;
+    const conditions: ReturnType<typeof eq>[] = [eq(contactsTable.businessTag, ws)];
+    if (status) conditions.push(eq(contactsTable.status, status));
+    const rows = await db.select().from(contactsTable).where(and(...conditions)).orderBy(contactsTable.createdAt);
     res.json(rows);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -18,8 +19,9 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { name, company, email, phone, status, notes, businessTag } = req.body;
-    if (!name || !businessTag) return res.status(400).json({ error: "name and businessTag required" });
+    const ws = (req as any).sessionWorkspace as string;
+    const { name, company, email, phone, status, notes } = req.body;
+    if (!name) return res.status(400).json({ error: "name is required" });
     const [row] = await db.insert(contactsTable).values({
       name,
       company: company ?? "",
@@ -27,7 +29,7 @@ router.post("/", async (req, res) => {
       phone: phone ?? "",
       status: status ?? "lead",
       notes: notes ?? "",
-      businessTag,
+      businessTag: ws,
     }).returning();
     res.status(201).json(row);
   } catch (err: any) {
@@ -37,6 +39,7 @@ router.post("/", async (req, res) => {
 
 router.put("/:id", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const id = parseInt(req.params.id);
     const { name, company, email, phone, status, notes } = req.body;
     const updates: Record<string, unknown> = {};
@@ -46,7 +49,9 @@ router.put("/:id", async (req, res) => {
     if (phone !== undefined) updates.phone = phone;
     if (status !== undefined) updates.status = status;
     if (notes !== undefined) updates.notes = notes;
-    const [row] = await db.update(contactsTable).set(updates).where(eq(contactsTable.id, id)).returning();
+    const [row] = await db.update(contactsTable).set(updates)
+      .where(and(eq(contactsTable.id, id), eq(contactsTable.businessTag, ws)))
+      .returning();
     if (!row) return res.status(404).json({ error: "Contact not found" });
     res.json(row);
   } catch (err: any) {
@@ -56,8 +61,9 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const id = parseInt(req.params.id);
-    await db.delete(contactsTable).where(eq(contactsTable.id, id));
+    await db.delete(contactsTable).where(and(eq(contactsTable.id, id), eq(contactsTable.businessTag, ws)));
     res.status(204).end();
   } catch (err: any) {
     res.status(500).json({ error: err.message });

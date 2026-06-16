@@ -2,9 +2,11 @@ import { Router, type IRouter } from "express";
 import { db, connectionsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { encryptSecret, decryptSecret } from "../lib/crypto";
 import nodemailer from "nodemailer";
 
-// Read workspace from X-Workspace header (falls back to 'general')
+// Read workspace from X-Workspace header — only used for public OAuth endpoints
+// All protected routes use req.sessionWorkspace instead
 function getWorkspace(req: any): string {
   return (req.headers["x-workspace"] as string) || "general";
 }
@@ -101,10 +103,10 @@ router.post("/proxy/mailbase/tenants", async (req, res) => {
   }
 });
 
-// List connections — scoped to the calling workspace
+// List connections — scoped to the session workspace
 router.get("/", async (req, res) => {
   try {
-    const ws = getWorkspace(req);
+    const ws = (req as any).sessionWorkspace as string;
     const conns = await db.select().from(connectionsTable)
       .where(eq(connectionsTable.workspaceSlug, ws))
       .orderBy(connectionsTable.platform);
@@ -254,7 +256,7 @@ router.post("/meta/seed", async (req, res) => {
       displayName: "Meta",
       accountLabel: resolvedName,
       authType: "api_key",
-      apiKey: longLivedToken,
+      apiKey: encryptSecret(longLivedToken),
       scopes: [],
       metadata: { pageId, pageName: resolvedName, pageAccessToken },
       isConnected: true,
@@ -269,10 +271,10 @@ router.post("/meta/seed", async (req, res) => {
   }
 });
 
-// Create API key connection — scoped to the calling workspace
+// Create API key connection — scoped to the session workspace
 router.post("/", async (req, res) => {
   try {
-    const ws = getWorkspace(req);
+    const ws = (req as any).sessionWorkspace as string;
     const { platform, apiKey, accountLabel, metadata } = req.body;
 
     const [conn] = await db.insert(connectionsTable).values({
@@ -281,7 +283,7 @@ router.post("/", async (req, res) => {
       displayName: PLATFORM_DISPLAY_NAMES[platform] || platform,
       accountLabel,
       authType: "api_key",
-      apiKey,
+      apiKey: apiKey ? encryptSecret(apiKey) : apiKey,
       scopes: [],
       metadata,
       isConnected: true,
@@ -312,8 +314,14 @@ router.delete("/:id", async (req, res) => {
 router.post("/:id/test", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const [conn] = await db.select().from(connectionsTable).where(eq(connectionsTable.id, id));
-    if (!conn) return res.status(404).json({ error: "Connection not found" });
+    const [rawConn] = await db.select().from(connectionsTable).where(eq(connectionsTable.id, id));
+    if (!rawConn) return res.status(404).json({ error: "Connection not found" });
+    // Decrypt stored secrets before using in API calls
+    const conn = {
+      ...rawConn,
+      apiKey: rawConn.apiKey ? decryptSecret(rawConn.apiKey) : rawConn.apiKey,
+      accessToken: rawConn.accessToken ? decryptSecret(rawConn.accessToken) : rawConn.accessToken,
+    };
 
     // Platform-specific tests
     if (conn.platform === "gohighlevel" && conn.apiKey) {

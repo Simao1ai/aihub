@@ -1,6 +1,7 @@
 import { db, agentsTable, automationsTable, workspacesTable, automationTemplatesTable, pipelinesTable } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
 import { logger } from "./logger";
 
 const WORKSPACES = [
@@ -10,7 +11,7 @@ const WORKSPACES = [
     description: "Full access across all businesses and agents",
     emoji: "⚡",
     color: "#6366f1",
-    password: process.env.GENERAL_PASSWORD || "aihub2024",
+    password: process.env.GENERAL_PASSWORD,
     businessContext: "You have full access to all of Simao's businesses: LESA Inspections (home inspection, B2B with realtors), CarrierDeskHQ (trucking consulting SaaS), SalonSync Hub (salon management SaaS), Sweepello (cleaning marketplace SaaS), and Real Estate Investments. Provide cross-business strategic guidance as needed.",
     sortOrder: 0,
     isActive: true,
@@ -21,7 +22,7 @@ const WORKSPACES = [
     description: "Home inspection B2B business with realtor network",
     emoji: "🏠",
     color: "#10b981",
-    password: process.env.LES_A_PASSWORD || "aihub2024",
+    password: process.env.LES_A_PASSWORD,
     businessContext: "LESA Inspections is Simao's home inspection business. It operates B2B, partnering with real estate agents and realtors to provide home inspection services. Key goals: grow the realtor referral network, increase inspection volume, build a strong reputation in the local market. Revenue model: per-inspection fees paid by home buyers, referred by realtor partners.",
     sortOrder: 1,
     isActive: true,
@@ -32,7 +33,7 @@ const WORKSPACES = [
     description: "Trucking consulting and dispatch SaaS platform",
     emoji: "🚛",
     color: "#f59e0b",
-    password: process.env.CARRIERDESKH_PASSWORD || "aihub2024",
+    password: process.env.CARRIERDESKH_PASSWORD,
     businessContext: "CarrierDeskHQ is Simao's trucking consulting and dispatch SaaS. It helps owner-operators and small trucking companies manage dispatch, load finding, and compliance. Key goals: acquire trucking clients, reduce churn, build SaaS features that solve real carrier pain points. Revenue model: monthly SaaS subscriptions from trucking companies.",
     sortOrder: 2,
     isActive: true,
@@ -43,7 +44,7 @@ const WORKSPACES = [
     description: "Salon management SaaS platform",
     emoji: "💇",
     color: "#ec4899",
-    password: process.env.SALONSYNC_PASSWORD || "aihub2024",
+    password: process.env.SALONSYNC_PASSWORD,
     businessContext: "SalonSync Hub is a salon management SaaS built by Simao. It helps salons manage appointments, staff, clients, and payments. Key goals: grow salon subscriber base, reduce booking no-shows, help salon owners increase revenue per chair. Revenue model: monthly SaaS subscriptions from salon owners.",
     sortOrder: 3,
     isActive: true,
@@ -54,7 +55,7 @@ const WORKSPACES = [
     description: "Cleaning services marketplace platform",
     emoji: "🧹",
     color: "#3b82f6",
-    password: process.env.SWEEPELLO_PASSWORD || "aihub2024",
+    password: process.env.SWEEPELLO_PASSWORD,
     businessContext: "Sweepello is Simao's cleaning marketplace SaaS. It connects homeowners and businesses with vetted cleaning professionals. Key goals: grow cleaner supply side, grow demand side (client bookings), ensure quality control, and build trust through ratings. Revenue model: marketplace commission on bookings.",
     sortOrder: 4,
     isActive: true,
@@ -65,7 +66,7 @@ const WORKSPACES = [
     description: "Real estate investment portfolio and acquisitions",
     emoji: "🏢",
     color: "#8b5cf6",
-    password: process.env.REAL_ESTATE_PASSWORD || "aihub2024",
+    password: process.env.REAL_ESTATE_PASSWORD,
     businessContext: "Simao's real estate investment business focuses on acquiring, holding, and potentially flipping properties. Key goals: identify undervalued properties, analyze deals, manage portfolio performance, and track equity growth. Strategy may include tax deed auctions, MLS deals, and off-market acquisitions.",
     sortOrder: 5,
     isActive: true,
@@ -1226,9 +1227,13 @@ export async function seedDatabase() {
   try {
     logger.info("Checking database seed state...");
 
-    // Seed workspaces (upsert by slug — update businessContext/emoji/color/password)
+    // Seed workspaces (upsert by slug — password only set on initial INSERT, never overwritten)
     for (const ws of WORKSPACES) {
-      const hashedPassword = await bcrypt.hash(ws.password, 10);
+      const plainPw = ws.password ?? crypto.randomBytes(12).toString("base64url");
+      if (!ws.password) {
+        logger.warn(`No password env var set for workspace '${ws.slug}' — generated temporary password: ${plainPw} (set the env var to persist it)`);
+      }
+      const hashedPassword = await bcrypt.hash(plainPw, 10);
       await db
         .insert(workspacesTable)
         .values({ ...ws, password: hashedPassword })
@@ -1240,7 +1245,7 @@ export async function seedDatabase() {
             emoji: sql`excluded.emoji`,
             color: sql`excluded.color`,
             description: sql`excluded.description`,
-            password: sql`excluded.password`,
+            // password intentionally omitted — existing bcrypt hash is preserved
           },
         });
     }

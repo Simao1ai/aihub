@@ -5,6 +5,7 @@ import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/image";
 import { sendPostPublishedEmail } from "../lib/email";
 import { logger } from "../lib/logger";
+import { decryptSecret } from "../lib/crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,7 +28,6 @@ export async function publishPost(post: {
     conn = found;
   }
 
-  // If no connection found, try to auto-find one matching the platform
   if (!conn) {
     const all = await db.select().from(connectionsTable).where(eq(connectionsTable.platform, post.platform));
     conn = all[0];
@@ -57,6 +57,10 @@ export async function publishPost(post: {
   if (!conn) throw new Error("No connection found for this post. Add a Meta connection in Integrations.");
   if (!conn.accessToken && !conn.apiKey && !process.env.FB_USER_TOKEN) throw new Error("Connection has no credentials");
 
+  // Decrypt stored secrets before use
+  const accessToken = conn.accessToken ? decryptSecret(conn.accessToken) : null;
+  const apiKey = conn.apiKey ? decryptSecret(conn.apiKey) : null;
+
   let success = false;
   let platformPostId: string | undefined;
   let publishedUrl: string | undefined;
@@ -65,14 +69,14 @@ export async function publishPost(post: {
   try {
     if (conn.platform === "linkedin") {
       const meResp = await fetch("https://api.linkedin.com/v2/me", {
-        headers: { Authorization: `Bearer ${conn.accessToken}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       const me = await meResp.json() as { id: string };
 
       const postResp = await fetch("https://api.linkedin.com/v2/ugcPosts", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${conn.accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
           "X-Restli-Protocol-Version": "2.0.0",
         },
@@ -100,7 +104,7 @@ export async function publishPost(post: {
       const tweetResp = await fetch("https://api.twitter.com/2/tweets", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${conn.accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ text: post.content.slice(0, 280) }),
@@ -110,7 +114,7 @@ export async function publishPost(post: {
       platformPostId = data?.data?.id;
 
     } else if (conn.platform === "meta") {
-      const userToken = conn.accessToken || conn.apiKey || process.env.FB_USER_TOKEN || "";
+      const userToken = accessToken || apiKey || process.env.FB_USER_TOKEN || "";
       const meta = conn.metadata as any;
 
       let postToken: string = meta?.pageAccessToken || "";
@@ -192,7 +196,6 @@ export async function publishPost(post: {
     errorMessage = errorMessage ?? `DB update failed: ${dbErr.message}`;
   }
 
-  // Send email confirmation when published
   if (success) {
     sendPostPublishedEmail({
       platform: post.platform,
@@ -210,13 +213,11 @@ const router: IRouter = Router();
 // ── GET /api/social-posts/stats ───────────────────────────────────────────
 router.get("/stats", async (req, res) => {
   try {
-    const { businessTag } = req.query as Record<string, string>;
+    const ws = (req as any).sessionWorkspace as string;
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    const allPosts = businessTag
-      ? await db.select().from(socialPostsTable).where(eq(socialPostsTable.businessTag, businessTag))
-      : await db.select().from(socialPostsTable);
+    const allPosts = await db.select().from(socialPostsTable).where(eq(socialPostsTable.businessTag, ws));
 
     const queued = allPosts.filter(p => p.status === 'pending_approval').length;
     const scheduled = allPosts.filter(p =>
@@ -236,17 +237,16 @@ router.get("/stats", async (req, res) => {
 // ── GET /api/social-posts ─────────────────────────────────────────────────
 router.get("/", async (req, res) => {
   try {
-    const { status, platform, businessTag } = req.query as Record<string, string>;
-    let q = db.select().from(socialPostsTable).orderBy(desc(socialPostsTable.createdAt));
+    const ws = (req as any).sessionWorkspace as string;
+    const { status, platform } = req.query as Record<string, string>;
 
-    const conditions = [];
+    const conditions: ReturnType<typeof eq>[] = [eq(socialPostsTable.businessTag, ws)];
     if (status) conditions.push(eq(socialPostsTable.status, status));
     if (platform) conditions.push(eq(socialPostsTable.platform, platform));
-    if (businessTag) conditions.push(eq(socialPostsTable.businessTag, businessTag));
 
-    const posts = conditions.length
-      ? await db.select().from(socialPostsTable).where(and(...conditions)).orderBy(desc(socialPostsTable.createdAt))
-      : await db.select().from(socialPostsTable).orderBy(desc(socialPostsTable.createdAt));
+    const posts = await db.select().from(socialPostsTable)
+      .where(and(...conditions))
+      .orderBy(desc(socialPostsTable.createdAt));
 
     res.json(posts);
   } catch (err: any) {
@@ -257,14 +257,15 @@ router.get("/", async (req, res) => {
 // ── POST /api/social-posts ─────────────────────────────────────────────────
 router.post("/", async (req, res) => {
   try {
-    const { platform, content, connectionId, businessTag, topic, status, aiGenerated } = req.body;
+    const ws = (req as any).sessionWorkspace as string;
+    const { platform, content, connectionId, topic, status, aiGenerated } = req.body;
     if (!platform) return res.status(400).json({ error: "platform is required" });
 
     const [post] = await db.insert(socialPostsTable).values({
       platform,
       content: content ?? "",
       connectionId: connectionId ?? null,
-      businessTag: businessTag ?? "general",
+      businessTag: ws,
       topic: topic ?? null,
       status: status ?? "draft",
       aiGenerated: aiGenerated ?? false,
@@ -299,8 +300,6 @@ router.put("/:id", async (req, res) => {
 });
 
 // ── POST /api/social-posts/:id/generate-image ─────────────────────────────
-// Generates a real image from the post's imagePrompt using OpenAI gpt-image-1,
-// saves it to disk, and stores the URL on the post record.
 router.post("/:id/generate-image", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -310,14 +309,9 @@ router.post("/:id/generate-image", async (req, res) => {
     const imagePrompt = req.body.imagePrompt ?? post.imagePrompt;
     if (!imagePrompt) return res.status(400).json({ error: "No image prompt available — PIXEL must provide one first" });
 
-    // Ensure images directory exists
     if (!fs.existsSync(IMAGES_DIR)) fs.mkdirSync(IMAGES_DIR, { recursive: true });
 
-    // Determine aspect ratio from platform
-    const size = post.platform === "meta" || post.platform === "instagram"
-      ? "1024x1024"
-      : "1024x1024";
-
+    const size = "1024x1024";
     const buffer = await generateImageBuffer(imagePrompt, size);
 
     const filename = `social-${id}-${Date.now()}.png`;
@@ -349,20 +343,16 @@ router.delete("/:id", async (req, res) => {
 });
 
 // ── POST /api/social-posts/ai-draft ───────────────────────────────────────
-// Use SOSHI agent to generate a post draft
 router.post("/ai-draft", async (req, res) => {
   try {
-    const { platform, topic, businessTag, tone } = req.body;
+    const ws = (req as any).sessionWorkspace as string;
+    const { platform, topic, tone } = req.body;
     if (!platform || !topic) return res.status(400).json({ error: "platform and topic are required" });
 
-    // Get business context
     let businessContext = "";
-    if (businessTag) {
-      const [ws] = await db.select().from(workspacesTable).where(eq(workspacesTable.slug, businessTag));
-      businessContext = ws?.businessContext ?? "";
-    }
+    const [wsRow] = await db.select().from(workspacesTable).where(eq(workspacesTable.slug, ws));
+    businessContext = wsRow?.businessContext ?? "";
 
-    // Get SOSHI agent system prompt
     const [soshi] = await db.select().from(agentsTable).where(eq(agentsTable.slug, "soshi"));
     const systemPrompt = soshi?.systemPrompt ?? "You are SOSHI, a social media expert. Write engaging posts.";
 
@@ -391,11 +381,10 @@ Write ONLY the post content — no intro, no explanation, no quotes around it. J
 
     const content = (response.content[0] as any).text?.trim() ?? "";
 
-    // Save as a draft
     const [post] = await db.insert(socialPostsTable).values({
       platform,
       content,
-      businessTag: businessTag ?? "general",
+      businessTag: ws,
       topic,
       status: "pending_approval",
       aiGenerated: true,
@@ -409,22 +398,17 @@ Write ONLY the post content — no intro, no explanation, no quotes around it. J
 });
 
 // ── POST /api/social-posts/:id/approve ────────────────────────────────────
-// Approve a post. If it has a connectionId and no scheduledAt, publish immediately.
 router.post("/:id/approve", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const [post] = await db.select().from(socialPostsTable).where(eq(socialPostsTable.id, id));
     if (!post) return res.status(404).json({ error: "Post not found" });
 
-    // If post has a connection and no schedule → publish now
     if (post.connectionId && !post.scheduledAt) {
-      // Update to approved first
       await db.update(socialPostsTable).set({ status: "approved", updatedAt: new Date() }).where(eq(socialPostsTable.id, id));
-      // Publish inline
       const result = await publishPost(post);
       res.json({ ...result, autoPublished: true });
     } else {
-      // Just approve (will be published on schedule or manually)
       const [updated] = await db.update(socialPostsTable)
         .set({ status: "approved", updatedAt: new Date() })
         .where(eq(socialPostsTable.id, id))
@@ -437,18 +421,15 @@ router.post("/:id/approve", async (req, res) => {
 });
 
 // ── POST /api/social-posts/:id/post-now ───────────────────────────────────
-// Publish a post to the connected platform immediately
 router.post("/:id/post-now", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const [post] = await db.select().from(socialPostsTable).where(eq(socialPostsTable.id, id));
     if (!post) return res.status(404).json({ error: "Post not found" });
 
-    // Delegate to shared publish function — auto-finds connection and falls back to env vars
     const result = await publishPost(post);
     return res.json(result);
   } catch (err: any) {
-    // Always return the real error message so the UI can display it
     logger.error({ err: err.message }, "[post-now] unexpected error");
     return res.json({ success: false, errorMessage: err.message });
   }

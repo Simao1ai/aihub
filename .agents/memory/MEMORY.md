@@ -1,2 +1,3 @@
 - [Meta connection token flow](meta-connection-token.md) — page tokens must be obtained via server-side exchange; browser-direct calls get short-lived tokens
 - [post-now debugging](post-now-debugging.md) — logger import missing in social-posts.ts masked all real FB errors; always check ReferenceError in prod logs first
+- [Security architecture](security-arch.md) — Postgres-backed sessions, bcrypt auth, AES-256-GCM secrets, full route scoping by sessionWorkspace

@@ -4,12 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, ArrowRight, ChevronLeft } from 'lucide-react';
 import { useWorkspaces, useLogin, type Workspace } from '@/hooks/use-auth';
 
-const DEFAULT_WORKSPACES: Workspace[] = [
-  { id: 1, slug: 'general', name: 'General', description: 'Full access across all businesses and agents', emoji: '⚡', color: '#6366f1' },
-  { id: 2, slug: 'equifind', name: 'Equifind Recovery', description: 'Florida tax deed surplus fund recovery operations', emoji: '💼', color: '#f59e0b' },
-  { id: 3, slug: 'home_inspection', name: 'Home Inspections', description: 'B2B home inspection & realtor network management', emoji: '🏠', color: '#10b981' },
-];
-
 export default function Login() {
   const [, setLocation] = useLocation();
 
@@ -19,7 +13,7 @@ export default function Login() {
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
   const [password, setPassword] = useState('');
 
-  const { data: workspaces = DEFAULT_WORKSPACES } = useWorkspaces();
+  const { data: workspaces = [] } = useWorkspaces();
   const loginMutation = useLogin();
 
   // Auto-resolve the workspace from the ?ws= URL param once the list is loaded
@@ -228,9 +222,6 @@ export default function Login() {
                   </button>
                 </form>
 
-                <p className="text-gray-300 text-xs text-center mt-6">
-                  Default password: <span className="font-mono text-gray-400">aihub2024</span>
-                </p>
               </motion.div>
             )}
 

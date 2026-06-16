@@ -405,35 +405,24 @@ function ActivePipelinesWidget({ onNavigate }: { onNavigate: () => void }) {
 
 // ─── Cross-Business Overview (General workspace only) ────────────────────
 
+interface CrossWsRow {
+  slug: string; name: string; emoji: string; color: string;
+  taskCount: number; overdueCount: number; contactCount: number;
+  pendingSocialCount: number; postedSocialCount: number;
+  kpis: Array<{ name: string; value: number; unit: string }>;
+}
+
 function CrossBusinessOverview() {
-  const [, setLocation] = useLocation();
-  const [allWorkspaces, setAllWorkspaces] = useState<any[]>([]);
-  const [taskCounts, setTaskCounts] = useState<Record<string, number>>({});
-  const [overdueCounts, setOverdueCounts] = useState<Record<string, number>>({});
-  const [contactCounts, setContactCounts] = useState<Record<string, number>>({});
+  const [rows, setRows] = useState<CrossWsRow[]>([]);
 
   useEffect(() => {
-    fetch('/api/auth/workspaces').then(r => r.json()).then(ws => {
-      const active = ws.filter((w: any) => w.slug !== 'general');
-      setAllWorkspaces(active);
-      const today = new Date().toISOString().split('T')[0];
-      active.forEach(async (w: any) => {
-        try {
-          const [tasks, contacts] = await Promise.all([
-            fetch(`/api/tasks?businessTag=${w.slug}`).then(r => r.json()),
-            fetch(`/api/contacts?businessTag=${w.slug}`).then(r => r.json()),
-          ]);
-          const activeTasks = Array.isArray(tasks) ? tasks.filter((t: any) => t.status !== 'done') : [];
-          const overdue = activeTasks.filter((t: any) => t.dueDate && t.dueDate < today).length;
-          setTaskCounts(prev => ({ ...prev, [w.slug]: activeTasks.length }));
-          setOverdueCounts(prev => ({ ...prev, [w.slug]: overdue }));
-          setContactCounts(prev => ({ ...prev, [w.slug]: Array.isArray(contacts) ? contacts.length : 0 }));
-        } catch {}
-      });
-    }).catch(() => {});
+    fetch('/api/admin/cross-workspace')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: CrossWsRow[]) => setRows(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, []);
 
-  if (allWorkspaces.length === 0) return null;
+  if (rows.length === 0) return null;
 
   return (
     <motion.div variants={item} className="rounded-2xl border border-gray-100 bg-white p-6">
@@ -441,34 +430,43 @@ function CrossBusinessOverview() {
         <Sparkles className="w-4 h-4 text-primary" /> All Businesses
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {allWorkspaces.map((ws: any) => {
-          const overdue = overdueCounts[ws.slug] ?? 0;
-          return (
-            <div
-              key={ws.slug}
-              className="p-3 rounded-xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-base"
-                  style={{ background: `${ws.color}20` }}
-                >
-                  {ws.emoji}
-                </div>
-                <p className="text-xs font-semibold text-gray-700 truncate">{ws.name}</p>
+        {rows.map((ws) => (
+          <div
+            key={ws.slug}
+            className="p-3 rounded-xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all cursor-pointer"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-base"
+                style={{ background: `${ws.color}20` }}
+              >
+                {ws.emoji}
               </div>
-              <div className="flex gap-3 text-[11px] text-gray-400">
-                <span>{taskCounts[ws.slug] ?? 0} tasks</span>
-                {overdue > 0 && (
-                  <span className="text-red-400 flex items-center gap-0.5">
-                    <AlertTriangle className="w-2.5 h-2.5" />{overdue} overdue
-                  </span>
-                )}
-                <span>{contactCounts[ws.slug] ?? 0} contacts</span>
-              </div>
+              <p className="text-xs font-semibold text-gray-700 truncate">{ws.name}</p>
             </div>
-          );
-        })}
+            <div className="flex flex-wrap gap-2 text-[11px] text-gray-400">
+              <span>{ws.taskCount} tasks</span>
+              {ws.overdueCount > 0 && (
+                <span className="text-red-400 flex items-center gap-0.5">
+                  <AlertTriangle className="w-2.5 h-2.5" />{ws.overdueCount} overdue
+                </span>
+              )}
+              <span>{ws.contactCount} contacts</span>
+              {ws.pendingSocialCount > 0 && (
+                <span className="text-amber-400">{ws.pendingSocialCount} pending posts</span>
+              )}
+            </div>
+            {ws.kpis.length > 0 && (
+              <div className="flex gap-2 mt-2">
+                {ws.kpis.map(k => (
+                  <span key={k.name} className="text-[10px] px-1.5 py-0.5 rounded-md bg-white border border-gray-100 text-gray-500">
+                    {k.unit === '$' ? `$${k.value >= 1000 ? `${(k.value / 1000).toFixed(0)}K` : k.value}` : `${k.value}${k.unit}`}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </motion.div>
   );

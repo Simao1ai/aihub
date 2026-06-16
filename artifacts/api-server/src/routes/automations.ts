@@ -18,13 +18,15 @@ const parseId = (val: string): number | null => {
   return isNaN(n) ? null : n;
 };
 
-// List automations
+// List automations — scoped to session workspace
 router.get("/", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const rows = await db
       .select({
         id: automationsTable.id,
         name: automationsTable.name,
+        businessTag: automationsTable.businessTag,
         agentId: automationsTable.agentId,
         agentName: agentsTable.name,
         agentIcon: agentsTable.icon,
@@ -40,6 +42,7 @@ router.get("/", async (req, res) => {
       })
       .from(automationsTable)
       .leftJoin(agentsTable, eq(automationsTable.agentId, agentsTable.id))
+      .where(eq(automationsTable.businessTag, ws))
       .orderBy(automationsTable.createdAt);
 
     res.json(rows);
@@ -49,14 +52,15 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Create automation
+// Create automation — always tagged to session workspace
 router.post("/", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const { name, agentId, scheduleCron, promptTemplate, isActive } = req.body;
     const nextRunAt = calcNextRunAt(scheduleCron);
     const [automation] = await db
       .insert(automationsTable)
-      .values({ name, agentId, scheduleCron, promptTemplate, isActive: isActive ?? true, status: "idle", nextRunAt })
+      .values({ name, agentId, scheduleCron, promptTemplate, isActive: isActive ?? true, status: "idle", nextRunAt, businessTag: ws })
       .returning();
 
     const [agent] = await db.select().from(agentsTable).where(eq(agentsTable.id, agentId));
@@ -69,9 +73,10 @@ router.post("/", async (req, res) => {
 
 // ── List / approve / discard runs — must be BEFORE /:id to avoid matching "runs" as an ID ──
 
-// List automation runs
+// List automation runs — scoped to session workspace via automation join
 router.get("/runs", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const { automationId, status } = req.query;
 
     const rows = await db
@@ -89,6 +94,7 @@ router.get("/runs", async (req, res) => {
       .from(automationRunsTable)
       .leftJoin(automationsTable, eq(automationRunsTable.automationId, automationsTable.id))
       .leftJoin(agentsTable, eq(automationsTable.agentId, agentsTable.id))
+      .where(eq(automationsTable.businessTag, ws))
       .orderBy(automationRunsTable.ranAt);
 
     let filtered = rows;
@@ -172,15 +178,17 @@ router.post("/runs/:id/discard", async (req, res) => {
   }
 });
 
-// Get automation
+// Get automation — scoped to session workspace
 router.get("/:id", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const id = parseId(req.params.id);
     if (id === null) return res.status(400).json({ error: "Invalid ID" });
     const [row] = await db
       .select({
         id: automationsTable.id,
         name: automationsTable.name,
+        businessTag: automationsTable.businessTag,
         agentId: automationsTable.agentId,
         agentName: agentsTable.name,
         agentIcon: agentsTable.icon,
@@ -196,7 +204,7 @@ router.get("/:id", async (req, res) => {
       })
       .from(automationsTable)
       .leftJoin(agentsTable, eq(automationsTable.agentId, agentsTable.id))
-      .where(eq(automationsTable.id, id));
+      .where(and(eq(automationsTable.id, id), eq(automationsTable.businessTag, ws)));
 
     if (!row) return res.status(404).json({ error: "Automation not found" });
     res.json(row);
@@ -206,9 +214,10 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Update automation
+// Update automation — scoped to session workspace
 router.patch("/:id", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const id = parseId(req.params.id);
     if (id === null) return res.status(400).json({ error: "Invalid ID" });
     const { name, scheduleCron, promptTemplate, isActive } = req.body;
@@ -221,7 +230,9 @@ router.patch("/:id", async (req, res) => {
     if (promptTemplate !== undefined) updates.promptTemplate = promptTemplate;
     if (isActive !== undefined) updates.isActive = isActive;
 
-    const [updated] = await db.update(automationsTable).set(updates).where(eq(automationsTable.id, id)).returning();
+    const [updated] = await db.update(automationsTable).set(updates)
+      .where(and(eq(automationsTable.id, id), eq(automationsTable.businessTag, ws)))
+      .returning();
     if (!updated) return res.status(404).json({ error: "Automation not found" });
 
     const [agent] = await db.select().from(agentsTable).where(eq(agentsTable.id, updated.agentId));
@@ -232,12 +243,15 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-// Delete automation
+// Delete automation — scoped to session workspace
 router.delete("/:id", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const id = parseId(req.params.id);
     if (id === null) return res.status(400).json({ error: "Invalid ID" });
-    const [deleted] = await db.delete(automationsTable).where(eq(automationsTable.id, id)).returning();
+    const [deleted] = await db.delete(automationsTable)
+      .where(and(eq(automationsTable.id, id), eq(automationsTable.businessTag, ws)))
+      .returning();
     if (!deleted) return res.status(404).json({ error: "Automation not found" });
     res.status(204).end();
   } catch (err) {

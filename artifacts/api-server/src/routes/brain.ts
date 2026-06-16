@@ -24,12 +24,10 @@ function chunkText(text: string, chunkSize = 500): string[] {
 
 router.get("/documents", async (req, res) => {
   try {
-    const { businessTag } = req.query;
-    let query = db.select().from(brainDocumentsTable);
-    if (businessTag && typeof businessTag === "string") {
-      query = query.where(eq(brainDocumentsTable.businessTag, businessTag)) as typeof query;
-    }
-    const docs = await query.orderBy(brainDocumentsTable.createdAt);
+    const ws = (req as any).sessionWorkspace as string;
+    const docs = await db.select().from(brainDocumentsTable)
+      .where(eq(brainDocumentsTable.businessTag, ws))
+      .orderBy(brainDocumentsTable.createdAt);
     res.json(docs);
   } catch (err) {
     req.log.error(err);
@@ -39,7 +37,8 @@ router.get("/documents", async (req, res) => {
 
 router.post("/documents", async (req, res) => {
   try {
-    const { title, type, content, url, businessTag } = req.body;
+    const ws = (req as any).sessionWorkspace as string;
+    const { title, type, content, url } = req.body;
     let textContent = content || "";
 
     if (type === "url" && url) {
@@ -56,7 +55,7 @@ router.post("/documents", async (req, res) => {
         title: chunks.length > 1 ? `${title} (${i + 1}/${chunks.length})` : title,
         type,
         content: chunks[i],
-        businessTag: businessTag || "general",
+        businessTag: ws,
         metadata: { chunkIndex: i, totalChunks: chunks.length, sourceUrl: url || null },
       }).returning();
       insertedDocs.push(doc);
@@ -72,7 +71,8 @@ router.post("/documents", async (req, res) => {
 router.post("/documents/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-    const { title, businessTag } = req.body;
+    const ws = (req as any).sessionWorkspace as string;
+    const { title } = req.body;
 
     let text = "";
     try {
@@ -92,7 +92,7 @@ router.post("/documents/upload", upload.single("file"), async (req, res) => {
         title: chunks.length > 1 ? `${title} (${i + 1}/${chunks.length})` : title,
         type: "pdf",
         content: chunks[i],
-        businessTag: businessTag || "general",
+        businessTag: ws,
         metadata: { chunkIndex: i, totalChunks: chunks.length, originalFilename: req.file.originalname },
       }).returning();
       insertedDocs.push(doc);
@@ -137,7 +137,6 @@ router.delete("/documents/:id", async (req, res) => {
 
 export async function getBrainContext(query: string, businessTag = "general"): Promise<string> {
   try {
-    // Extract meaningful keywords (3+ chars, skip stopwords)
     const STOPWORDS = new Set(["the","and","for","are","was","you","your","that","this","with","have","from","they","will","what","when","how","can","need","want","about","just","also"]);
     const keywords = [...new Set(
       query.toLowerCase()
@@ -146,13 +145,11 @@ export async function getBrainContext(query: string, businessTag = "general"): P
         .filter(w => w.length >= 3 && !STOPWORDS.has(w))
     )].slice(0, 8);
 
-    // Workspace tags to search: current workspace + general docs always included
     const tags = businessTag === "general" ? ["general"] : [businessTag, "general"];
 
     let chunks: typeof brainDocumentsTable.$inferSelect[] = [];
 
     if (keywords.length > 0) {
-      // Match any keyword in title OR content, scoped to the workspace
       const keywordConditions = keywords.flatMap(kw => [
         ilike(brainDocumentsTable.content, `%${kw}%`),
         ilike(brainDocumentsTable.title, `%${kw}%`),
@@ -160,15 +157,11 @@ export async function getBrainContext(query: string, businessTag = "general"): P
       chunks = await db
         .select()
         .from(brainDocumentsTable)
-        .where(or(
-          ...keywordConditions,
-        ))
+        .where(or(...keywordConditions))
         .limit(20);
 
-      // Prefer docs tagged for this workspace, then general, then others
       chunks = chunks.filter(c => tags.includes(c.businessTag));
 
-      // Score by how many keywords match (title matches weighted 2x)
       const scored = chunks.map(c => {
         const text = (c.title + " " + c.content).toLowerCase();
         const titleText = c.title.toLowerCase();
@@ -183,7 +176,6 @@ export async function getBrainContext(query: string, businessTag = "general"): P
       chunks = scored.slice(0, 4).map(s => s.chunk);
     }
 
-    // Fallback: if no keyword hits, return most recent docs for this workspace
     if (chunks.length === 0) {
       chunks = await db
         .select()

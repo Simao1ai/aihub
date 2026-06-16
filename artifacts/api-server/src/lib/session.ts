@@ -1,45 +1,42 @@
 import crypto from "node:crypto";
+import { db, sessionsTable } from "@workspace/db";
+import { eq, lt } from "drizzle-orm";
 import { logger } from "./logger";
 
-// In-memory session store: token → { workspace, expires }
-const sessions = new Map<string, { workspace: string; expires: number }>();
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-// Clean up expired sessions every hour
-setInterval(() => {
-  const now = Date.now();
-  let removed = 0;
-  for (const [token, session] of sessions.entries()) {
-    if (session.expires < now) {
-      sessions.delete(token);
-      removed++;
-    }
+// Purge expired sessions every hour
+setInterval(async () => {
+  try {
+    await db.delete(sessionsTable).where(lt(sessionsTable.expiresAt, new Date()));
+    logger.debug("Expired sessions purged");
+  } catch (e) {
+    logger.warn({ err: e }, "Session cleanup failed");
   }
-  if (removed > 0) logger.info({ removed }, "Cleaned up expired sessions");
-}, 60 * 60 * 1000);
+}, 60 * 60 * 1000).unref();
 
-export function createSession(workspace: string): string {
+export async function createSession(workspace: string): Promise<string> {
   const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, { workspace, expires: Date.now() + SESSION_TTL_MS });
+  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+  await db.insert(sessionsTable).values({ token, workspace, expiresAt });
   return token;
 }
 
-export function validateSession(token: string): string | null {
-  const session = sessions.get(token);
+export async function validateSession(token: string): Promise<string | null> {
+  if (!token) return null;
+  const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.token, token));
   if (!session) return null;
-  if (session.expires < Date.now()) {
-    sessions.delete(token);
+  if (session.expiresAt < new Date()) {
+    await db.delete(sessionsTable).where(eq(sessionsTable.token, token));
     return null;
   }
-  // Refresh TTL on use
-  session.expires = Date.now() + SESSION_TTL_MS;
+  await db
+    .update(sessionsTable)
+    .set({ expiresAt: new Date(Date.now() + SESSION_TTL_MS) })
+    .where(eq(sessionsTable.token, token));
   return session.workspace;
 }
 
-export function destroySession(token: string): void {
-  sessions.delete(token);
-}
-
-export function getSessionCount(): number {
-  return sessions.size;
+export async function destroySession(token: string): Promise<void> {
+  await db.delete(sessionsTable).where(eq(sessionsTable.token, token));
 }

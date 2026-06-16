@@ -1,10 +1,9 @@
 import { Router, type IRouter } from "express";
 import { db, pipelinesTable, pipelineRunsTable, socialPostsTable, brainDocumentsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { runPipelineById, pipelineEmitter } from "../lib/pipeline";
 import { sendEmail } from "../lib/email";
 
-// Detect pipeline type from its name for smart approve side-effects
 function detectPipelineType(name: string): "social" | "blog" | "email" | "generic" {
   const n = name.toLowerCase();
   if (n.includes("social") || n.includes("post") || n.includes("soshi")) return "social";
@@ -20,10 +19,13 @@ const parseId = (val: string): number | null => {
   return isNaN(n) ? null : n;
 };
 
-// List all pipelines
+// List all pipelines — scoped to session workspace
 router.get("/", async (req, res) => {
   try {
-    const rows = await db.select().from(pipelinesTable).orderBy(pipelinesTable.createdAt);
+    const ws = (req as any).sessionWorkspace as string;
+    const rows = await db.select().from(pipelinesTable)
+      .where(eq(pipelinesTable.businessTag, ws))
+      .orderBy(pipelinesTable.createdAt);
     res.json(rows);
   } catch (err) {
     req.log.error(err);
@@ -31,14 +33,15 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Create pipeline
+// Create pipeline — always tagged to session workspace
 router.post("/", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const { name, description, steps } = req.body;
     if (!name || !steps || !Array.isArray(steps) || steps.length === 0) {
       return res.status(400).json({ error: "name and steps[] required" });
     }
-    const [pipeline] = await db.insert(pipelinesTable).values({ name, description, steps }).returning();
+    const [pipeline] = await db.insert(pipelinesTable).values({ name, description, steps, businessTag: ws }).returning();
     res.status(201).json(pipeline);
   } catch (err) {
     req.log.error(err);
@@ -46,12 +49,14 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Get pipeline
+// Get pipeline — scoped to session workspace
 router.get("/:id", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const id = parseId(req.params.id);
     if (id === null) return res.status(400).json({ error: "Invalid ID" });
-    const [row] = await db.select().from(pipelinesTable).where(eq(pipelinesTable.id, id));
+    const [row] = await db.select().from(pipelinesTable)
+      .where(and(eq(pipelinesTable.id, id), eq(pipelinesTable.businessTag, ws)));
     if (!row) return res.status(404).json({ error: "Pipeline not found" });
     res.json(row);
   } catch (err) {
@@ -60,9 +65,10 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Update pipeline
+// Update pipeline — scoped to session workspace
 router.patch("/:id", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const id = parseId(req.params.id);
     if (id === null) return res.status(400).json({ error: "Invalid ID" });
     const { name, description, steps, isActive } = req.body;
@@ -71,7 +77,9 @@ router.patch("/:id", async (req, res) => {
     if (description !== undefined) updates.description = description;
     if (steps !== undefined) updates.steps = steps;
     if (isActive !== undefined) updates.isActive = isActive;
-    const [updated] = await db.update(pipelinesTable).set(updates).where(eq(pipelinesTable.id, id)).returning();
+    const [updated] = await db.update(pipelinesTable).set(updates)
+      .where(and(eq(pipelinesTable.id, id), eq(pipelinesTable.businessTag, ws)))
+      .returning();
     if (!updated) return res.status(404).json({ error: "Pipeline not found" });
     res.json(updated);
   } catch (err) {
@@ -80,12 +88,15 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-// Delete pipeline
+// Delete pipeline — scoped to session workspace
 router.delete("/:id", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const id = parseId(req.params.id);
     if (id === null) return res.status(400).json({ error: "Invalid ID" });
-    const [deleted] = await db.delete(pipelinesTable).where(eq(pipelinesTable.id, id)).returning();
+    const [deleted] = await db.delete(pipelinesTable)
+      .where(and(eq(pipelinesTable.id, id), eq(pipelinesTable.businessTag, ws)))
+      .returning();
     if (!deleted) return res.status(404).json({ error: "Pipeline not found" });
     res.status(204).end();
   } catch (err) {
@@ -97,10 +108,11 @@ router.delete("/:id", async (req, res) => {
 // ── Run pipeline (standard — returns when complete) ────────────────────────
 router.post("/:id/run", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const id = parseId(req.params.id);
     if (id === null) return res.status(400).json({ error: "Invalid ID" });
-    const { topic, businessTag } = req.body ?? {};
-    const run = await runPipelineById(id, { topic, businessTag });
+    const { topic } = req.body ?? {};
+    const run = await runPipelineById(id, { topic, businessTag: ws });
     res.json(run);
   } catch (err) {
     req.log.error(err);
@@ -109,17 +121,16 @@ router.post("/:id/run", async (req, res) => {
 });
 
 // ── SSE streaming run — real-time step-by-step progress ───────────────────
-// GET /api/pipelines/:id/stream?topic=...&businessTag=...
 router.get("/:id/stream", async (req, res) => {
+  const ws = (req as any).sessionWorkspace as string;
   const id = parseId(req.params.id);
   if (id === null) {
     res.status(400).json({ error: "Invalid ID" });
     return;
   }
 
-  const { topic, businessTag } = req.query as { topic?: string; businessTag?: string };
+  const { topic } = req.query as { topic?: string };
 
-  // SSE headers
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -167,19 +178,30 @@ router.get("/:id/stream", async (req, res) => {
     cleanup();
   });
 
-  // Start the pipeline run asynchronously
-  runPipelineById(id, { topic, businessTag }).catch((err) => {
+  runPipelineById(id, { topic, businessTag: ws }).catch((err) => {
     sendEvent("error", { message: err.message ?? "Unknown error" });
     cleanup();
     res.end();
   });
 });
 
-// List pipeline runs
+// List pipeline runs — scoped to session workspace via pipeline join
 router.get("/runs/list", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const { status } = req.query;
-    const rows = await db.select().from(pipelineRunsTable).orderBy(pipelineRunsTable.ranAt);
+    const rows = await db.select({
+      id: pipelineRunsTable.id,
+      pipelineId: pipelineRunsTable.pipelineId,
+      status: pipelineRunsTable.status,
+      stepsOutput: pipelineRunsTable.stepsOutput,
+      finalOutput: pipelineRunsTable.finalOutput,
+      ranAt: pipelineRunsTable.ranAt,
+    })
+      .from(pipelineRunsTable)
+      .leftJoin(pipelinesTable, eq(pipelineRunsTable.pipelineId, pipelinesTable.id))
+      .where(eq(pipelinesTable.businessTag, ws))
+      .orderBy(pipelineRunsTable.ranAt);
     const filtered = status ? rows.filter(r => r.status === status) : rows;
     res.json(filtered.reverse());
   } catch (err) {
@@ -191,6 +213,7 @@ router.get("/runs/list", async (req, res) => {
 // Approve pipeline run — smart side-effects based on pipeline type
 router.post("/runs/:id/approve", async (req, res) => {
   try {
+    const ws = (req as any).sessionWorkspace as string;
     const id = parseId(req.params.id);
     if (id === null) return res.status(400).json({ error: "Invalid ID" });
     const [run] = await db.select().from(pipelineRunsTable).where(eq(pipelineRunsTable.id, id));
@@ -199,10 +222,8 @@ router.post("/runs/:id/approve", async (req, res) => {
     const [pipeline] = await db.select().from(pipelinesTable).where(eq(pipelinesTable.id, run.pipelineId));
     const pipelineType = detectPipelineType(pipeline?.name ?? "");
     const output = run.finalOutput ?? "";
-    const businessTag = (run as any).businessTag ?? "general";
     const sideEffects: string[] = [];
 
-    // Smart side-effects: create artefacts from approved output
     if (pipelineType === "social" && output) {
       const platform = pipeline?.name?.toLowerCase().includes("linkedin") ? "linkedin"
         : pipeline?.name?.toLowerCase().includes("twitter") ? "twitter"
@@ -210,7 +231,7 @@ router.post("/runs/:id/approve", async (req, res) => {
       await db.insert(socialPostsTable).values({
         platform,
         content: output,
-        businessTag,
+        businessTag: ws,
         topic: pipeline?.name,
         status: "pending_approval",
         aiGenerated: true,
@@ -223,7 +244,7 @@ router.post("/runs/:id/approve", async (req, res) => {
         content: output,
         type: "text",
         category: "marketing",
-        businessTag,
+        businessTag: ws,
       });
       sideEffects.push("brain_doc_created");
     } else if (pipelineType === "email" && output) {
