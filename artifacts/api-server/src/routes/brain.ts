@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, brainDocumentsTable } from "@workspace/db";
-import { eq, ilike, or, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, eq, ilike, or, inArray, isNotNull, sql } from "drizzle-orm";
 import multer from "multer";
 import { logger } from "../lib/logger";
 import { openai } from "@workspace/integrations-openai-ai-server";

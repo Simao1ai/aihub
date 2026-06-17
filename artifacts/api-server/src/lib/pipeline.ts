@@ -124,6 +124,8 @@ export async function runPipelineById(
     let stepError: string | null = null;
 
     try {
+      // The SDK's create() is overloaded (streaming vs not), which collapses the
+      // generic helper's return type to `unknown`; cast to the non-streaming shape we use.
       const response = await retryWithBackoff(
         () => anthropic.messages.create({
           model: "claude-sonnet-4-6",
@@ -132,7 +134,10 @@ export async function runPipelineById(
           messages: [{ role: "user", content: userMessage }],
         }),
         { maxAttempts: 3, baseDelayMs: 1000 }
-      );
+      ) as {
+        content: Array<{ type: string; text: string }>;
+        usage: { input_tokens: number; output_tokens: number };
+      };
 
       const block = response.content[0];
       stepOutput = block.type === "text" ? block.text : "";
