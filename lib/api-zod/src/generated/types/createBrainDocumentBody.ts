@@ -5,7 +5,6 @@
  * AI Hub API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { CreateBrainDocumentBodyBusinessTag } from "./createBrainDocumentBodyBusinessTag";
 import type { CreateBrainDocumentBodyType } from "./createBrainDocumentBodyType";
 
 export interface CreateBrainDocumentBody {
@@ -13,5 +12,6 @@ export interface CreateBrainDocumentBody {
   type: CreateBrainDocumentBodyType;
   content?: string;
   url?: string;
-  businessTag: CreateBrainDocumentBodyBusinessTag;
+  businessTag: string;
+  category?: string;
 }

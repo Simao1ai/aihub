@@ -80,21 +80,13 @@ export const BrainDocumentType = {
   url: "url",
 } as const;
 
-export type BrainDocumentBusinessTag =
-  (typeof BrainDocumentBusinessTag)[keyof typeof BrainDocumentBusinessTag];
-
-export const BrainDocumentBusinessTag = {
-  equifind: "equifind",
-  home_inspection: "home_inspection",
-  general: "general",
-} as const;
-
 export interface BrainDocument {
   id: number;
   title: string;
   type: BrainDocumentType;
   content: string;
-  businessTag: BrainDocumentBusinessTag;
+  businessTag: string;
+  category?: string;
   createdAt: string;
 }
 
@@ -106,21 +98,13 @@ export const CreateBrainDocumentBodyType = {
   url: "url",
 } as const;
 
-export type CreateBrainDocumentBodyBusinessTag =
-  (typeof CreateBrainDocumentBodyBusinessTag)[keyof typeof CreateBrainDocumentBodyBusinessTag];
-
-export const CreateBrainDocumentBodyBusinessTag = {
-  equifind: "equifind",
-  home_inspection: "home_inspection",
-  general: "general",
-} as const;
-
 export interface CreateBrainDocumentBody {
   title: string;
   type: CreateBrainDocumentBodyType;
   content?: string;
   url?: string;
-  businessTag: CreateBrainDocumentBodyBusinessTag;
+  businessTag: string;
+  category?: string;
 }
 
 export type AutomationStatus =
@@ -205,6 +189,8 @@ export const ConnectionAuthType = {
   api_key: "api_key",
 } as const;
 
+export type ConnectionMetadata = { [key: string]: unknown } | null;
+
 export interface Connection {
   id: number;
   platform: ConnectionPlatform;
@@ -215,6 +201,7 @@ export interface Connection {
   scopes: string[];
   createdAt: string;
   expiresAt?: string | null;
+  metadata?: ConnectionMetadata;
 }
 
 export type CreateConnectionBodyPlatform =
@@ -269,31 +256,13 @@ export type ListAnthropicConversationsParams = {
 };
 
 export type ListBrainDocumentsParams = {
-  businessTag?: ListBrainDocumentsBusinessTag;
+  businessTag?: string;
 };
-
-export type ListBrainDocumentsBusinessTag =
-  (typeof ListBrainDocumentsBusinessTag)[keyof typeof ListBrainDocumentsBusinessTag];
-
-export const ListBrainDocumentsBusinessTag = {
-  equifind: "equifind",
-  home_inspection: "home_inspection",
-  general: "general",
-} as const;
-
-export type UploadBrainDocumentBodyBusinessTag =
-  (typeof UploadBrainDocumentBodyBusinessTag)[keyof typeof UploadBrainDocumentBodyBusinessTag];
-
-export const UploadBrainDocumentBodyBusinessTag = {
-  equifind: "equifind",
-  home_inspection: "home_inspection",
-  general: "general",
-} as const;
 
 export type UploadBrainDocumentBody = {
   file: Blob;
   title: string;
-  businessTag: UploadBrainDocumentBodyBusinessTag;
+  businessTag: string;
 };
 
 export type ListAutomationRunsParams = {

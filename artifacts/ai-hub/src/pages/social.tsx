@@ -39,6 +39,7 @@ interface Connection {
   accountLabel: string;
   isConnected: boolean;
   hasToken: boolean;
+  metadata?: Record<string, unknown> | null;
 }
 
 // ── Platform config ──────────────────────────────────────────────────────

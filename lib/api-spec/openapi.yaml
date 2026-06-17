@@ -231,7 +231,6 @@ paths:
           required: false
           schema:
             type: string
-            enum: [equifind, home_inspection, general]
       responses:
         "200":
           description: List of brain documents
@@ -279,7 +278,6 @@ paths:
                   type: string
                 businessTag:
                   type: string
-                  enum: [equifind, home_inspection, general]
               required: [file, title, businessTag]
       responses:
         "201":
@@ -823,7 +821,8 @@ components:
           type: string
         businessTag:
           type: string
-          enum: [equifind, home_inspection, general]
+        category:
+          type: string
         createdAt:
           type: string
           format: date-time
@@ -849,7 +848,8 @@ components:
           type: string
         businessTag:
           type: string
-          enum: [equifind, home_inspection, general]
+        category:
+          type: string
       required:
         - title
         - type
@@ -1000,6 +1000,10 @@ components:
         expiresAt:
           type: string
           format: date-time
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
           nullable: true
       required:
         - id

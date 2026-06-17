@@ -5,7 +5,6 @@
  * AI Hub API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { BrainDocumentBusinessTag } from "./brainDocumentBusinessTag";
 import type { BrainDocumentType } from "./brainDocumentType";
 
 export interface BrainDocument {
@@ -13,6 +12,7 @@ export interface BrainDocument {
   title: string;
   type: BrainDocumentType;
   content: string;
-  businessTag: BrainDocumentBusinessTag;
+  businessTag: string;
+  category?: string;
   createdAt: Date;
 }

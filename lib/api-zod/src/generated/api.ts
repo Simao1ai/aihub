@@ -166,7 +166,7 @@ export const SendAnthropicMessageBody = zod.object({
  * @summary List all brain documents
  */
 export const ListBrainDocumentsQueryParams = zod.object({
-  businessTag: zod.enum(["equifind", "home_inspection", "general"]).optional(),
+  businessTag: zod.coerce.string().optional(),
 });
 
 export const ListBrainDocumentsResponseItem = zod.object({
@@ -174,7 +174,8 @@ export const ListBrainDocumentsResponseItem = zod.object({
   title: zod.string(),
   type: zod.enum(["pdf", "text", "url"]),
   content: zod.string(),
-  businessTag: zod.enum(["equifind", "home_inspection", "general"]),
+  businessTag: zod.string(),
+  category: zod.string().optional(),
   createdAt: zod.date(),
 });
 export const ListBrainDocumentsResponse = zod.array(
@@ -189,7 +190,8 @@ export const CreateBrainDocumentBody = zod.object({
   type: zod.enum(["text", "url"]),
   content: zod.string().optional(),
   url: zod.string().optional(),
-  businessTag: zod.enum(["equifind", "home_inspection", "general"]),
+  businessTag: zod.string(),
+  category: zod.string().optional(),
 });
 
 /**
@@ -198,7 +200,7 @@ export const CreateBrainDocumentBody = zod.object({
 export const UploadBrainDocumentBody = zod.object({
   file: zod.instanceof(File),
   title: zod.string(),
-  businessTag: zod.enum(["equifind", "home_inspection", "general"]),
+  businessTag: zod.string(),
 });
 
 /**
@@ -402,6 +404,7 @@ export const ListConnectionsResponseItem = zod.object({
   scopes: zod.array(zod.string()),
   createdAt: zod.date(),
   expiresAt: zod.date().nullish(),
+  metadata: zod.record(zod.string(), zod.unknown()).nullish(),
 });
 export const ListConnectionsResponse = zod.array(ListConnectionsResponseItem);
 

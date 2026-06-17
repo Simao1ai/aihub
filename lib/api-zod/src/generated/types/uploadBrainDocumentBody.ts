@@ -5,10 +5,9 @@
  * AI Hub API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { UploadBrainDocumentBodyBusinessTag } from "./uploadBrainDocumentBodyBusinessTag";
 
 export type UploadBrainDocumentBody = {
   file: Blob;
   title: string;
-  businessTag: UploadBrainDocumentBodyBusinessTag;
+  businessTag: string;
 };

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ConnectionAuthType } from "./connectionAuthType";
+import type { ConnectionMetadata } from "./connectionMetadata";
 import type { ConnectionPlatform } from "./connectionPlatform";
 
 export interface Connection {
@@ -18,4 +19,5 @@ export interface Connection {
   scopes: string[];
   createdAt: Date;
   expiresAt?: Date | null;
+  metadata?: ConnectionMetadata;
 }

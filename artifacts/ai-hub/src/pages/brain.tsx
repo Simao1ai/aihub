@@ -202,10 +202,9 @@ function EditModal({ doc, businessTag, onClose }: { doc: BrainDocument; business
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(doc.title);
   const [content, setContent] = useState(doc.content);
-  const [category, setCategory] = useState((doc as any).category ?? 'general');
+  const [category, setCategory] = useState(doc.category ?? 'general');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const wsHeaders = useAppStore(s => s.wsHeaders);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,7 +214,7 @@ function EditModal({ doc, businessTag, onClose }: { doc: BrainDocument; business
     try {
       const res = await fetch(`/api/brain/documents/${doc.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...wsHeaders },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: title.trim(), content, category }),
       });
       if (!res.ok) throw new Error(await res.text());

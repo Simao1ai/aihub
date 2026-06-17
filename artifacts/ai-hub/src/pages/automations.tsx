@@ -110,7 +110,7 @@ export default function Automations() {
   const { data: automations = [] } = useListAutomations();
   const { data: pendingRuns = [] } = useListAutomationRuns(
     { status: 'pending_approval' },
-    { query: { refetchInterval: 30_000 } }
+    { query: { refetchInterval: 30_000, queryKey: getListAutomationRunsQueryKey({ status: 'pending_approval' }) } }
   );
   const { data: agents = [] } = useListAgents();
 

@@ -538,7 +538,7 @@ export default function Dashboard() {
   const { data: agents = [] } = useListAgents();
   const { data: pendingRuns = [] } = useListAutomationRuns(
     { status: 'pending_approval' },
-    { query: { refetchInterval: 30_000 } }
+    { query: { refetchInterval: 30_000, queryKey: getListAutomationRunsQueryKey({ status: 'pending_approval' }) } }
   );
   const { data: connections = [] } = useListConnections();
   const { data: brainDocs = [] } = useListBrainDocuments({ businessTag });

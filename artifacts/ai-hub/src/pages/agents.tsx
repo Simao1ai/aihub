@@ -13,6 +13,8 @@ import {
   useListAnthropicConversations,
   useCreateAnthropicConversation,
   useGetAnthropicConversation,
+  getListAnthropicConversationsQueryKey,
+  getGetAnthropicConversationQueryKey,
 } from '@workspace/api-client-react';
 import { useAppStore } from '@/store';
 import { useChatStream } from '@/hooks/use-chat-stream';
@@ -754,11 +756,11 @@ export default function Agents() {
   const { data: agents = [] } = useListAgents();
   const { data: conversations = [] } = useListAnthropicConversations(
     { agentId: selectedAgentId || undefined },
-    { query: { enabled: !!selectedAgentId } }
+    { query: { enabled: !!selectedAgentId, queryKey: getListAnthropicConversationsQueryKey({ agentId: selectedAgentId || undefined }) } }
   );
   const { data: activeConv } = useGetAnthropicConversation(
     selectedConvId as number,
-    { query: { enabled: !!selectedConvId } }
+    { query: { enabled: !!selectedConvId, queryKey: getGetAnthropicConversationQueryKey(selectedConvId as number) } }
   );
   const createConvMutation = useCreateAnthropicConversation();
 

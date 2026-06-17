@@ -1,9 +1,7 @@
 name: Typecheck
 
 # Catches type regressions before they reach Replit/production.
-# The libs + API server are the required gate (they must stay green).
-# The frontend has pre-existing OpenAPI codegen drift, so its check runs
-# as informational (non-blocking) until the client is regenerated.
+# The whole monorepo (shared libs + API server + frontend) must stay green.
 
 on:
   push:
@@ -29,14 +27,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Required gate — must pass.
-      - name: Typecheck shared libraries
-        run: pnpm run typecheck:libs
-
-      - name: Typecheck API server
-        run: pnpm --filter @workspace/api-server run typecheck
-
-      # Informational — pre-existing codegen drift, tracked but non-blocking.
-      - name: Typecheck frontend (informational)
-        continue-on-error: true
-        run: pnpm --filter @workspace/ai-hub run typecheck
+      - name: Typecheck (libs + API server + frontend)
+        run: pnpm run typecheck

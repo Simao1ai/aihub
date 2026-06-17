@@ -6,6 +6,4 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ListBrainDocumentsParams = {
-  businessTag?: string;
-};
+export type ConnectionMetadata = { [key: string]: unknown } | null;
