@@ -3,7 +3,11 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"]
+    "types": ["node"],
+    // Express handlers intentionally mix `return res.json()` guard clauses with
+    // fall-through endings; noImplicitReturns (on globally) flags these as noise.
+    // Scoped off here only — strictness stays enabled for the rest of the repo.
+    "noImplicitReturns": false
   },
   "include": ["src"],
   "references": [

@@ -1353,7 +1353,7 @@ export async function seedDatabase() {
           }
           return { stepName: s.stepName, agentId: agent.id, promptTemplate: s.promptTemplate };
         })
-        .filter(Boolean);
+        .filter((s): s is { stepName: string; agentId: number; promptTemplate: string } => s !== null);
 
       if (steps.length < 2) {
         logger.warn(`Pipeline "${template.name}" has fewer than 2 resolvable steps — skipping`);

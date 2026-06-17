@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { parseExpression } from "cron-parser";
+import { CronExpressionParser } from "cron-parser";
 import { db, automationsTable, automationRunsTable, agentsTable, socialPostsTable, workspacesTable } from "@workspace/db";
 import { eq, lte, and, isNotNull, isNull } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
@@ -10,7 +10,7 @@ import { startLesaFbSchedule } from "./lesa-fb/agent";
 // ── Calculate next run time from a cron expression ─────────────────────────
 export function getNextRunAt(cronExpression: string): Date | null {
   try {
-    const interval = parseExpression(cronExpression, { tz: "America/New_York" });
+    const interval = CronExpressionParser.parse(cronExpression, { tz: "America/New_York" });
     return interval.next().toDate();
   } catch {
     return null;

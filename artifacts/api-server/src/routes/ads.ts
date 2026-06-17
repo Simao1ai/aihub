@@ -160,13 +160,13 @@ async function loadSoshiContext(businessTag: string) {
 
   try {
     // Load workspace context
-    const workspaces = await db.select().from(workspacesTable).where(eq(workspacesTable.businessTag, businessTag));
-    if (workspaces[0]?.aiContext) wsContext = workspaces[0].aiContext;
+    const workspaces = await db.select().from(workspacesTable).where(eq(workspacesTable.slug, businessTag));
+    if (workspaces[0]?.businessContext) wsContext = workspaces[0].businessContext;
   } catch { }
 
   try {
-    // Load SOSHI specifically from this workspace's agents
-    const agents = await db.select().from(agentsTable).where(eq(agentsTable.businessTag, businessTag));
+    // Load SOSHI — agents are shared across all workspaces (no per-workspace scope)
+    const agents = await db.select().from(agentsTable);
     const soshi = agents.find(a => a.slug === 'soshi');
     if (soshi?.systemPrompt) soshiPrompt = soshi.systemPrompt;
   } catch { }

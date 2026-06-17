@@ -1,0 +1,42 @@
+name: Typecheck
+
+# Catches type regressions before they reach Replit/production.
+# The libs + API server are the required gate (they must stay green).
+# The frontend has pre-existing OpenAPI codegen drift, so its check runs
+# as informational (non-blocking) until the client is regenerated.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Required gate — must pass.
+      - name: Typecheck shared libraries
+        run: pnpm run typecheck:libs
+
+      - name: Typecheck API server
+        run: pnpm --filter @workspace/api-server run typecheck
+
+      # Informational — pre-existing codegen drift, tracked but non-blocking.
+      - name: Typecheck frontend (informational)
+        continue-on-error: true
+        run: pnpm --filter @workspace/ai-hub run typecheck

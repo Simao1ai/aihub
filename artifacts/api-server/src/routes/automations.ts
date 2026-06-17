@@ -2,12 +2,12 @@ import { Router, type IRouter } from "express";
 import { db, automationsTable, automationRunsTable, agentsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { runAutomationById } from "../lib/cron";
-import { parseExpression } from "cron-parser";
+import { CronExpressionParser } from "cron-parser";
 
 function calcNextRunAt(cron: string | undefined): Date | null {
   if (!cron) return null;
   try {
-    return parseExpression(cron, { tz: "America/New_York" }).next().toDate();
+    return CronExpressionParser.parse(cron, { tz: "America/New_York" }).next().toDate();
   } catch { return null; }
 }
 

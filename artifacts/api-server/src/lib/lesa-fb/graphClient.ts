@@ -3,7 +3,7 @@ const GRAPH = `https://graph.facebook.com/${process.env.FB_GRAPH_VERSION ?? "v21
 async function graphGet(path: string, params: Record<string, string>): Promise<any> {
   const qs = new URLSearchParams(params).toString();
   const res = await fetch(`${GRAPH}/${path}?${qs}`);
-  const json = await res.json();
+  const json = await res.json() as any;
   if (!res.ok || json.error)
     throw new Error(`Graph GET ${path} failed: ${JSON.stringify(json.error ?? json)}`);
   return json;
@@ -15,7 +15,7 @@ async function graphPost(path: string, body: Record<string, string>): Promise<an
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams(body).toString(),
   });
-  const json = await res.json();
+  const json = await res.json() as any;
   if (!res.ok || json.error)
     throw new Error(`Graph POST ${path} failed: ${JSON.stringify(json.error ?? json)}`);
   return json;
